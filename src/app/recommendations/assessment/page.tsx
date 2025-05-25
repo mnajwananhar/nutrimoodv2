@@ -12,8 +12,9 @@ import {
   ArrowLeft,
   Info,
 } from "lucide-react";
-import { MLService } from "@/lib/ml-service";
 import { useToast } from "@/components/ToastProvider";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NutritionInput {
   calorie_level: number;
@@ -25,6 +26,7 @@ interface NutritionInput {
 export default function AssessmentPage() {
   const router = useRouter();
   const { success, error } = useToast();
+  const { user } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [nutritionInput, setNutritionInput] = useState<NutritionInput>({
@@ -127,33 +129,109 @@ export default function AssessmentPage() {
 
   const handleSubmit = async () => {
     setIsLoading(true);
-
     try {
-      const result = await MLService.predictMoodAndRecommendFoods(
-        nutritionInput
-      );
-
-      // Simpan hasil ke sessionStorage untuk halaman results
+      // 1. Prediksi mood ke backend
+      const moodRes = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          calorie_category: nutritionInput.calorie_level,
+          protein_category: nutritionInput.protein_level,
+          fat_category: nutritionInput.fat_level,
+          carb_category: nutritionInput.carb_level,
+        }),
+      });
+      if (!moodRes.ok) throw new Error(await moodRes.text());
+      const moodData = await moodRes.json();
+      // 2. Rekomendasi makanan ke backend
+      const foodRes = await fetch("http://localhost:8000/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mood: moodData.mood,
+          top_n: 5,
+        }),
+      });
+      if (!foodRes.ok) throw new Error(await foodRes.text());
+      const foodData = await foodRes.json();
+      // 3. Simpan ke Supabase jika user login
+      let assessmentId = null;
+      if (user) {
+        // Insert ke NutritionAssessment
+        const { data: assessment, error: err1 } = await supabase
+          .from("NutritionAssessment")
+          .insert([
+            {
+              user_id: user.id,
+              calorie_level: nutritionInput.calorie_level,
+              protein_level: nutritionInput.protein_level,
+              fat_level: nutritionInput.fat_level,
+              carb_level: nutritionInput.carb_level,
+              predicted_mood: moodData.mood,
+              confidence_score: moodData.confidence,
+              created_at: new Date().toISOString(),
+            },
+          ])
+          .select()
+          .single();
+        if (err1) throw err1;
+        assessmentId = assessment.id;
+        // Insert food recommendations
+        for (const food of foodData) {
+          await supabase.from("FoodRecommendation").insert([
+            {
+              assessment_id: assessmentId,
+              user_id: user.id,
+              food_name: food.name,
+              calories: food.calories,
+              proteins: food.proteins,
+              fats: food.fat,
+              carbohydrates: food.carbohydrate,
+              mood_category: food.primary_mood,
+              similarity_score: 0,
+              is_liked: false,
+              is_consumed: false,
+              created_at: new Date().toISOString(),
+            },
+          ]);
+        }
+      }
+      // 4. Simpan hasil ke sessionStorage untuk halaman results
       sessionStorage.setItem(
         "nutrition_assessment",
         JSON.stringify({
           input: nutritionInput,
-          result: result,
+          result: {
+            mood_prediction: {
+              mood: moodData.mood,
+              confidence: moodData.confidence,
+            },
+            food_recommendations: foodData.map(
+              (food: Record<string, unknown>) => ({
+                food_name: food.name as string,
+                calories: food.calories as number,
+                proteins: food.proteins as number,
+                fats: food.fat as number,
+                carbohydrates: food.carbohydrate as number,
+                similarity_score: 0,
+                mood_category: food.primary_mood as string,
+              })
+            ),
+          },
           timestamp: new Date().toISOString(),
         })
       );
-
       success("Analisis Berhasil!", "Redirecting ke halaman hasil...");
-
-      // Redirect ke halaman results
       setTimeout(() => {
         router.push("/recommendations/results");
       }, 1000);
-    } catch (err) {
+    } catch (err: unknown) {
       console.error("Assessment error:", err);
       error(
         "Gagal Menganalisis",
-        "Terjadi kesalahan saat memproses data Anda. Silakan coba lagi."
+        err instanceof Error
+          ? err.message
+          : "Terjadi kesalahan saat memproses data Anda. Silakan coba lagi."
       );
     } finally {
       setIsLoading(false);

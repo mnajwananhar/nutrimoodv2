@@ -5,7 +5,7 @@ import {
   useContext,
   useEffect,
   useState,
-  useCallback,
+  useRef,
 } from "react";
 import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
@@ -17,8 +17,19 @@ interface UserData {
   [key: string]: unknown;
 }
 
+interface UserProfile {
+  id: string;
+  username: string | null;
+  full_name: string | null;
+  avatar_url: string | null;
+  email: string;
+  joined_at: string;
+  last_active: string;
+}
+
 interface AuthContextType {
   user: User | null;
+  userProfile: UserProfile | null;
   session: Session | null;
   loading: boolean;
   signIn: (
@@ -47,11 +58,17 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const initialLoadDone = useRef(false);
+  const hasValidSession = useRef(false); // Track if we ever had a valid session
 
-  const createOrUpdateProfile = useCallback(
-    async (user: User) => {
+  useEffect(() => {
+    let mounted = true;
+
+    // Create or update profile function
+    const createOrUpdateProfile = async (user: User) => {
       try {
         const { data: existingProfile } = await supabase
           .from("profiles")
@@ -88,44 +105,146 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Error in createOrUpdateProfile:", error);
       }
-    },
-    [supabase]
-  );
-
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
     };
 
-    getInitialSession();
+    // Load user profile from database
+    const loadUserProfile = async (userId: string) => {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
 
-    // Listen for auth changes
+        if (mounted && profile) {
+          setUserProfile(profile);
+        }
+      } catch (error) {
+        console.error("Error loading user profile:", error);
+      }
+    };
+
+    const getSession = async () => {
+      try {
+        // Only show loading on initial load, not on subsequent checks
+        if (!initialLoadDone.current) {
+          setLoading(true);
+        }
+        
+        // Get initial session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setUserProfile(null);
+            if (!initialLoadDone.current) {
+              setLoading(false);
+              initialLoadDone.current = true;
+            }
+          }
+          return;
+        }        if (mounted) {
+          setSession(session);
+          setUser(session?.user ?? null);
+          
+          // Track if we have a valid session
+          if (session?.user) {
+            hasValidSession.current = true;
+          }
+          
+          // Load user profile if user exists
+          if (session?.user) {
+            await loadUserProfile(session.user.id);
+          } else {
+            setUserProfile(null);
+          }
+          
+          if (!initialLoadDone.current) {
+            setLoading(false);
+            initialLoadDone.current = true;
+          }
+        }
+      } catch (error) {
+        console.error('Session recovery error:', error);
+        if (mounted) {
+          setSession(null);
+          setUser(null);
+          setUserProfile(null);
+          if (!initialLoadDone.current) {
+            setLoading(false);
+            initialLoadDone.current = true;
+          }
+        }
+      }
+    };
+
+    // Handle visibility change (when switching between apps)
+    const handleVisibilityChange = () => {
+      // Only log visibility change, don't trigger session refresh
+      // This prevents "memeriksa autentikasi" when switching apps
+      // Supabase auto-refresh tokens will handle session validity
+      if (document.visibilityState === 'visible') {
+        console.log('App became visible - session maintained');
+      }
+    };    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+      console.log('Auth state changed:', event, session?.user?.id);
+      
+      if (mounted) {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Track if we have a valid session
+        if (session?.user) {
+          hasValidSession.current = true;
+        }
+        
+        // Load user profile if user exists
+        if (session?.user) {
+          await loadUserProfile(session.user.id);
+        } else {
+          setUserProfile(null);
+        }
+        
+        // Never show loading after initial load, unless user signs out
+        if (initialLoadDone.current) {
+          // If user signs out, reset the session tracking
+          if (event === "SIGNED_OUT") {
+            hasValidSession.current = false;
+            setLoading(false); // Even on signout, don't show loading
+          }
+          // For all other events (TOKEN_REFRESHED, etc), keep loading false
+        } else {
+          // Only set loading to false on initial load completion
+          setLoading(false);
+          initialLoadDone.current = true;
+        }
 
-      // Handle sign in success
-      if (event === "SIGNED_IN" && session?.user) {
-        // Create or update user profile
-        await createOrUpdateProfile(session.user);
+        // Handle sign in success
+        if (event === "SIGNED_IN" && session?.user) {
+          // Create or update user profile
+          await createOrUpdateProfile(session.user);
+        }
       }
     });
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase.auth, createOrUpdateProfile]);
+    // Add visibility change listener (passive monitoring only)
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    // Initial session check
+    getSession();
 
-  const signIn = async (email: string, password: string) => {
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);  const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -152,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/recommendations`,
       },
     });
     return { error };
@@ -175,6 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
+    userProfile,
     session,
     loading,
     signIn,

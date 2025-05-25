@@ -82,7 +82,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works Section */}
-      <section className="px-4 py-20 bg-white/50">
+      <section id="fitur" className="px-4 py-20 bg-white/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-forest-900 mb-6">
@@ -139,7 +139,10 @@ export default function HomePage() {
       </section>
 
       {/* Live Demo Section */}
-      <section className="px-4 py-20 bg-gradient-to-r from-forest-50 to-sage-50">
+      <section
+        id="demo"
+        className="px-4 py-20 bg-gradient-to-r from-forest-50 to-sage-50"
+      >
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl md:text-5xl font-bold text-forest-900 mb-6">
@@ -223,7 +226,10 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials Section */}
-      <section className="px-4 py-20 bg-gradient-to-br from-sage-50 to-beige-50">
+      <section
+        id="testimoni"
+        className="px-4 py-20 bg-gradient-to-br from-sage-50 to-beige-50"
+      >
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-forest-900 mb-6">

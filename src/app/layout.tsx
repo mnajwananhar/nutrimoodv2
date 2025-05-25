@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ToastProvider } from "@/components/ToastProvider";
+import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -45,14 +46,16 @@ export default function RootLayout({
   return (
     <html lang="id" className="scroll-smooth">
       <body className={inter.className}>
-        <AuthProvider>
-          <ToastProvider>
-            <div className="min-h-screen bg-background text-foreground">
-              <Navbar />
-              <main>{children}</main>
-            </div>
-          </ToastProvider>
-        </AuthProvider>
+        <AuthErrorBoundary>
+          <AuthProvider>
+            <ToastProvider>
+              <div className="min-h-screen bg-background text-foreground">
+                <Navbar />
+                <main>{children}</main>
+              </div>
+            </ToastProvider>
+          </AuthProvider>
+        </AuthErrorBoundary>
       </body>
     </html>
   );

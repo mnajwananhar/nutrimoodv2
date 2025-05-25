@@ -73,7 +73,7 @@ const getMoodEmoji = (mood: string): string => {
 };
 
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { error } = useToast();
 
   const [assessments, setAssessments] = useState<NutritionAssessment[]>([]);
@@ -83,16 +83,14 @@ export default function HistoryPage() {
     moodDistribution: {},
     streakDays: 0,
     favoriteTime: "",
-  });
-  const [loading, setLoading] = useState(true);
+  });  const [loading, setLoading] = useState(true);
 
   type TabType = "assessments" | "analytics" | "foods";
   type TimeFilterType = "all" | "week" | "month" | "year";
 
   const [activeTab, setActiveTab] = useState<TabType>("assessments");
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>("all");
-  const [moodFilter, setMoodFilter] = useState<string>("all");
-  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [moodFilter, setMoodFilter] = useState<string>("all");  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const loadHistoryData = useCallback(async () => {
     try {
@@ -175,9 +173,16 @@ export default function HistoryPage() {
       console.error("Error loading history:", err);
       error("Gagal memuat data riwayat");
     } finally {
+      setLoading(false);    }
+  }, [user?.id, timeFilter, moodFilter, error]);
+
+  useEffect(() => {
+    if (user) {
+      loadHistoryData();
+    } else if (!authLoading) {
       setLoading(false);
     }
-  }, [user?.id, timeFilter, moodFilter, supabase, error]);
+  }, [user, authLoading, loadHistoryData]);
 
   const calculateStreakDays = (data: NutritionAssessment[]): number => {
     if (!data.length) return 0;
@@ -275,27 +280,41 @@ export default function HistoryPage() {
   useEffect(() => {
     if (user) {
       loadHistoryData();
-    }
-  }, [user, loadHistoryData]);
+    } else {
+      setLoading(false);
+    }  }, [user, loadHistoryData]);
 
+  // Show auth loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="text-sage-700">Memeriksa autentikasi...</div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
-        <div className="text-center">
-          <Brain className="w-16 h-16 text-forest-600 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-forest-900 mb-2">
-            Login Diperlukan
-          </h2>
-          <p className="text-sage-600 mb-6">
-            Silakan login untuk melihat riwayat analisis Anda
-          </p>
-          <Link
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-sage-700">Anda belum login.</div>
+          <a
             href="/auth/login"
-            className="bg-forest-600 text-white px-6 py-3 rounded-lg hover:bg-forest-700 transition-colors"
+            className="px-4 py-2 rounded bg-forest-600 text-white hover:bg-forest-700 transition-colors"
           >
-            Login Sekarang
-          </Link>
+            Login Ulang
+          </a>
         </div>
+      </div>
+    );
+  }
+
+  // Show data loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="text-sage-700">Memuat riwayat...</div>
       </div>
     );
   }

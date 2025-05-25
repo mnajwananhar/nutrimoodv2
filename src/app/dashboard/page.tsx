@@ -32,7 +32,7 @@ interface CommunityPost {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { error } = useToast();
 
   const [stats, setStats] = useState<DashboardStats>({
@@ -94,6 +94,8 @@ export default function DashboardPage() {
   useEffect(() => {
     if (user) {
       loadDashboardData();
+    } else {
+      setLoading(false);
     }
   }, [user, loadDashboardData]);
 
@@ -107,10 +109,43 @@ export default function DashboardPage() {
     };
     return moodEmojis[mood] || "🍽️";
   };
+  // Add auth loading check with better error handling
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-forest-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-sage-700">Memverifikasi sesi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
+        <div className="text-center">
+          <BarChart3 className="w-16 h-16 text-forest-600 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-forest-900 mb-2">
+            Login Diperlukan
+          </h2>
+          <p className="text-sage-600 mb-6">
+            Silakan login untuk mengakses dashboard
+          </p>
+          <Link
+            href="/auth/login"
+            className="bg-forest-600 text-white px-6 py-3 rounded-lg hover:bg-forest-700 transition-colors"
+          >
+            Login Sekarang
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-sage-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-forest-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-sage-700">Memuat dashboard...</p>

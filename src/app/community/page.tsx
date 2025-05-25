@@ -5,6 +5,7 @@ import { Heart, MessageSquare, Image as ImageIcon, X } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ToastProvider";
+import Image from "next/image";
 
 interface Post {
   id: string;
@@ -33,7 +34,7 @@ interface Comment {
 }
 
 export default function CommunityPage() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { error, success } = useToast();
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -47,59 +48,7 @@ export default function CommunityPage() {
   });
   const [uploading, setUploading] = useState(false);
   const [selectedPost, setSelectedPost] = useState<string | null>(null);
-  const [comments, setComments] = useState<{ [key: string]: Comment[] }>({});
-  const [newComment, setNewComment] = useState("");
-
-  useEffect(() => {
-    loadCommunityData();
-    if (user) {
-      loadUserLikes();
-    }
-  }, [user]);
-
-  const loadCommunityData = async () => {
-    try {
-      const postsQuery = supabase
-        .from("community_posts")
-        .select(
-          `
-          *,
-          profiles(full_name, avatar_url)
-        `
-        )
-        .order("created_at", { ascending: false })
-        .limit(20);
-
-      const { data: postsData } = await postsQuery;
-
-      setPosts(postsData || []);
-    } catch (err) {
-      console.error("Error loading community data:", err);
-      error(
-        "Gagal Memuat Data",
-        "Terjadi kesalahan saat memuat data komunitas."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadUserLikes = async () => {
-    if (!user) return;
-
-    try {
-      const { data } = await supabase
-        .from("post_likes")
-        .select("post_id")
-        .eq("user_id", user.id);
-
-      if (data) {
-        setLikedPosts(new Set(data.map((like) => like.post_id)));
-      }
-    } catch (err) {
-      console.error("Error loading user likes:", err);
-    }
-  };
+  const [comments, setComments] = useState<{ [key: string]: Comment[] }>({});  const [newComment, setNewComment] = useState("");
 
   const handleLikePost = async (postId: string) => {
     if (!user) {
@@ -272,16 +221,91 @@ export default function CommunityPage() {
         "Gagal Menambah Komentar",
         "Terjadi kesalahan saat menambah komentar."
       );
+    }  };
+  // useEffect to load data when user authentication state changes
+  useEffect(() => {
+    if (authLoading) {
+      return; // Still loading auth state
     }
-  };
+    
+    if (user) {
+      // Load community data
+      const loadData = async () => {
+        try {
+          const postsQuery = supabase
+            .from("community_posts")
+            .select(
+              `
+              *,
+              profiles(full_name, avatar_url)
+            `
+            )
+            .order("created_at", { ascending: false })
+            .limit(20);
 
+          const { data: postsData } = await postsQuery;
+          setPosts(postsData || []);
+        } catch (err) {
+          console.error("Error loading community data:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      // Load user likes
+      const loadLikes = async () => {
+        try {
+          const { data } = await supabase
+            .from("post_likes")
+            .select("post_id")
+            .eq("user_id", user.id);
+
+          if (data) {
+            setLikedPosts(new Set(data.map((like) => like.post_id)));
+          }
+        } catch (err) {
+          console.error("Error loading user likes:", err);
+        }
+      };
+
+      loadData();
+      loadLikes();
+    } else {
+      setLoading(false);
+    }
+  }, [user, authLoading]); // REMOVED error dependency
+
+  // Show auth loading state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="text-sage-700">Memeriksa autentikasi...</div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-sage-700">Anda belum login.</div>
+          <a
+            href="/auth/login"
+            className="px-4 py-2 rounded bg-forest-600 text-white hover:bg-forest-700 transition-colors"
+          >
+            Login Ulang
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Show data loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-forest-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sage-700">Memuat komunitas...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="text-sage-700">Memuat komunitas...</div>
       </div>
     );
   }
@@ -350,9 +374,11 @@ export default function CommunityPage() {
                       key={idx}
                       className="relative w-20 h-20 rounded-lg overflow-hidden border border-sage-200"
                     >
-                      <img
+                      <Image
                         src={URL.createObjectURL(img)}
                         alt="preview"
+                        width={80}
+                        height={80}
                         className="object-cover w-full h-full"
                       />
                       <button
@@ -383,15 +409,9 @@ export default function CommunityPage() {
               </div>
             </div>
           </div>
-        )}
-
-        {/* Daftar Post */}
+        )}        {/* Daftar Post */}
         <div className="space-y-8">
-          {loading ? (
-            <div className="text-center text-sage-500 py-16">
-              Memuat postingan...
-            </div>
-          ) : posts.length === 0 ? (
+          {posts.length === 0 ? (
             <div className="text-center text-sage-500 py-16">
               Belum ada postingan komunitas.
             </div>
@@ -402,9 +422,11 @@ export default function CommunityPage() {
                 className="bg-white rounded-2xl shadow-sm border border-sage-200 p-6"
               >
                 <div className="flex items-center gap-3 mb-2">
-                  <img
+                  <Image
                     src={post.user.avatar_url || "/default-avatar.png"}
                     alt={post.user.username}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover border border-sage-200"
                   />
                   <div>
@@ -431,10 +453,12 @@ export default function CommunityPage() {
                 {post.images && post.images.length > 0 && (
                   <div className="grid grid-cols-2 gap-2 mb-2">
                     {post.images.map((img, idx) => (
-                      <img
+                      <Image
                         key={idx}
                         src={img}
-                        alt="post-img"
+                        alt={`post-img-${idx}`}
+                        width={128}
+                        height={96}
                         className="rounded-lg object-cover w-full h-32 border border-sage-200"
                       />
                     ))}
@@ -473,11 +497,13 @@ export default function CommunityPage() {
                             key={comment.id}
                             className="flex items-start gap-3"
                           >
-                            <img
+                            <Image
                               src={
                                 comment.user.avatar_url || "/default-avatar.png"
                               }
                               alt={comment.user.username}
+                              width={32}
+                              height={32}
                               className="w-8 h-8 rounded-full object-cover border border-sage-200"
                             />
                             <div>

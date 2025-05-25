@@ -1,554 +1,398 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/components/ToastProvider";
 import { supabase } from "@/lib/supabaseClient";
-import { Camera, Save, Loader2, User } from "lucide-react";
-
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 interface Profile {
   id: string;
-  username: string;
-  full_name: string;
-  avatar_url: string;
-  bio: string;
-  age: number;
-  gender: string;
-  location: string;
-}
-
-interface HealthProfile {
-  health_conditions: string[];
-  allergies: string[];
-  dietary_preferences: string[];
-  health_goals: string[];
-  medications: string[];
-  activity_level: string;
+  username?: string;
+  full_name?: string;
+  avatar_url?: string;
+  email?: string;
+  joined_at?: string;
 }
 
 export default function ProfilePage() {
-  const { user } = useAuth();
-  const { success, error } = useToast();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { user, loading: authLoading, signOut } = useAuth();
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [healthProfile, setHealthProfile] = useState<HealthProfile | null>(
-    null
-  );
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [notif, setNotif] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
 
+  // State untuk edit
+  const [editName, setEditName] = useState("");
+  const [editAvatar, setEditAvatar] = useState<string | null>(null);
   useEffect(() => {
     if (user) {
-      fetchProfile();
-    }
-  }, [user]);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch basic profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user?.id)
-        .single();
-
-      if (profileError) throw profileError;
-      setProfile(profileData);
-
-      // Fetch health profile
-      const { data: healthData, error: healthError } = await supabase
-        .from("health_profiles")
-        .select("*")
-        .eq("user_id", user?.id)
-        .single();
-
-      if (healthError && healthError.code !== "PGRST116") throw healthError;
-      setHealthProfile(
-        healthData || {
-          health_conditions: [],
-          allergies: [],
-          dietary_preferences: [],
-          health_goals: [],
-          medications: [],
-          activity_level: "moderate",
+      const fetchProfile = async () => {
+        setLoading(true);
+        try {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, username, full_name, avatar_url, email, joined_at")
+            .eq("id", user.id)
+            .single();
+          if (error) {
+            console.error("Error fetchProfile:", error);
+            setProfile(null);
+          } else if (data) {
+            setProfile(data);
+            setEditName(data.full_name || "");
+            setEditAvatar(data.avatar_url || null);
+          }
+        } catch (err) {
+          console.error("Error fetchProfile:", err);
+          setProfile(null);
+        } finally {
+          setLoading(false);
         }
-      );
-    } catch (err) {
-      console.error("Error fetching profile:", err);
-      error(
-        "Gagal memuat profil",
-        "Terjadi kesalahan saat memuat data profil Anda."
-      );
-    } finally {
+      };
+      fetchProfile();
+    } else if (!authLoading) {
       setLoading(false);
     }
+  }, [user, authLoading]);
+
+  const getInitials = (name?: string) => {
+    if (!name) return "?";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase();
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      setAvatarPreview(URL.createObjectURL(file));
-    }
+  const handleEdit = () => {
+    setEditMode(true);
+    setEditName(profile?.full_name || "");
+    setEditAvatar(profile?.avatar_url || null);
+    setNotif(null);
   };
 
-  const handleProfileChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    if (!profile) return;
-    setProfile({
-      ...profile,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  const handleHealthProfileChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    if (!healthProfile) return;
-    setHealthProfile({
-      ...healthProfile,
-      [e.target.name]: e.target.value,
-    });
+  const handleCancel = () => {
+    setEditMode(false);
+    setEditName(profile?.full_name || "");
+    setEditAvatar(profile?.avatar_url || null);
+    setNotif(null);
   };
 
   const handleSave = async () => {
-    if (!user || !profile || !healthProfile) return;
-
-    try {
-      setSaving(true);
-
-      // Upload avatar if changed
-      let avatarUrl = profile.avatar_url;
-      if (avatarFile) {
-        const fileExt = avatarFile.name.split(".").pop();
-        const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-        const { error: uploadError } = await supabase.storage
-          .from("avatars")
-          .upload(fileName, avatarFile);
-
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("avatars").getPublicUrl(fileName);
-
-        avatarUrl = publicUrl;
-      }
-
-      // Update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          ...profile,
-          avatar_url: avatarUrl,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Update health profile
-      const { error: healthError } = await supabase
-        .from("health_profiles")
-        .upsert({
-          user_id: user.id,
-          ...healthProfile,
-          updated_at: new Date().toISOString(),
-        });
-
-      if (healthError) throw healthError;
-
-      success(
-        "Profil berhasil disimpan",
-        "Perubahan pada profil Anda telah berhasil disimpan."
-      );
-      fetchProfile();
-    } catch (err) {
-      console.error("Error saving profile:", err);
-      error(
-        "Gagal menyimpan profil",
-        "Terjadi kesalahan saat menyimpan perubahan profil Anda."
-      );
-    } finally {
-      setSaving(false);
+    if (!profile) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ full_name: editName, avatar_url: editAvatar })
+      .eq("id", profile?.id);
+    setSaving(false);
+    if (!error) {
+      setProfile({
+        ...profile,
+        full_name: editName,
+        avatar_url: editAvatar || undefined,
+      });
+      setEditMode(false);
+      setNotif({ type: "success", message: "Profil berhasil diperbarui." });
+    } else {
+      setNotif({ type: "error", message: "Gagal memperbarui profil." });
     }
   };
 
-  if (loading) {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!profile || !e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    setImageUploading(true);
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${profile?.id}.${fileExt}`;
+    const filePath = `avatars/${fileName}`;
+    const { error: uploadError } = await supabase.storage
+      .from("profile-avatars")
+      .upload(filePath, file, { upsert: true });
+    if (uploadError) {
+      setImageUploading(false);
+      setNotif({ type: "error", message: "Gagal upload foto." });
+      return;
+    }
+    const { data } = supabase.storage
+      .from("profile-avatars")
+      .getPublicUrl(filePath);
+    const publicUrl = data?.publicUrl;
+    if (publicUrl) {
+      setEditAvatar(publicUrl);
+      setNotif({ type: "success", message: "Foto berhasil diupload." });
+    }
+    setImageUploading(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!profile) return;
+    setSaving(true);
+    // Hapus profile dari tabel profiles (akan cascade ke tabel lain jika foreign key on delete cascade)
+    const { error } = await supabase
+      .from("profiles")
+      .delete()
+      .eq("id", profile?.id);
+    setSaving(false);
+    if (!error) {
+      setNotif({ type: "success", message: "Akun berhasil dihapus." });
+      setTimeout(async () => {
+        await signOut();
+        router.replace("/");
+      }, 1500);
+    } else {
+      setNotif({ type: "error", message: "Gagal menghapus akun." });
+    }  };
+
+  // Show auth loading state
+  if (authLoading) {
     return (
-      <div className="min-h-screen bg-sage-50 py-12">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="animate-pulse space-y-8">
-            <div className="h-32 bg-sage-200 rounded-xl"></div>
-            <div className="space-y-4">
-              <div className="h-4 bg-sage-200 rounded w-3/4"></div>
-              <div className="h-4 bg-sage-200 rounded w-1/2"></div>
-            </div>
-          </div>
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="text-sage-700">Memeriksa autentikasi...</div>
+      </div>
+    );
+  }
+
+  // Show login prompt if not authenticated
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-sage-700">Anda belum login.</div>
+          <a
+            href="/auth/login"
+            className="px-4 py-2 rounded bg-forest-600 text-white hover:bg-forest-700 transition-colors"
+          >
+            Login Ulang
+          </a>
         </div>
       </div>
     );
   }
 
-  if (!profile || !healthProfile) {
+  // Show data loading state
+  if (loading) {
     return (
-      <div className="min-h-screen bg-sage-50 py-12">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-sage-900">
-              Profil tidak ditemukan
-            </h2>
-            <p className="mt-2 text-sage-600">
-              Silakan coba muat ulang halaman atau hubungi dukungan.
-            </p>
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="text-sage-700">Memuat profil...</div>
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-sage-50">
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-sage-700">
+            Profil tidak ditemukan atau gagal memuat data.
           </div>
+          <button
+            onClick={() => {
+              if (!user) return;
+              setLoading(true);
+              // Panggil ulang fetchProfile
+              (async () => {
+                try {
+                  const { data, error } = await supabase
+                    .from("profiles")
+                    .select(
+                      "id, username, full_name, avatar_url, email, joined_at"
+                    )
+                    .eq("id", user.id)
+                    .single();
+                  if (error) {
+                    setProfile(null);
+                  } else if (data) {
+                    setProfile(data);
+                    setEditName(data.full_name || "");
+                    setEditAvatar(data.avatar_url || null);
+                  }
+                } catch {
+                  setProfile(null);
+                } finally {
+                  setLoading(false);
+                }
+              })();
+            }}
+            className="px-4 py-2 rounded bg-forest-600 text-white"
+          >
+            Muat Ulang
+          </button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-sage-50 py-12">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-white rounded-xl shadow-sm border border-sage-200 overflow-hidden">
-          {/* Header */}
-          <div className="relative h-32 bg-gradient-to-r from-forest-600 to-forest-700">
-            <div className="absolute -bottom-16 left-8">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-white overflow-hidden bg-sage-100">
-                  {avatarPreview || profile.avatar_url ? (
-                    <img
-                      src={avatarPreview || profile.avatar_url}
-                      alt={profile.full_name}
-                      className="w-full h-full object-cover"
+    <div className="min-h-screen bg-gradient-to-br from-sage-100 to-forest-50 flex flex-col items-center py-16 px-2">
+      <div className="w-full max-w-2xl flex flex-col items-center">
+        {/* Card Profile */}
+        <div className="w-full">
+          <div className="bg-white/80 backdrop-blur rounded-3xl shadow-2xl p-10 pt-28 w-full flex flex-col items-center border border-sage-200 relative">
+            {/* Tombol Edit di kanan atas, flexbox, tidak absolute */}
+            <div className="w-full flex justify-end mb-2">
+              {!editMode && (
+                <button
+                  className="px-4 py-2 rounded-lg bg-forest-600 text-white font-semibold shadow hover:bg-forest-700 transition"
+                  onClick={handleEdit}
+                >
+                  Edit Profil
+                </button>
+              )}
+            </div>
+            {/* Avatar, posisikan di tengah atas, tidak overlap tombol */}
+            <div className="relative -mt-24 mb-4 z-10">
+              {editMode ? (
+                <div>
+                  {editAvatar ? (
+                    <Image
+                      src={editAvatar}
+                      alt="Avatar"
+                      width={144}
+                      height={144}
+                      className="w-36 h-36 rounded-full object-cover border-4 border-forest-200 shadow-lg"
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-sage-400">
-                      <User className="w-16 h-16" />
+                    <div className="w-36 h-36 rounded-full bg-sage-200 flex items-center justify-center text-5xl font-bold text-sage-600 border-4 border-forest-200 shadow-lg">
+                      {getInitials(editName)}
                     </div>
                   )}
-                </div>
-                <label
-                  htmlFor="avatar-upload"
-                  className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-sm border border-sage-200 cursor-pointer hover:bg-sage-50 transition-colors"
-                >
-                  <Camera className="w-5 h-5 text-sage-600" />
+                  <button
+                    className="absolute bottom-2 right-2 bg-forest-600 text-white rounded-full p-3 text-xs hover:bg-forest-700 transition shadow"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={imageUploading}
+                    title="Ubah Foto"
+                  >
+                    {imageUploading ? "..." : "Ubah"}
+                  </button>
                   <input
-                    id="avatar-upload"
                     type="file"
                     accept="image/*"
                     className="hidden"
-                    onChange={handleAvatarChange}
+                    ref={fileInputRef}
+                    onChange={handleImageChange}
+                    disabled={imageUploading}
                   />
-                </label>
+                </div>
+              ) : profile?.avatar_url ? (
+                <Image
+                  src={profile?.avatar_url || ""}
+                  alt="Avatar"
+                  width={144}
+                  height={144}
+                  className="w-36 h-36 rounded-full object-cover border-4 border-forest-200 shadow-lg"
+                />
+              ) : (
+                <div className="w-36 h-36 rounded-full bg-sage-200 flex items-center justify-center text-5xl font-bold text-sage-600 border-4 border-forest-200 shadow-lg">
+                  {getInitials(profile?.full_name)}
+                </div>
+              )}
+            </div>
+            <div className="w-full flex flex-col items-center">
+              {editMode ? (
+                <input
+                  type="text"
+                  className="text-3xl font-bold text-forest-900 mb-1 text-center bg-sage-50 border-b-2 border-sage-200 focus:outline-none focus:border-forest-600 transition w-full max-w-xs"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  disabled={saving}
+                  maxLength={40}
+                  autoFocus
+                />
+              ) : (
+                <div className="text-3xl font-bold text-forest-900 mb-1 text-center">
+                  {profile?.full_name || "-"}
+                </div>
+              )}
+              <div className="text-sage-600 mb-2 text-lg">
+                {profile?.username ? `@${profile?.username}` : "-"}
               </div>
+              <div className="text-sage-700 mb-2">{profile?.email || "-"}</div>
+              <div className="text-xs text-sage-500 mb-4">
+                Bergabung sejak{" "}
+                {profile?.joined_at
+                  ? new Date(profile?.joined_at).toLocaleDateString("id-ID", {
+                      dateStyle: "long",
+                    })
+                  : "-"}
+              </div>
+              {editMode && (
+                <div className="flex gap-3 mt-4">
+                  <button
+                    className="px-5 py-2 rounded-lg bg-forest-600 text-white font-semibold shadow hover:bg-forest-700 transition"
+                    onClick={handleSave}
+                    disabled={saving || imageUploading}
+                  >
+                    {saving ? "Menyimpan..." : "Simpan"}
+                  </button>
+                  <button
+                    className="px-5 py-2 rounded-lg bg-sage-200 text-forest-700 font-semibold shadow hover:bg-sage-300 transition"
+                    onClick={handleCancel}
+                    disabled={saving || imageUploading}
+                  >
+                    Batal
+                  </button>
+                </div>
+              )}
+              {notif && (
+                <div
+                  className={`mt-4 text-center text-sm font-medium ${
+                    notif.type === "success" ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {notif.message}
+                </div>
+              )}
             </div>
           </div>
-
-          {/* Profile Form */}
-          <div className="pt-20 pb-8 px-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Basic Information */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-forest-900">
-                  Informasi Dasar
-                </h3>
-
-                <div>
-                  <label
-                    htmlFor="username"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    id="username"
-                    name="username"
-                    value={profile.username || ""}
-                    onChange={handleProfileChange}
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="full_name"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Nama Lengkap
-                  </label>
-                  <input
-                    type="text"
-                    id="full_name"
-                    name="full_name"
-                    value={profile.full_name || ""}
-                    onChange={handleProfileChange}
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="bio"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Bio
-                  </label>
-                  <textarea
-                    id="bio"
-                    name="bio"
-                    rows={3}
-                    value={profile.bio || ""}
-                    onChange={handleProfileChange}
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="age"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Usia
-                  </label>
-                  <input
-                    type="number"
-                    id="age"
-                    name="age"
-                    value={profile.age || ""}
-                    onChange={handleProfileChange}
-                    min="1"
-                    max="150"
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="gender"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Jenis Kelamin
-                  </label>
-                  <select
-                    id="gender"
-                    name="gender"
-                    value={profile.gender || ""}
-                    onChange={handleProfileChange}
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  >
-                    <option value="">Pilih jenis kelamin</option>
-                    <option value="male">Laki-laki</option>
-                    <option value="female">Perempuan</option>
-                    <option value="other">Lainnya</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="location"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    id="location"
-                    name="location"
-                    value={profile.location || ""}
-                    onChange={handleProfileChange}
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-              </div>
-
-              {/* Health Information */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-forest-900">
-                  Informasi Kesehatan
-                </h3>
-
-                <div>
-                  <label
-                    htmlFor="health_conditions"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Kondisi Kesehatan
-                  </label>
-                  <textarea
-                    id="health_conditions"
-                    name="health_conditions"
-                    rows={3}
-                    value={healthProfile.health_conditions.join(", ") || ""}
-                    onChange={(e) =>
-                      setHealthProfile({
-                        ...healthProfile,
-                        health_conditions: e.target.value
-                          .split(",")
-                          .map((s) => s.trim()),
-                      })
-                    }
-                    placeholder="Pisahkan dengan koma"
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="allergies"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Alergi
-                  </label>
-                  <textarea
-                    id="allergies"
-                    name="allergies"
-                    rows={3}
-                    value={healthProfile.allergies.join(", ") || ""}
-                    onChange={(e) =>
-                      setHealthProfile({
-                        ...healthProfile,
-                        allergies: e.target.value
-                          .split(",")
-                          .map((s) => s.trim()),
-                      })
-                    }
-                    placeholder="Pisahkan dengan koma"
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="dietary_preferences"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Preferensi Diet
-                  </label>
-                  <textarea
-                    id="dietary_preferences"
-                    name="dietary_preferences"
-                    rows={3}
-                    value={healthProfile.dietary_preferences.join(", ") || ""}
-                    onChange={(e) =>
-                      setHealthProfile({
-                        ...healthProfile,
-                        dietary_preferences: e.target.value
-                          .split(",")
-                          .map((s) => s.trim()),
-                      })
-                    }
-                    placeholder="Pisahkan dengan koma"
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="health_goals"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Tujuan Kesehatan
-                  </label>
-                  <textarea
-                    id="health_goals"
-                    name="health_goals"
-                    rows={3}
-                    value={healthProfile.health_goals.join(", ") || ""}
-                    onChange={(e) =>
-                      setHealthProfile({
-                        ...healthProfile,
-                        health_goals: e.target.value
-                          .split(",")
-                          .map((s) => s.trim()),
-                      })
-                    }
-                    placeholder="Pisahkan dengan koma"
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="medications"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Obat-obatan
-                  </label>
-                  <textarea
-                    id="medications"
-                    name="medications"
-                    rows={3}
-                    value={healthProfile.medications.join(", ") || ""}
-                    onChange={(e) =>
-                      setHealthProfile({
-                        ...healthProfile,
-                        medications: e.target.value
-                          .split(",")
-                          .map((s) => s.trim()),
-                      })
-                    }
-                    placeholder="Pisahkan dengan koma"
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="activity_level"
-                    className="block text-sm font-medium text-sage-700"
-                  >
-                    Tingkat Aktivitas
-                  </label>
-                  <select
-                    id="activity_level"
-                    name="activity_level"
-                    value={healthProfile.activity_level || "moderate"}
-                    onChange={handleHealthProfileChange}
-                    className="mt-1 block w-full rounded-lg border-sage-300 shadow-sm focus:border-forest-500 focus:ring-forest-500"
-                  >
-                    <option value="sedentary">Sangat Sedikit Bergerak</option>
-                    <option value="light">Ringan</option>
-                    <option value="moderate">Sedang</option>
-                    <option value="active">Aktif</option>
-                    <option value="very_active">Sangat Aktif</option>
-                  </select>
-                </div>
-              </div>
+        </div>
+        {/* Tombol Hapus Akun */}
+        <button
+          className="mt-8 px-5 py-2 rounded-lg bg-red-600 text-white font-semibold shadow hover:bg-red-700 transition"
+          onClick={() => setShowDeleteModal(true)}
+          disabled={saving}
+        >
+          Hapus Akun
+        </button>
+      </div>
+      {/* Modal Konfirmasi Hapus Akun */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 shadow-xl max-w-sm w-full flex flex-col items-center">
+            <div className="text-xl font-bold text-red-700 mb-2">
+              Konfirmasi Hapus Akun
             </div>
-
-            {/* Save Button */}
-            <div className="mt-8 flex justify-end">
+            <div className="text-sage-700 mb-6 text-center">
+              Apakah kamu yakin ingin menghapus akun? Semua data akan hilang dan
+              tidak bisa dikembalikan.
+            </div>
+            <div className="flex gap-4">
               <button
-                onClick={handleSave}
+                className="px-5 py-2 rounded-lg bg-red-600 text-white font-semibold shadow hover:bg-red-700 transition"
+                onClick={handleDeleteAccount}
                 disabled={saving}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-forest-600 hover:bg-forest-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-forest-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {saving ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Menyimpan...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-5 h-5 mr-2" />
-                    Simpan Perubahan
-                  </>
-                )}
+                {saving ? "Menghapus..." : "Ya, Hapus"}
+              </button>
+              <button
+                className="px-5 py-2 rounded-lg bg-sage-200 text-forest-700 font-semibold shadow hover:bg-sage-300 transition"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={saving}
+              >
+                Batal
               </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

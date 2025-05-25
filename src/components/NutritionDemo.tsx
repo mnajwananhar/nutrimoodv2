@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Brain, Utensils, Zap, Heart, Target, Loader2 } from "lucide-react";
-import { nutriMoodPredictor } from "@/utils/nutrimood";
 
 interface NutritionLevels {
   calories: number;
@@ -50,22 +49,6 @@ export default function NutritionDemo() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [modelReady, setModelReady] = useState(false);
-  const [modelLoading, setModelLoading] = useState(true);
-
-  useEffect(() => {
-    setModelLoading(true);
-    nutriMoodPredictor
-      .loadModel("/tfjs_model")
-      .then(() => {
-        setModelReady(true);
-        setModelLoading(false);
-      })
-      .catch((err) => {
-        setError("Gagal memuat model: " + (err?.message || err));
-        setModelLoading(false);
-      });
-  }, []);
 
   const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
   const levelColors = [
@@ -105,22 +88,97 @@ export default function NutritionDemo() {
   const handlePredict = async () => {
     setIsLoading(true);
     setError(null);
-
+    setResult(null);
     try {
-      const analysis = await nutriMoodPredictor.analyzeNutrition(
-        nutritionLevels.calories,
-        nutritionLevels.proteins,
-        nutritionLevels.fat,
-        nutritionLevels.carbohydrate
-      );
-      setResult(analysis as AnalysisResult);
-    } catch (err) {
+      // Mapping kategori ke angka (0-3)
+      const getLevelIndex = (
+        value: number,
+        nutrient: keyof NutritionLevels
+      ) => {
+        switch (nutrient) {
+          case "calories":
+            if (value <= 50) return 0;
+            if (value <= 150) return 1;
+            if (value <= 300) return 2;
+            return 3;
+          case "proteins":
+          case "fat":
+            if (value <= 2) return 0;
+            if (value <= 10) return 1;
+            if (value <= 20) return 2;
+            return 3;
+          case "carbohydrate":
+            if (value <= 10) return 0;
+            if (value <= 25) return 1;
+            if (value <= 40) return 2;
+            return 3;
+          default:
+            return 0;
+        }
+      };
+      // 1. Prediksi mood ke backend
+      const moodRes = await fetch("http://localhost:8000/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          calorie_category: getLevelIndex(nutritionLevels.calories, "calories"),
+          protein_category: getLevelIndex(nutritionLevels.proteins, "proteins"),
+          fat_category: getLevelIndex(nutritionLevels.fat, "fat"),
+          carb_category: getLevelIndex(
+            nutritionLevels.carbohydrate,
+            "carbohydrate"
+          ),
+        }),
+      });
+      if (!moodRes.ok) throw new Error(await moodRes.text());
+      const moodData = await moodRes.json();
+      // 2. Rekomendasi makanan ke backend
+      const foodRes = await fetch("http://localhost:8000/recommend", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mood: moodData.mood,
+          top_n: 5,
+        }),
+      });
+      if (!foodRes.ok) throw new Error(await foodRes.text());
+      const foodData = await foodRes.json();
+      // 3. Set hasil ke state (bisa sesuaikan dengan struktur AnalysisResult)
+      setResult({
+        mood_analysis: {
+          predicted_mood: moodData.mood,
+          confidence: moodData.confidence,
+          confidence_percentage: (moodData.confidence * 100).toFixed(2),
+          all_probabilities: {},
+          rule_based_mood: "",
+          nutrient_categories: {
+            calories: "",
+            proteins: "",
+            fat: "",
+            carbohydrate: "",
+          },
+          input_values: nutritionLevels,
+        },
+        food_recommendations: Array.isArray(foodData)
+          ? foodData.map((food: Record<string, unknown>) => ({
+              food_name: food.name as string,
+              calories: food.calories as number,
+              proteins: food.proteins as number,
+              fat: food.fat as number,
+              carbohydrate: food.carbohydrate as number,
+              primary_mood: food.primary_mood as string,
+            }))
+          : [],
+        nutritional_advice: [],
+        mood_description: "",
+        is_balanced: false,
+      });
+    } catch (err: unknown) {
       setError(
         err instanceof Error
           ? err.message
           : "Terjadi kesalahan saat memproses data"
       );
-      console.error("Prediction error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -178,12 +236,6 @@ export default function NutritionDemo() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {modelLoading && (
-        <div className="text-center text-sage-700 mb-6">
-          <Loader2 className="w-5 h-5 mr-2 inline animate-spin" />
-          Memuat model prediksi...
-        </div>
-      )}
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-earth border border-sage-200">
         <div className="text-center mb-8">
           <h3 className="text-3xl font-bold text-forest-900 mb-3">
@@ -227,7 +279,7 @@ export default function NutritionDemo() {
 
         <button
           onClick={handlePredict}
-          disabled={isLoading || !modelReady}
+          disabled={isLoading}
           className="group bg-gradient-to-r from-forest-600 to-forest-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center mx-auto"
         >
           {isLoading ? (

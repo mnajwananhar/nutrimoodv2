@@ -15,9 +15,9 @@ import {
   ArrowRight,
   Share2,
 } from "lucide-react";
-import { MLService } from "@/lib/ml-service";
 import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/lib/supabaseClient";
 
 interface AssessmentData {
   input: {
@@ -44,6 +44,36 @@ interface AssessmentData {
   timestamp: string;
 }
 
+function getMoodEmoji(mood: string) {
+  switch (mood) {
+    case "energizing":
+      return "⚡";
+    case "relaxing":
+      return "😌";
+    case "focusing":
+      return "🎯";
+    case "uncategorized":
+      return "🤔";
+    default:
+      return "🤔";
+  }
+}
+
+function getMoodColor(mood: string) {
+  switch (mood) {
+    case "energizing":
+      return "bg-orange-100 text-orange-700";
+    case "relaxing":
+      return "bg-blue-100 text-blue-700";
+    case "focusing":
+      return "bg-green-100 text-green-700";
+    case "uncategorized":
+      return "bg-sage-100 text-sage-700";
+    default:
+      return "bg-sage-100 text-sage-700";
+  }
+}
+
 export default function ResultsPage() {
   const router = useRouter();
   const { success, error } = useToast();
@@ -57,16 +87,62 @@ export default function ResultsPage() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadAssessmentData = () => {
+    const loadAssessmentData = async () => {
+      setIsLoading(true);
       try {
-        const stored = sessionStorage.getItem("nutrition_assessment");
-        if (stored) {
-          const data = JSON.parse(stored) as AssessmentData;
-          setAssessmentData(data);
+        if (user) {
+          // Ambil assessment terbaru dari Supabase
+          const { data: assessment, error: err1 } = await supabase
+            .from("NutritionAssessment")
+            .select("*")
+            .eq("user_id", user.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .single();
+          if (err1 || !assessment)
+            throw err1 || new Error("Assessment tidak ditemukan");
+          // Ambil food recommendations
+          const { data: foods, error: err2 } = await supabase
+            .from("FoodRecommendation")
+            .select("*")
+            .eq("assessment_id", assessment.id);
+          if (err2) throw err2;
+          setAssessmentData({
+            input: {
+              calorie_level: assessment.calorie_level,
+              protein_level: assessment.protein_level,
+              fat_level: assessment.fat_level,
+              carb_level: assessment.carb_level,
+            },
+            result: {
+              mood_prediction: {
+                mood: assessment.predicted_mood,
+                confidence: assessment.confidence_score,
+              },
+              food_recommendations: (foods || []).map(
+                (food: Record<string, unknown>) => ({
+                  food_name: food.food_name as string,
+                  calories: food.calories as number,
+                  proteins: food.proteins as number,
+                  fats: food.fats as number,
+                  carbohydrates: food.carbohydrates as number,
+                  similarity_score: food.similarity_score as number,
+                  mood_category: food.mood_category as string,
+                })
+              ),
+            },
+            timestamp: assessment.created_at,
+          });
         } else {
-          // Redirect ke assessment jika tidak ada data
-          router.push("/recommendations/assessment");
-          return;
+          // Guest: ambil dari sessionStorage
+          const stored = sessionStorage.getItem("nutrition_assessment");
+          if (stored) {
+            const data = JSON.parse(stored) as AssessmentData;
+            setAssessmentData(data);
+          } else {
+            router.push("/recommendations/assessment");
+            return;
+          }
         }
       } catch (err) {
         console.error("Error loading assessment data:", err);
@@ -76,9 +152,8 @@ export default function ResultsPage() {
         setIsLoading(false);
       }
     };
-
     loadAssessmentData();
-  }, [router, error]);
+  }, [router, error, user]);
 
   const handleLikeFood = (foodName: string) => {
     setLikedFoods((prev) => {
@@ -188,7 +263,7 @@ export default function ResultsPage() {
             <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200 text-center">
               <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white">
                 <span className="text-3xl">
-                  {MLService.getMoodEmoji(result.mood_prediction.mood)}
+                  {getMoodEmoji(result.mood_prediction.mood)}
                 </span>
               </div>
 
@@ -197,12 +272,11 @@ export default function ResultsPage() {
               </h2>
 
               <div
-                className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold mb-4 ${MLService.getMoodColor(
+                className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold mb-4 ${getMoodColor(
                   result.mood_prediction.mood
                 )}`}
               >
-                {result.mood_prediction.mood.charAt(0).toUpperCase() +
-                  result.mood_prediction.mood.slice(1)}
+                {result.mood_prediction.mood}
               </div>
 
               <div className="text-sage-600 mb-6">
@@ -312,7 +386,7 @@ export default function ResultsPage() {
                                 {(food.similarity_score * 100).toFixed(0)}%
                               </div>
                               <div
-                                className={`px-3 py-1 rounded-full text-sm font-medium ${MLService.getMoodColor(
+                                className={`px-3 py-1 rounded-full text-sm font-medium ${getMoodColor(
                                   food.mood_category
                                 )}`}
                               >

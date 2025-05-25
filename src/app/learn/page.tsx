@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 
 export default function LearnPage() {
-  const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const categories = [
@@ -69,6 +68,10 @@ export default function LearnPage() {
     },
   ];
 
+  const filteredArticles = featuredArticles.filter((article) =>
+    article.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const getCategoryIcon = (category: string) => {
     const cat = categories.find((c) => c.key === category);
     const Icon = cat?.icon || BookOpen;
@@ -107,24 +110,6 @@ export default function LearnPage() {
                 className="w-full pl-10 pr-4 py-3 border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500"
               />
             </div>
-
-            {/* Category Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0">
-              {categories.map(({ key, label, icon: Icon }) => (
-                <button
-                  key={key}
-                  onClick={() => setActiveCategory(key)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl font-medium whitespace-nowrap transition-all duration-200 ${
-                    activeCategory === key
-                      ? "bg-forest-600 text-white shadow-md"
-                      : "bg-sage-100 text-sage-700 hover:bg-sage-200"
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
           </div>
         </div>
 
@@ -144,8 +129,8 @@ export default function LearnPage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredArticles.map((article) => (
-              <Link key={article.id} href={`/learn/articles/${article.id}`}>
+            {filteredArticles.map((article) => (
+              <Link key={article.id} href={`/learn/${article.id}`}>
                 <div className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-sage-200 hover:shadow-earth hover:-translate-y-1 transition-all duration-300">
                   {/* Article Image Placeholder */}
                   <div className="h-48 bg-gradient-to-br from-forest-400 to-sage-500 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden">

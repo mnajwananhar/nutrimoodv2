@@ -86,7 +86,8 @@ export default function SignUpPage() {
       );
 
       if (authError) {
-        if (authError.message.includes("User already registered")) {
+        const msg = authError.message.toLowerCase();
+        if (msg.includes("already") || msg.includes("exist")) {
           error(
             "Pendaftaran Gagal",
             "Email sudah terdaftar. Silakan gunakan email lain atau masuk ke akun Anda."

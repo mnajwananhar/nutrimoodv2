@@ -14,6 +14,7 @@ import {
   BookOpen,
   History,
   BarChart3,
+  Star,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
@@ -21,9 +22,10 @@ import { useToast } from "@/components/ToastProvider";
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>("");
   const pathname = usePathname();
   const router = useRouter();
-  const { user, signOut, loading } = useAuth();
+  const { user, userProfile, signOut, loading } = useAuth();
   const { success, error } = useToast();
 
   // Close mobile menu when route changes
@@ -47,6 +49,48 @@ export default function Navbar() {
     };
   }, [isUserMenuOpen]);
 
+  // Tambahkan useEffect untuk scroll ke anchor jika ada hash di url
+  useEffect(() => {
+    if (
+      typeof window !== "undefined" &&
+      pathname === "/" &&
+      window.location.hash
+    ) {
+      const id = window.location.hash.replace("#", "");
+      const el = document.getElementById(id);
+      if (el) {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: "smooth" });
+        }, 100); // delay agar elemen sudah render
+      }
+    }
+  }, [pathname]);
+
+  // Scrollspy untuk guest anchor
+  useEffect(() => {
+    if (!user && pathname === "/") {
+      const handleScroll = () => {
+        const sections = ["fitur", "demo", "testimoni"];
+        let found = "";
+        for (const id of sections) {
+          const el = document.getElementById(id);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            if (rect.top <= 80 && rect.bottom > 80) {
+              found = id;
+              break;
+            }
+          }
+        }
+        setActiveSection(found);
+      };
+      window.addEventListener("scroll", handleScroll);
+      handleScroll();
+      return () => window.removeEventListener("scroll", handleScroll);
+    }
+  }, [user, pathname]);
+
+  // Navigation untuk user login
   const navigation = [
     { name: "Beranda", href: "/", icon: Brain },
     {
@@ -56,6 +100,14 @@ export default function Navbar() {
     },
     { name: "Komunitas", href: "/community", icon: Users },
     { name: "Edukasi", href: "/learn", icon: BookOpen },
+  ];
+
+  // Navigation untuk sebelum login (hanya anchor ke elemen di beranda)
+  const guestNavigation = [
+    { name: "Beranda", href: "/", icon: Brain },
+    { name: "Fitur", href: "#fitur", icon: Star },
+    { name: "Demo", href: "#demo", icon: Utensils },
+    { name: "Testimoni", href: "#testimoni", icon: Users },
   ];
 
   const userNavigation = [
@@ -77,9 +129,6 @@ export default function Navbar() {
       await signOut();
       success("Berhasil Keluar", "Anda telah berhasil keluar dari akun Anda.");
       router.push("/");
-      setTimeout(() => {
-        window.location.reload(); // Paksa reload agar context dan session benar-benar update
-      }, 300);
     } catch (err) {
       console.error("Error signing out:", err);
       error(
@@ -92,6 +141,22 @@ export default function Navbar() {
         "Gagal logout: " +
           (err instanceof Error && err.message ? err.message : "Unknown error")
       );
+    }
+  };
+
+  // Handler untuk guestNavigation anchor
+  const handleGuestNavClick = (e: React.MouseEvent, href: string) => {
+    if (href.startsWith("#")) {
+      e.preventDefault();
+      const id = href.replace("#", "");
+      if (pathname === "/") {
+        const el = document.getElementById(id);
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      } else {
+        router.push("/" + href);
+      }
     }
   };
 
@@ -111,17 +176,33 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navigation.map((item) => {
+            {(user ? navigation : guestNavigation).map((item) => {
               const Icon = item.icon;
+              const isAnchor = item.href.startsWith("#");
+              const isActiveGuest =
+                !user &&
+                isAnchor &&
+                activeSection &&
+                item.href === `#${activeSection}`;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
+                  onClick={
+                    !user && isAnchor
+                      ? (e) => handleGuestNavClick(e, item.href)
+                      : undefined
+                  }
                   className={`flex items-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActive(item.href)
+                    user
+                      ? isActive(item.href)
+                        ? "bg-forest-100 text-forest-700 shadow-sm"
+                        : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
+                      : isActiveGuest
                       ? "bg-forest-100 text-forest-700 shadow-sm"
                       : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
                   }`}
+                  scroll={item.href.startsWith("#") ? false : true}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.name}</span>
@@ -144,12 +225,12 @@ export default function Navbar() {
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-sage-50 transition-colors"
                 >
                   <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    {user.user_metadata?.full_name?.[0]?.toUpperCase() ||
-                      user.email?.[0]?.toUpperCase() ||
+                    {userProfile?.full_name?.[0]?.toUpperCase() ||
+                      user?.email?.[0]?.toUpperCase() ||
                       "U"}
                   </div>
                   <span className="text-sage-700 font-medium">
-                    {user.user_metadata?.full_name || "User"}
+                    {userProfile?.full_name || "User"}
                   </span>
                 </button>
 
@@ -158,9 +239,9 @@ export default function Navbar() {
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-earth border border-sage-200 py-2 z-50">
                     <div className="px-4 py-2 border-b border-sage-100">
                       <p className="text-sm font-medium text-forest-900">
-                        {user.user_metadata?.full_name || "User"}
+                        {userProfile?.full_name || "User"}
                       </p>
-                      <p className="text-sm text-sage-600">{user.email}</p>
+                      <p className="text-sm text-sage-600">{user?.email}</p>
                     </div>
 
                     {userNavigation.map((item) => {
@@ -227,17 +308,33 @@ export default function Navbar() {
       {isOpen && (
         <div className="md:hidden bg-white border-t border-sage-200 shadow-lg">
           <div className="px-4 py-2 space-y-1">
-            {navigation.map((item) => {
+            {(user ? navigation : guestNavigation).map((item) => {
               const Icon = item.icon;
+              const isAnchor = item.href.startsWith("#");
+              const isActiveGuest =
+                !user &&
+                isAnchor &&
+                activeSection &&
+                item.href === `#${activeSection}`;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
+                  onClick={
+                    !user && isAnchor
+                      ? (e) => handleGuestNavClick(e, item.href)
+                      : undefined
+                  }
                   className={`flex items-center space-x-3 px-3 py-3 rounded-lg text-base font-medium transition-all duration-200 ${
-                    isActive(item.href)
+                    user
+                      ? isActive(item.href)
+                        ? "bg-forest-100 text-forest-700"
+                        : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
+                      : isActiveGuest
                       ? "bg-forest-100 text-forest-700"
                       : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
                   }`}
+                  scroll={item.href.startsWith("#") ? false : true}
                 >
                   <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
