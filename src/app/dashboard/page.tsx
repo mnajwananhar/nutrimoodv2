@@ -162,7 +162,7 @@ export default function DashboardPage() {
           id: assessment.id,
           type: "assessment",
           title: "Analisis Nutrisi",
-          description: `Mood: ${assessment.current_mood} | Aktivitas: ${assessment.physical_activity}`,
+          description: `Mood: ${assessment.predicted_mood}`,
           created_at: assessment.created_at,
           metadata: assessment,
         });

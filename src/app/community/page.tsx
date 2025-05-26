@@ -20,6 +20,7 @@ import {
   Search,
   X,
   Send,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -94,6 +95,24 @@ export default function CommunityPage() {
   const [showReplies, setShowReplies] = useState<{ [key: number]: boolean }>(
     {}
   );
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [modalImageUrl, setModalImageUrl] = useState<string | null>(null);
+  const [showPostDropdown, setShowPostDropdown] = useState<number | null>(null);
+  const [showCommentDropdown, setShowCommentDropdown] = useState<number | null>(
+    null
+  );
+  const [showReplyDropdown, setShowReplyDropdown] = useState<number | null>(
+    null
+  );
+  const [showDeleteModal, setShowDeleteModal] = useState<{
+    type: "post" | "comment";
+    id: number;
+    images?: string[];
+    postId?: number;
+    parentId?: number | null;
+  } | null>(null);
 
   const postTypes = [
     { value: "all", label: "Semua", icon: Users, color: "bg-gray-100" },
@@ -177,13 +196,41 @@ export default function CommunityPage() {
     fetchPosts();
   }, [fetchPosts]);
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedImages(files);
+    setImagePreviews(files.map((file) => URL.createObjectURL(file)));
+  };
+
+  const uploadImagesToStorage = async (files: File[]) => {
+    if (!user) return [];
+    const urls: string[] = [];
+    for (const file of files) {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${user.id}-${Date.now()}-${Math.random()}.${fileExt}`;
+      const filePath = `posts/${fileName}`;
+      const { error: uploadError } = await supabase.storage
+        .from("community")
+        .upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data } = supabase.storage
+        .from("community")
+        .getPublicUrl(filePath);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  };
+
   const handleCreatePost = async () => {
     if (!user || !newPost.title.trim() || !newPost.content.trim()) {
       error("Form Tidak Lengkap", "Harap lengkapi judul dan konten posting");
       return;
     }
-
     try {
+      let imageUrls: string[] = [];
+      if (selectedImages.length > 0) {
+        imageUrls = await uploadImagesToStorage(selectedImages);
+      }
       const { error: insertError } = await supabase
         .from("community_posts")
         .insert({
@@ -195,10 +242,9 @@ export default function CommunityPage() {
           rating: newPost.rating,
           tags: newPost.tags,
           user_avatar_url: userProfile?.avatar_url,
+          images: imageUrls,
         });
-
       if (insertError) throw insertError;
-
       success("Berhasil", "Posting berhasil dibuat!");
       setShowCreatePost(false);
       setNewPost({
@@ -209,6 +255,8 @@ export default function CommunityPage() {
         rating: null,
         tags: [],
       });
+      setSelectedImages([]);
+      setImagePreviews([]);
       fetchPosts();
     } catch (err) {
       console.error("Error creating post:", err);
@@ -267,14 +315,12 @@ export default function CommunityPage() {
 
       if (insertError) throw insertError;
 
-      // Update comments count only for main comments (not replies)
-      if (!parentId) {
-        const post = posts.find((p) => p.id === postId);
-        await supabase
-          .from("community_posts")
-          .update({ comments_count: (post?.comments_count || 0) + 1 })
-          .eq("id", postId);
-      }
+      // Update comments count untuk semua komentar (termasuk reply)
+      const post = posts.find((p) => p.id === postId);
+      await supabase
+        .from("community_posts")
+        .update({ comments_count: (post?.comments_count || 0) + 1 })
+        .eq("id", postId);
 
       setNewComment((prev) => ({ ...prev, [commentKey]: "" }));
       setReplyingTo((prev) => ({ ...prev, [postId]: null }));
@@ -325,6 +371,40 @@ export default function CommunityPage() {
   const getTypeConfig = (type: string) => {
     const config = postTypes.find((t) => t.value === type);
     return config || postTypes[0];
+  };
+
+  const handleDeletePost = async (postId: number, images: string[]) => {
+    if (!confirm("Yakin ingin menghapus postingan ini?")) return;
+    try {
+      // Hapus file gambar di storage
+      for (const url of images) {
+        const path = url.split("/object/public/community/")[1];
+        if (path) await supabase.storage.from("community").remove([path]);
+      }
+      // Hapus data di tabel
+      await supabase.from("community_posts").delete().eq("id", postId);
+      success("Berhasil", "Postingan dihapus");
+      fetchPosts();
+    } catch {
+      error("Gagal Hapus", "Tidak bisa menghapus postingan");
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number, postId: number) => {
+    if (!confirm("Yakin ingin menghapus komentar ini?")) return;
+    try {
+      await supabase.from("comments").delete().eq("id", commentId);
+      // Kurangi comments_count untuk semua komentar (termasuk reply)
+      const post = posts.find((p) => p.id === postId);
+      await supabase
+        .from("community_posts")
+        .update({ comments_count: (post?.comments_count || 1) - 1 })
+        .eq("id", postId);
+      success("Berhasil", "Komentar dihapus");
+      fetchPosts();
+    } catch {
+      error("Gagal Hapus", "Tidak bisa menghapus komentar");
+    }
   };
 
   if (!user) {
@@ -462,7 +542,7 @@ export default function CommunityPage() {
               return (
                 <div
                   key={post.id}
-                  className="bg-white rounded-2xl shadow-sm p-6"
+                  className="relative bg-white rounded-2xl shadow-sm p-6"
                 >
                   {/* Post Header */}{" "}
                   <div className="flex items-start justify-between mb-4">
@@ -498,6 +578,56 @@ export default function CommunityPage() {
                     {post.is_featured && (
                       <Star className="w-5 h-5 text-yellow-500 fill-current" />
                     )}
+
+                    {post.user_id === user.id && (
+                      <div className="absolute top-2 right-2 z-40">
+                        <button
+                          onClick={() => {
+                            setShowPostDropdown(
+                              showPostDropdown === post.id ? null : post.id
+                            );
+                          }}
+                          className="p-1 text-sage-400 hover:text-sage-700"
+                          title="Menu"
+                        >
+                          <svg
+                            width="20"
+                            height="20"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                          >
+                            <circle cx="4" cy="10" r="1.5" />
+                            <circle cx="10" cy="10" r="1.5" />
+                            <circle cx="16" cy="10" r="1.5" />
+                          </svg>
+                        </button>
+                        {showPostDropdown === post.id && (
+                          <>
+                            <div
+                              className="fixed inset-0 z-10"
+                              onClick={() => {
+                                setShowPostDropdown(null);
+                              }}
+                            />
+                            <div className="absolute right-0 top-8 w-32 bg-white border border-sage-200 rounded-lg shadow-lg z-50">
+                              <button
+                                onClick={() => {
+                                  setShowDeleteModal({
+                                    type: "post",
+                                    id: post.id,
+                                    images: post.images,
+                                  });
+                                  setShowPostDropdown(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
+                              >
+                                <Trash2 className="w-4 h-4" /> Hapus
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
                   </div>
                   {/* Post Content */}
                   <h3 className="text-xl font-semibold text-forest-900 mb-3">
@@ -506,6 +636,26 @@ export default function CommunityPage() {
                   <p className="text-sage-700 mb-4 leading-relaxed">
                     {post.content}
                   </p>
+                  {/* Post Images */}
+                  {post.images && post.images.length > 0 && (
+                    <div className="flex gap-2 overflow-x-auto py-2 mb-4">
+                      {post.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`post-img-${idx}`}
+                          className="w-32 h-32 object-cover rounded-lg cursor-pointer"
+                          onClick={() => {
+                            setModalImageUrl(img);
+                            setShowImageModal(true);
+                          }}
+                          onError={(e) => {
+                            e.currentTarget.src = "/api/placeholder/128/128";
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
                   {/* Food Name & Rating */}
                   {post.food_name && (
                     <div className="flex items-center justify-between mb-4 p-3 bg-sage-50 rounded-lg">
@@ -576,7 +726,7 @@ export default function CommunityPage() {
                       {post.comments.slice(0, 3).map((comment) => (
                         <div key={comment.id} className="space-y-3">
                           {/* Main Comment */}
-                          <div className="flex space-x-3">
+                          <div className="relative flex space-x-3">
                             <Image
                               src={
                                 comment.profiles.avatar_url ||
@@ -594,9 +744,63 @@ export default function CommunityPage() {
                                     comment.profiles.username ||
                                     "Pengguna"}
                                 </span>
-                                <span className="text-xs text-sage-600">
-                                  {formatDate(comment.created_at)}
-                                </span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-sage-600">
+                                    {formatDate(comment.created_at)}
+                                  </span>
+                                  {comment.user_id === user.id && (
+                                    <div className="absolute bottom-2 right-2 z-20">
+                                      <button
+                                        onClick={() => {
+                                          setShowCommentDropdown(
+                                            showCommentDropdown === comment.id
+                                              ? null
+                                              : comment.id
+                                          );
+                                        }}
+                                        className="p-1 text-sage-400 hover:text-sage-700"
+                                        title="Menu"
+                                      >
+                                        <svg
+                                          width="18"
+                                          height="18"
+                                          fill="currentColor"
+                                          viewBox="0 0 20 20"
+                                        >
+                                          <circle cx="4" cy="10" r="1.5" />
+                                          <circle cx="10" cy="10" r="1.5" />
+                                          <circle cx="16" cy="10" r="1.5" />
+                                        </svg>
+                                      </button>
+                                      {showCommentDropdown === comment.id && (
+                                        <>
+                                          <div
+                                            className="fixed inset-0 z-10"
+                                            onClick={() => {
+                                              setShowCommentDropdown(null);
+                                            }}
+                                          />
+                                          <div className="absolute right-0 bottom-8 w-32 bg-white border border-sage-200 rounded-lg shadow-lg z-50">
+                                            <button
+                                              onClick={() => {
+                                                setShowDeleteModal({
+                                                  type: "comment",
+                                                  id: comment.id,
+                                                  postId: post.id,
+                                                });
+                                                setShowCommentDropdown(null);
+                                              }}
+                                              className="block w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
+                                            >
+                                              <Trash2 className="w-4 h-4" />{" "}
+                                              Hapus
+                                            </button>
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <p className="text-sage-700 text-sm mb-2">
                                 {comment.content}
@@ -640,7 +844,7 @@ export default function CommunityPage() {
                                 {comment.replies.map((reply) => (
                                   <div
                                     key={reply.id}
-                                    className="flex space-x-3"
+                                    className="relative flex space-x-3"
                                   >
                                     <Image
                                       src={
@@ -659,9 +863,81 @@ export default function CommunityPage() {
                                             reply.profiles.username ||
                                             "Pengguna"}
                                         </span>
-                                        <span className="text-xs text-sage-600">
-                                          {formatDate(reply.created_at)}
-                                        </span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="text-xs text-sage-600">
+                                            {formatDate(reply.created_at)}
+                                          </span>
+                                          {reply.user_id === user.id && (
+                                            <div className="absolute bottom-2 right-2 z-20">
+                                              <button
+                                                onClick={() => {
+                                                  setShowReplyDropdown(
+                                                    showReplyDropdown ===
+                                                      reply.id
+                                                      ? null
+                                                      : reply.id
+                                                  );
+                                                }}
+                                                className="p-1 text-sage-400 hover:text-sage-700"
+                                                title="Menu"
+                                              >
+                                                <svg
+                                                  width="18"
+                                                  height="18"
+                                                  fill="currentColor"
+                                                  viewBox="0 0 20 20"
+                                                >
+                                                  <circle
+                                                    cx="4"
+                                                    cy="10"
+                                                    r="1.5"
+                                                  />
+                                                  <circle
+                                                    cx="10"
+                                                    cy="10"
+                                                    r="1.5"
+                                                  />
+                                                  <circle
+                                                    cx="16"
+                                                    cy="10"
+                                                    r="1.5"
+                                                  />
+                                                </svg>
+                                              </button>
+                                              {showReplyDropdown ===
+                                                reply.id && (
+                                                <>
+                                                  <div
+                                                    className="fixed inset-0 z-10"
+                                                    onClick={() => {
+                                                      setShowReplyDropdown(
+                                                        null
+                                                      );
+                                                    }}
+                                                  />
+                                                  <div className="absolute right-0 bottom-8 w-32 bg-white border border-sage-200 rounded-lg shadow-lg z-50">
+                                                    <button
+                                                      onClick={() => {
+                                                        setShowDeleteModal({
+                                                          type: "comment",
+                                                          id: reply.id,
+                                                          postId: post.id,
+                                                        });
+                                                        setShowReplyDropdown(
+                                                          null
+                                                        );
+                                                      }}
+                                                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
+                                                    >
+                                                      <Trash2 className="w-4 h-4" />{" "}
+                                                      Hapus
+                                                    </button>
+                                                  </div>
+                                                </>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                       <p className="text-sage-700 text-sm">
                                         {reply.content}
@@ -974,6 +1250,35 @@ export default function CommunityPage() {
                     </div>
                   )}
                 </div>
+
+                {/* Upload Gambar */}
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-2">
+                    Gambar (bisa lebih dari satu)
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageChange}
+                  />
+                  {imagePreviews.length > 0 && (
+                    <div className="flex gap-2 mt-2 overflow-x-auto">
+                      {imagePreviews.map((src, idx) => (
+                        <img
+                          key={idx}
+                          src={src}
+                          alt="preview"
+                          className="w-24 h-24 object-cover rounded-lg border cursor-pointer"
+                          onClick={() => {
+                            setModalImageUrl(src);
+                            setShowImageModal(true);
+                          }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="flex justify-end space-x-4 p-6 border-t border-sage-200">
@@ -989,6 +1294,63 @@ export default function CommunityPage() {
                   className="px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
                   Posting
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal preview gambar ukuran asli */}
+        {showImageModal && modalImageUrl && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+            onClick={() => setShowImageModal(false)}
+          >
+            <img
+              src={modalImageUrl}
+              alt="modal-img"
+              className="max-w-full max-h-full rounded-lg shadow-lg"
+              onError={(e) => {
+                e.currentTarget.src = "/api/placeholder/512/512";
+              }}
+            />
+          </div>
+        )}
+
+        {showDeleteModal && (
+          <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50">
+            <div className="bg-white rounded-xl shadow-lg p-8 max-w-xs w-full text-center">
+              <h3 className="text-forest-900 font-bold text-lg mb-2">
+                Konfirmasi Hapus
+              </h3>
+              <p className="text-sage-700 mb-6">
+                Yakin ingin menghapus{" "}
+                {showDeleteModal.type === "post" ? "posting" : "komentar"} ini?
+              </p>
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setShowDeleteModal(null)}
+                  className="px-4 py-2 rounded-lg bg-sage-100 text-sage-700 hover:bg-sage-200"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={() => {
+                    if (showDeleteModal.type === "post")
+                      handleDeletePost(
+                        showDeleteModal.id,
+                        showDeleteModal.images || []
+                      );
+                    else
+                      handleDeleteComment(
+                        showDeleteModal.id,
+                        showDeleteModal.postId!
+                      );
+                    setShowDeleteModal(null);
+                  }}
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                >
+                  Hapus
                 </button>
               </div>
             </div>

@@ -2,6 +2,7 @@
 const nextConfig = {
   images: {
     domains: [
+      "zcdkwrnxgsyzynkwiqzb.supabase.co",
       "images.unsplash.com",
       "res.cloudinary.com",
       "supabase.co",

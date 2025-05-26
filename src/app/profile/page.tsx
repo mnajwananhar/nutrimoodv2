@@ -128,11 +128,14 @@ export default function ProfilePage() {
 
         if (postsError) throw postsError;
 
-        // Get likes count (likes given by user)
+        // Get likes count (likes received by user's posts)
         const { count: likesCount, error: likesError } = await supabase
           .from("post_likes")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id);
+          .select("post_id, community_posts!inner(user_id)", {
+            count: "exact",
+            head: true,
+          })
+          .eq("community_posts.user_id", user.id);
 
         if (likesError) throw likesError;
 
@@ -223,7 +226,7 @@ export default function ProfilePage() {
       setEditing(false);
     } catch (error) {
       console.error("Error updating profile:", error);
-      alert("Failed to update profile. Please try again.");
+      alert("Gagal memperbarui profil. Silakan coba lagi.");
     } finally {
       setSaving(false);
     }
@@ -281,12 +284,12 @@ export default function ProfilePage() {
 
   const handleChangePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert("New passwords do not match");
+      alert("Kata sandi baru tidak cocok");
       return;
     }
 
     if (passwordForm.newPassword.length < 6) {
-      alert("New password must be at least 6 characters");
+      alert("Kata sandi baru harus minimal 6 karakter");
       return;
     }
 
@@ -297,7 +300,7 @@ export default function ProfilePage() {
 
       if (error) throw error;
 
-      alert("Password updated successfully");
+      alert("Kata sandi berhasil diperbarui");
       setPasswordForm({
         currentPassword: "",
         newPassword: "",
@@ -305,7 +308,7 @@ export default function ProfilePage() {
       });
     } catch (error) {
       console.error("Error changing password:", error);
-      alert("Failed to change password. Please try again.");
+      alert("Gagal mengubah kata sandi. Silakan coba lagi.");
     }
   };
 
@@ -326,7 +329,7 @@ export default function ProfilePage() {
       router.push("/");
     } catch (error) {
       console.error("Error deleting account:", error);
-      alert("Failed to delete account. Please try again.");
+      alert("Gagal menghapus akun. Silakan coba lagi.");
     }
   };
 
@@ -352,13 +355,13 @@ export default function ProfilePage() {
       <div className="min-h-screen bg-sage-50 flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-sage-900 mb-4">
-            Profile not found
+            Profil tidak ditemukan
           </h2>
           <button
             onClick={() => router.push("/dashboard")}
             className="bg-sage-600 text-white px-6 py-2 rounded-lg hover:bg-sage-700 transition-colors"
           >
-            Go to Dashboard
+            Ke Dashboard
           </button>
         </div>
       </div>
@@ -434,7 +437,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Joined {formatDate(profile.joined_at)}</span>
+                    <span>Bergabung Sejak {formatDate(profile.joined_at)}</span>
                   </div>
                 </div>
               </div>
@@ -445,14 +448,14 @@ export default function ProfilePage() {
                 className="flex items-center space-x-2 bg-sage-600 text-white px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors"
               >
                 <Edit3 className="w-4 h-4" />
-                <span>Edit Profile</span>
+                <span>Edit Profil</span>
               </button>
               <button
                 onClick={handleSignOut}
                 className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Sign Out</span>
+                <span>Keluar</span>
               </button>
             </div>
           </div>
@@ -481,7 +484,7 @@ export default function ProfilePage() {
                   <MessageCircle className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-sage-600">Posts</p>
+                  <p className="text-sm text-sage-600">Posting Komunitas</p>
                   <p className="text-2xl font-bold text-sage-900">
                     {userStats.posts_count}
                   </p>
@@ -495,7 +498,7 @@ export default function ProfilePage() {
                   <Heart className="w-6 h-6 text-red-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-sage-600">Likes Given</p>
+                  <p className="text-sm text-sage-600">Like Diterima</p>
                   <p className="text-2xl font-bold text-sage-900">
                     {userStats.likes_count}
                   </p>
@@ -509,7 +512,7 @@ export default function ProfilePage() {
                   <Trophy className="w-6 h-6 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-sage-600">Comments</p>
+                  <p className="text-sm text-sage-600">Komentar</p>
                   <p className="text-2xl font-bold text-sage-900">
                     {userStats.comments_count}
                   </p>
@@ -531,7 +534,7 @@ export default function ProfilePage() {
                     : "border-transparent text-sage-500 hover:text-sage-700"
                 }`}
               >
-                Profile Information
+                Informasi Profil
               </button>
               <button
                 onClick={() => setActiveTab("settings")}
@@ -541,7 +544,7 @@ export default function ProfilePage() {
                     : "border-transparent text-sage-500 hover:text-sage-700"
                 }`}
               >
-                Account Settings
+                Pengaturan Akun
               </button>
               <button
                 onClick={() => setActiveTab("stats")}
@@ -551,7 +554,7 @@ export default function ProfilePage() {
                     : "border-transparent text-sage-500 hover:text-sage-700"
                 }`}
               >
-                Statistics
+                Statistik
               </button>
             </nav>
           </div>
@@ -577,7 +580,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-2">
-                        Full Name
+                        Nama Lengkap
                       </label>
                       <input
                         type="text"
@@ -611,14 +614,16 @@ export default function ProfilePage() {
                         className="flex items-center space-x-2 bg-sage-600 text-white px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors disabled:opacity-50"
                       >
                         <Save className="w-4 h-4" />
-                        <span>{saving ? "Saving..." : "Save Changes"}</span>
+                        <span>
+                          {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                        </span>
                       </button>
                       <button
                         onClick={() => setEditing(false)}
                         className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
                       >
                         <X className="w-4 h-4" />
-                        <span>Cancel</span>
+                        <span>Batal</span>
                       </button>
                     </div>
                   </div>
@@ -632,7 +637,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Full Name
+                        Nama Lengkap
                       </label>
                       <p className="text-sage-900">{profile.full_name}</p>
                     </div>
@@ -644,7 +649,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Member Since
+                        Bergabung Sejak
                       </label>
                       <p className="text-sage-900">
                         {formatDate(profile.joined_at)}
@@ -652,7 +657,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-1">
-                        Last Active
+                        Terakhir Aktif
                       </label>
                       <p className="text-sage-900">
                         {formatDate(profile.last_active)}
@@ -669,12 +674,12 @@ export default function ProfilePage() {
                 {/* Change Password Section */}
                 <div className="border border-sage-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-sage-900 mb-4">
-                    Change Password
+                    Ubah Kata Sandi
                   </h3>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-2">
-                        Current Password
+                        Kata Sandi Saat Ini
                       </label>
                       <div className="relative">
                         <input
@@ -708,7 +713,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-2">
-                        New Password
+                        Kata Sandi Baru
                       </label>
                       <div className="relative">
                         <input
@@ -742,7 +747,7 @@ export default function ProfilePage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-2">
-                        Confirm New Password
+                        Konfirmasi Kata Sandi Baru
                       </label>
                       <div className="relative">
                         <input
@@ -778,7 +783,7 @@ export default function ProfilePage() {
                       onClick={handleChangePassword}
                       className="bg-sage-600 text-white px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors"
                     >
-                      Update Password
+                      Perbarui Kata Sandi
                     </button>
                   </div>
                 </div>
@@ -786,30 +791,30 @@ export default function ProfilePage() {
                 {/* Delete Account Section */}
                 <div className="border border-red-200 rounded-lg p-6 bg-red-50">
                   <h3 className="text-lg font-semibold text-red-900 mb-4">
-                    Danger Zone
+                    Zona Bahaya
                   </h3>
                   <p className="text-red-700 mb-4">
-                    Once you delete your account, there is no going back. Please
-                    be certain.
+                    Setelah Anda menghapus akun, tidak akan ada kembali. Harap
+                    pastikan.
                   </p>
                   {showDeleteConfirm ? (
                     <div className="space-y-4">
                       <p className="text-red-700">
-                        Are you sure you want to delete your account? This
-                        action cannot be undone.
+                        Apakah Anda yakin ingin menghapus akun Anda? Tindakan
+                        ini tidak dapat dibatalkan.
                       </p>
                       <div className="flex space-x-3">
                         <button
                           onClick={handleDeleteAccount}
                           className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                         >
-                          Yes, Delete My Account
+                          Ya, Hapus Akun Saya
                         </button>
                         <button
                           onClick={() => setShowDeleteConfirm(false)}
                           className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
                         >
-                          Cancel
+                          Batal
                         </button>
                       </div>
                     </div>
@@ -819,7 +824,7 @@ export default function ProfilePage() {
                       className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
-                      <span>Delete Account</span>
+                      <span>Hapus Akun</span>
                     </button>
                   )}
                 </div>
@@ -832,7 +837,7 @@ export default function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-sage-50 rounded-lg p-4">
                     <h4 className="font-semibold text-sage-900 mb-2">
-                      Activity Summary
+                      Ringkasan Aktivitas
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -844,19 +849,21 @@ export default function ProfilePage() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sage-600">Community Posts:</span>
+                        <span className="text-sage-600">
+                          Posting Komunitas:
+                        </span>
                         <span className="font-medium text-sage-900">
                           {userStats.posts_count}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sage-600">Likes Given:</span>
+                        <span className="text-sage-600">Like Diterima:</span>
                         <span className="font-medium text-sage-900">
                           {userStats.likes_count}
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sage-600">Comments Made:</span>
+                        <span className="text-sage-600">Komentar:</span>
                         <span className="font-medium text-sage-900">
                           {userStats.comments_count}
                         </span>
@@ -866,11 +873,11 @@ export default function ProfilePage() {
 
                   <div className="bg-sage-50 rounded-lg p-4">
                     <h4 className="font-semibold text-sage-900 mb-2">
-                      Mood Insights
+                      Insight Mood
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-sage-600">Favorite Mood:</span>
+                        <span className="text-sage-600">Mood Favorit:</span>
                         <span
                           className={`font-medium capitalize ${getMoodColor(
                             userStats.favorite_mood
@@ -880,7 +887,9 @@ export default function ProfilePage() {
                         </span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sage-600">Avg. Confidence:</span>
+                        <span className="text-sage-600">
+                          Rata-rata Keyakinan:
+                        </span>
                         <span className="font-medium text-sage-900">
                           {(userStats.avg_confidence * 100).toFixed(1)}%
                         </span>
@@ -891,18 +900,18 @@ export default function ProfilePage() {
 
                 <div className="bg-gradient-to-r from-sage-100 to-sage-200 rounded-lg p-6">
                   <h4 className="font-semibold text-sage-900 mb-3">
-                    Your NutriMood Journey
+                    Perjalanan NutriMood Anda
                   </h4>
                   <p className="text-sage-700 mb-4">
-                    You&apos;ve been an active member of the NutriMood
-                    community! Keep tracking your nutrition and mood to gain
-                    deeper insights into your wellbeing.
+                    Anda telah menjadi anggota komunitas NutriMood yang aktif!
+                    Terus mengikuti nutrisi dan mood Anda untuk mendapatkan
+                    wawasan lebih dalam tentang kesehatan Anda.
                   </p>
                   <div className="flex items-center space-x-4">
                     <div className="flex items-center space-x-2">
                       <Target className="w-5 h-5 text-sage-600" />
                       <span className="text-sm text-sage-700">
-                        Next milestone:{" "}
+                        Target berikutnya:{" "}
                         {Math.ceil(userStats.assessments_count / 10) * 10}{" "}
                         assessments
                       </span>

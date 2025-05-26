@@ -93,7 +93,7 @@ export default function Navbar() {
 
   // Navigation untuk user login
   const navigation = [
-    { name: "Beranda", href: "/", icon: Brain },
+    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     {
       name: "Analisis Nutrisi",
       href: "/recommendations/assessment",
@@ -112,7 +112,6 @@ export default function Navbar() {
   ];
 
   const userNavigation = [
-    { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "Riwayat", href: "/history", icon: History },
     { name: "Profil", href: "/profile/", icon: User },
   ];
