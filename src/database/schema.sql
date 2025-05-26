@@ -1,115 +1,103 @@
--- =========================
--- USERS & PROFILE
--- =========================
+-- Skema utama NutriMood
 
-create table if not exists profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  username text,
-  full_name text,
-  email text,
-  avatar_url text,
-  joined_at timestamp with time zone,
-  last_active timestamp with time zone,
-  created_at timestamp with time zone default now()
+-- Tabel user profile
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY,
+    username VARCHAR(50) UNIQUE,
+    full_name VARCHAR(100),
+    email VARCHAR(100) UNIQUE,
+    avatar_url TEXT,
+    joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_active TIMESTAMP
 );
 
-create table if not exists health_profiles (
-  id bigserial primary key,
-  user_id uuid references profiles(id) on delete cascade,
-  health_conditions text[], -- contoh: ['diabetes', 'hipertensi']
-  allergies text[],
-  dietary_preferences text[],
-  health_goals text[],
-  medications text[],
-  activity_level text default 'moderate',
-  updated_at timestamp with time zone default now()
+-- Tabel assessment nutrisi
+CREATE TABLE IF NOT EXISTS nutrition_assessments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    calorie_level INT,
+    protein_level INT,
+    fat_level INT,
+    carb_level INT,
+    predicted_mood VARCHAR(30),
+    confidence_score FLOAT,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================
--- NUTRITION ASSESSMENT & RECOMMENDATION
--- =========================
-
-create table if not exists nutrition_assessments (
-  id bigserial primary key,
-  user_id uuid references profiles(id) on delete cascade,
-  calorie_level int,
-  protein_level int,
-  fat_level int,
-  carb_level int,
-  predicted_mood text,
-  confidence_score float,
-  notes text,
-  created_at timestamp with time zone default now()
+-- Tabel rekomendasi makanan per assessment
+CREATE TABLE IF NOT EXISTS food_recommendations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    assessment_id UUID REFERENCES nutrition_assessments(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    food_name VARCHAR(100),
+    calories FLOAT,
+    proteins FLOAT,
+    fats FLOAT,
+    carbohydrates FLOAT,
+    similarity_score FLOAT,
+    mood_category VARCHAR(30),
+    is_liked BOOLEAN DEFAULT FALSE,
+    is_consumed BOOLEAN DEFAULT FALSE,
+    consumed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-create table if not exists food_recommendations (
-  id bigserial primary key,
-  assessment_id bigint references nutrition_assessments(id) on delete cascade,
-  user_id uuid references profiles(id) on delete cascade,
-  food_name text,
-  calories float,
-  proteins float,
-  fats float,
-  carbohydrates float,
-  mood_category text,
-  similarity_score float,
-  is_liked boolean default false,
-  is_consumed boolean default false,
-  consumed_at timestamp with time zone,
-  created_at timestamp with time zone default now()
+-- Tabel komunitas: postingan
+CREATE TABLE IF NOT EXISTS community_posts (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    user_avatar_url TEXT,
+    type VARCHAR(20),
+    title VARCHAR(200),
+    content TEXT,
+    images TEXT[],
+    tags TEXT[],
+    food_name VARCHAR(100),
+    rating INT,
+    likes_count INT DEFAULT 0,
+    comments_count INT DEFAULT 0,
+    is_featured BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================
--- FOODS MASTER DATA
--- =========================
-
-create table if not exists foods (
-  id bigserial primary key,
-  name text not null,
-  description text,
-  calories float,
-  proteins float,
-  fats float,
-  carbohydrates float,
-  primary_mood text,
-  image_url text,
-  created_at timestamp with time zone default now()
+-- Tabel komunitas: gambar per post (untuk multi-image)
+CREATE TABLE IF NOT EXISTS community_post_images (
+    id SERIAL PRIMARY KEY,
+    post_id INT REFERENCES community_posts(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- =========================
--- COMMUNITY
--- =========================
-
-create table if not exists community_posts (
-  id bigserial primary key,
-  user_id uuid references profiles(id) on delete cascade,
-  user_avatar_url text, -- foto profil user
-  type text check (type in ('recipe', 'story', 'question', 'tip', 'review')),
-  title text,
-  content text not null,
-  images text[], -- array of image URLs
-  tags text[],
-  food_name text,
-  rating int, -- 1-5 untuk review
-  likes_count int default 0,
-  comments_count int default 0,
-  is_featured boolean default false,
-  created_at timestamp with time zone default now(),
-  updated_at timestamp with time zone default now()
+-- Tabel komunitas: like
+CREATE TABLE IF NOT EXISTS post_likes (
+    id SERIAL PRIMARY KEY,
+    post_id INT REFERENCES community_posts(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(post_id, user_id)
 );
 
-create table if not exists post_likes (
-  id bigserial primary key,
-  post_id bigint references community_posts(id) on delete cascade,
-  user_id uuid references profiles(id) on delete cascade,
-  created_at timestamp with time zone default now(),
-  unique (post_id, user_id)
+-- Tabel komunitas: komentar
+CREATE TABLE IF NOT EXISTS comments (
+    id SERIAL PRIMARY KEY,
+    post_id INT REFERENCES community_posts(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    parent_id INT REFERENCES comments(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-create table if not exists comments (
-  id bigserial primary key,
-  post_id bigint references community_posts(id) on delete cascade,
-  user_id uuid references profiles(id) on delete cascade,
-  content text not null,
-  created_at timestamp with time zone default now()
-);
+-- Index untuk komentar balasan
+CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
+
+-- Tabel komunitas: notifikasi (opsional)
+CREATE TABLE IF NOT EXISTS notifications (
+    id SERIAL PRIMARY KEY,
+    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+    type VARCHAR(30),
+    data JSONB,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 

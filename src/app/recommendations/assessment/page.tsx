@@ -159,7 +159,7 @@ export default function AssessmentPage() {
       if (user) {
         // Insert ke NutritionAssessment
         const { data: assessment, error: err1 } = await supabase
-          .from("NutritionAssessment")
+          .from("nutrition_assessments")
           .insert([
             {
               user_id: user.id,
@@ -178,22 +178,27 @@ export default function AssessmentPage() {
         assessmentId = assessment.id;
         // Insert food recommendations
         for (const food of foodData) {
-          await supabase.from("FoodRecommendation").insert([
-            {
-              assessment_id: assessmentId,
-              user_id: user.id,
-              food_name: food.name,
-              calories: food.calories,
-              proteins: food.proteins,
-              fats: food.fat,
-              carbohydrates: food.carbohydrate,
-              mood_category: food.primary_mood,
-              similarity_score: 0,
-              is_liked: false,
-              is_consumed: false,
-              created_at: new Date().toISOString(),
-            },
-          ]);
+          const { error: err2 } = await supabase
+            .from("food_recommendations")
+            .insert([
+              {
+                assessment_id: assessmentId,
+                user_id: user.id,
+                food_name: food.name,
+                calories: food.calories,
+                proteins: food.proteins,
+                fats: food.fat,
+                carbohydrates: food.carbohydrate,
+                mood_category: food.primary_mood,
+                similarity_score: 0,
+                is_liked: false,
+                is_consumed: false,
+                created_at: new Date().toISOString(),
+              },
+            ]);
+          if (err2) {
+            console.error("Insert food_recommendations error:", err2);
+          }
         }
       }
       // 4. Simpan hasil ke sessionStorage untuk halaman results
@@ -327,14 +332,24 @@ export default function AssessmentPage() {
                       currentValue === index
                         ? levelColors[index] +
                           " scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
-                        : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50"
+                        : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
                     }
                   `}
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="font-semibold text-lg mb-1">{label}</h3>
-                      <p className="text-sm opacity-80">
+                      <h3
+                        className={`font-semibold text-lg mb-1 ${
+                          currentValue === index ? "" : "text-sage-900"
+                        }`}
+                      >
+                        {label}
+                      </h3>{" "}
+                      <p
+                        className={`text-sm ${
+                          currentValue === index ? "" : "text-sage-700"
+                        }`}
+                      >
                         {currentStepData.examples[index].split(": ")[1]}
                       </p>
                     </div>

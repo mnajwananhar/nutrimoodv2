@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
+import AuthButtons from "./AuthButtons";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -25,7 +26,7 @@ export default function Navbar() {
   const [activeSection, setActiveSection] = useState<string>("");
   const pathname = usePathname();
   const router = useRouter();
-  const { user, userProfile, signOut, loading } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const { success, error } = useToast();
 
   // Close mobile menu when route changes
@@ -197,14 +198,13 @@ export default function Navbar() {
                     user
                       ? isActive(item.href)
                         ? "bg-forest-100 text-forest-700 shadow-sm"
-                        : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
+                        : "text-sage-700 hover:bg-sage-50"
                       : isActiveGuest
                       ? "bg-forest-100 text-forest-700 shadow-sm"
-                      : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
+                      : "text-sage-700 hover:bg-sage-50"
                   }`}
-                  scroll={item.href.startsWith("#") ? false : true}
                 >
-                  <Icon className="w-4 h-4" />
+                  <Icon className="w-5 h-5" />
                   <span>{item.name}</span>
                 </Link>
               );
@@ -213,9 +213,7 @@ export default function Navbar() {
 
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            {loading ? (
-              <div className="w-8 h-8 rounded-full bg-sage-200 animate-pulse" />
-            ) : user ? (
+            {user ? (
               <div className="relative">
                 <button
                   onClick={(e) => {
@@ -224,11 +222,19 @@ export default function Navbar() {
                   }}
                   className="flex items-center space-x-2 p-2 rounded-lg hover:bg-sage-50 transition-colors"
                 >
-                  <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                    {userProfile?.full_name?.[0]?.toUpperCase() ||
-                      user?.email?.[0]?.toUpperCase() ||
-                      "U"}
-                  </div>
+                  {userProfile?.avatar_url ? (
+                    <img
+                      src={userProfile.avatar_url}
+                      alt="User Avatar"
+                      className="w-8 h-8 rounded-full object-cover border border-sage-200"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                      {userProfile?.full_name?.[0]?.toUpperCase() ||
+                        user?.email?.[0]?.toUpperCase() ||
+                        "U"}
+                    </div>
+                  )}
                   <span className="text-sage-700 font-medium">
                     {userProfile?.full_name || "User"}
                   </span>
@@ -237,11 +243,29 @@ export default function Navbar() {
                 {/* User Dropdown */}
                 {isUserMenuOpen && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-earth border border-sage-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-sage-100">
-                      <p className="text-sm font-medium text-forest-900">
-                        {userProfile?.full_name || "User"}
-                      </p>
-                      <p className="text-sm text-sage-600">{user?.email}</p>
+                    <div className="px-4 py-2 border-b border-sage-100 flex items-center gap-3">
+                      {userProfile?.avatar_url ? (
+                        <img
+                          src={userProfile.avatar_url}
+                          alt="User Avatar"
+                          className="w-8 h-8 rounded-full object-cover border border-sage-200"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
+                          {userProfile?.full_name?.[0]?.toUpperCase() ||
+                            userProfile?.username?.[0]?.toUpperCase() ||
+                            user?.email?.[0]?.toUpperCase() ||
+                            "U"}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-forest-900">
+                          {userProfile?.full_name || "User"}
+                        </p>
+                        <p className="text-sm text-sage-600 truncate break-all max-w-[180px]">
+                          {user?.email}
+                        </p>
+                      </div>
                     </div>
 
                     {userNavigation.map((item) => {
@@ -271,20 +295,7 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
-                <Link
-                  href="/auth/login"
-                  className="text-sage-700 hover:text-forest-700 font-medium transition-colors"
-                >
-                  Masuk
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="bg-gradient-to-r from-forest-600 to-forest-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm hover:shadow-md transform hover:-translate-y-0.5 transition-all duration-200"
-                >
-                  Daftar Gratis
-                </Link>
-              </div>
+              <AuthButtons />
             )}
           </div>
 
@@ -344,6 +355,26 @@ export default function Navbar() {
 
             {user && (
               <>
+                <div className="border-t border-sage-200 mt-4 pt-4 flex items-center gap-3">
+                  {userProfile?.avatar_url ? (
+                    <img
+                      src={userProfile.avatar_url}
+                      alt="User Avatar"
+                      className="w-8 h-8 rounded-full object-cover border border-sage-200"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
+                      {userProfile?.full_name?.[0]?.toUpperCase() ||
+                        userProfile?.username?.[0]?.toUpperCase() ||
+                        user?.email?.[0]?.toUpperCase() ||
+                        "U"}
+                    </div>
+                  )}
+                  <span className="font-medium text-forest-900">
+                    {userProfile?.full_name || userProfile?.username || "User"}
+                  </span>
+                </div>
+
                 <div className="border-t border-sage-200 mt-4 pt-4">
                   {userNavigation.map((item) => {
                     const Icon = item.icon;
@@ -372,20 +403,9 @@ export default function Navbar() {
               </>
             )}
 
-            {!user && !loading && (
-              <div className="border-t border-sage-200 mt-4 pt-4 space-y-2">
-                <Link
-                  href="/auth/login"
-                  className="block w-full text-center px-4 py-3 text-sage-700 hover:text-forest-700 font-medium transition-colors"
-                >
-                  Masuk
-                </Link>
-                <Link
-                  href="/auth/signup"
-                  className="block w-full text-center bg-gradient-to-r from-forest-600 to-forest-700 text-white px-4 py-3 rounded-lg font-medium shadow-sm"
-                >
-                  Daftar Gratis
-                </Link>
+            {!user && (
+              <div className="border-t border-sage-200 mt-4 pt-4">
+                <AuthButtons mobile={true} />
               </div>
             )}
           </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Brain, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
+import { Card, Input, Button } from "@/components/ui";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -105,15 +106,13 @@ export default function LoginPage() {
             Selamat datang kembali! Masuk untuk mengakses dashboard pribadi
             Anda.
           </p>
-        </div>
-
-        {/* Login Form */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-earth border border-sage-200 p-8">
-          {/* Google Sign In */}
-          <button
+        </div>        {/* Login Form */}
+        <Card className="bg-white/80 backdrop-blur-sm shadow-earth p-8">          {/* Google Sign In */}
+          <Button
             onClick={handleGoogleSignIn}
             disabled={isGoogleLoading || isLoading}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-sage-300 text-sage-700 px-6 py-3 rounded-xl font-semibold hover:bg-sage-50 hover:border-sage-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            variant="secondary"
+            className="w-full flex items-center justify-center gap-3 mb-6"
           >
             {isGoogleLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -140,7 +139,7 @@ export default function LoginPage() {
               </div>
             )}
             <span>Masuk dengan Google</span>
-          </button>
+          </Button>
 
           {/* Divider */}
           <div className="relative mb-6">

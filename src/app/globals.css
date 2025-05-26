@@ -26,7 +26,7 @@
   --color-sage-200: #d6ddc4;
   --color-sage-300: #bbc79e;
   --color-sage-400: #9eb077;
-  --color-sage-500: #849757;
+  --color-sage-500: #849957;
   --color-sage-600: #677643;
   --color-sage-700: #525d37;
   --color-sage-800: #434b30;
@@ -96,6 +96,13 @@ body {
 /* Smooth transitions */
 * {
   transition: all 0.2s ease-in-out;
+}
+
+/* Input fields default text color */
+input,
+textarea,
+select {
+  color: var(--color-sage-900);
 }
 
 /* Custom animations */

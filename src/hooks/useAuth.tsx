@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  useRef,
-} from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -61,11 +55,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const initialLoadDone = useRef(false);
-  const hasValidSession = useRef(false); // Track if we ever had a valid session
+  const initialized = useRef(false);
 
   useEffect(() => {
     let mounted = true;
+    let authSubscription: { unsubscribe: () => void } | null = null;
 
     // Create or update profile function
     const createOrUpdateProfile = async (user: User) => {
@@ -124,127 +118,118 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     };
 
-    const getSession = async () => {
+    // Initialize auth state
+    const initializeAuth = async () => {
+      if (initialized.current) return;
+
       try {
-        // Only show loading on initial load, not on subsequent checks
-        if (!initialLoadDone.current) {
-          setLoading(true);
-        }
-        
-        // Get initial session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
+        console.log("Initializing auth...");
+
+        // Set loading false immediately for better UX
+        setLoading(false);
+
+        // Get current session
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
         if (error) {
-          console.error('Error getting session:', error);
-          if (mounted) {
-            setSession(null);
-            setUser(null);
-            setUserProfile(null);
-            if (!initialLoadDone.current) {
-              setLoading(false);
-              initialLoadDone.current = true;
-            }
-          }
-          return;
-        }        if (mounted) {
+          console.error("Error getting session:", error);
+        }
+
+        if (mounted) {
           setSession(session);
           setUser(session?.user ?? null);
-          
-          // Track if we have a valid session
+
+          // Load profile asynchronously without blocking
           if (session?.user) {
-            hasValidSession.current = true;
+            loadUserProfile(session.user.id);
           }
-          
-          // Load user profile if user exists
-          if (session?.user) {
-            await loadUserProfile(session.user.id);
-          } else {
-            setUserProfile(null);
-          }
-          
-          if (!initialLoadDone.current) {
-            setLoading(false);
-            initialLoadDone.current = true;
-          }
+
+          // Mark as initialized
+          initialized.current = true;
+          console.log(
+            "Auth initialized, user:",
+            session?.user?.email || "none"
+          );
         }
       } catch (error) {
-        console.error('Session recovery error:', error);
+        console.error("Auth initialization error:", error);
         if (mounted) {
-          setSession(null);
-          setUser(null);
-          setUserProfile(null);
-          if (!initialLoadDone.current) {
-            setLoading(false);
-            initialLoadDone.current = true;
-          }
+          initialized.current = true;
         }
       }
     };
 
-    // Handle visibility change (when switching between apps)
-    const handleVisibilityChange = () => {
-      // Only log visibility change, don't trigger session refresh
-      // This prevents "memeriksa autentikasi" when switching apps
-      // Supabase auto-refresh tokens will handle session validity
-      if (document.visibilityState === 'visible') {
-        console.log('App became visible - session maintained');
-      }
-    };    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
-      
-      if (mounted) {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        // Track if we have a valid session
-        if (session?.user) {
-          hasValidSession.current = true;
-        }
-        
-        // Load user profile if user exists
-        if (session?.user) {
-          await loadUserProfile(session.user.id);
-        } else {
-          setUserProfile(null);
-        }
-        
-        // Never show loading after initial load, unless user signs out
-        if (initialLoadDone.current) {
-          // If user signs out, reset the session tracking
-          if (event === "SIGNED_OUT") {
-            hasValidSession.current = false;
-            setLoading(false); // Even on signout, don't show loading
+    // Set up auth state listener
+    const setupAuthListener = () => {
+      console.log("Setting up auth listener...");
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log("Auth event:", event, session?.user?.email || "no user");
+
+        if (!mounted) return;
+
+        try {
+          switch (event) {
+            case "SIGNED_IN":
+              setSession(session);
+              setUser(session?.user ?? null);
+              if (session?.user) {
+                createOrUpdateProfile(session.user);
+                loadUserProfile(session.user.id);
+              }
+              break;
+
+            case "SIGNED_OUT":
+              setSession(null);
+              setUser(null);
+              setUserProfile(null);
+              break;
+
+            case "TOKEN_REFRESHED":
+              setSession(session);
+              setUser(session?.user ?? null);
+              break;
+
+            case "INITIAL_SESSION":
+              // Skip - handled by initializeAuth
+              break;
+
+            default:
+              setSession(session);
+              setUser(session?.user ?? null);
+              if (session?.user) {
+                loadUserProfile(session.user.id);
+              } else {
+                setUserProfile(null);
+              }
+              break;
           }
-          // For all other events (TOKEN_REFRESHED, etc), keep loading false
-        } else {
-          // Only set loading to false on initial load completion
-          setLoading(false);
-          initialLoadDone.current = true;
+        } catch (error) {
+          console.error("Error handling auth event:", error);
         }
+      });
 
-        // Handle sign in success
-        if (event === "SIGNED_IN" && session?.user) {
-          // Create or update user profile
-          await createOrUpdateProfile(session.user);
-        }
-      }
-    });
+      return subscription;
+    };
 
-    // Add visibility change listener (passive monitoring only)
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // Initial session check
-    getSession();
+    // Start initialization
+    authSubscription = setupAuthListener();
+    initializeAuth();
 
     return () => {
       mounted = false;
-      subscription.unsubscribe();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+      }
     };
-  }, []);  const signIn = async (email: string, password: string) => {
+  }, []);
+
+  const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -278,9 +263,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Error signing out:", error);
+    try {
+      // Reset initialization flag before signing out
+      initialized.current = false;
+
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Error signing out:", error);
+        throw error;
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
       throw error;
     }
   };

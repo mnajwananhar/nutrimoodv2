@@ -1,79 +1,18 @@
 "use client";
 
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import {
-  BookOpen,
-  Brain,
-  Utensils,
-  Heart,
-  Clock,
-  FileText,
-  Target,
-  Lightbulb,
-} from "lucide-react";
-
-const categories = [
-  { key: "all", label: "Semua", icon: BookOpen },
-  { key: "nutrition-basics", label: "Dasar Nutrisi", icon: Utensils },
-  { key: "mood-food", label: "Mood & Makanan", icon: Brain },
-  { key: "indonesian-foods", label: "Makanan Indonesia", icon: Heart },
-  { key: "health-tips", label: "Tips Kesehatan", icon: Target },
-  { key: "myths-facts", label: "Mitos vs Fakta", icon: Lightbulb },
-];
-
-const featuredArticles = [
-  {
-    id: "1",
-    title: "Apa itu Kalori dan Mengapa Penting?",
-    slug: "apa-itu-kalori-dan-mengapa-penting",
-    excerpt:
-      "Memahami kalori sebagai unit energi dan bagaimana menghitung kebutuhan kalori harian Anda.",
-    category: "nutrition-basics",
-    reading_time: 5,
-    views: 1250,
-    likes: 89,
-    is_featured: true,
-    published_at: "2024-01-15",
-  },
-  {
-    id: "2",
-    title: "Makanan untuk Meningkatkan Energi",
-    slug: "makanan-untuk-meningkatkan-energi",
-    excerpt:
-      "Daftar makanan Indonesia yang dapat memberikan energi berkelanjutan sepanjang hari.",
-    category: "mood-food",
-    reading_time: 7,
-    views: 980,
-    likes: 76,
-    is_featured: true,
-    published_at: "2024-01-12",
-  },
-  {
-    id: "3",
-    title: "Gado-gado: Superfood Indonesia",
-    slug: "gado-gado-superfood-indonesia",
-    excerpt:
-      "Analisis nutrisi lengkap gado-gado dan manfaatnya untuk kesehatan tubuh.",
-    category: "indonesian-foods",
-    reading_time: 6,
-    views: 750,
-    likes: 65,
-    is_featured: true,
-    published_at: "2024-01-10",
-  },
-];
-
-function getCategoryIcon(category: string) {
-  const cat = categories.find((c) => c.key === category);
-  const Icon = cat?.icon || BookOpen;
-  return <Icon className="w-4 h-4" />;
-}
+import { FileText, ImageOff } from "lucide-react";
+import { articles } from "../data";
+import Image from "next/image";
 
 export default function ArticleDetailPage() {
   const params = useParams();
   const { id } = params;
-  const article = featuredArticles.find((a) => a.id === id);
+  const article = articles.find((a) => a.id === Number(id));
+  // Add state for image error tracking
+  const [imageError, setImageError] = useState(false);
 
   if (!article) {
     return (
@@ -99,38 +38,40 @@ export default function ArticleDetailPage() {
             <FileText className="w-4 h-4" />
             Kembali ke Artikel
           </Link>
-        </div>
+        </div>{" "}
         <div className="bg-white rounded-2xl shadow-md p-8 border border-sage-200">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="bg-forest-100 text-forest-700 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-              {getCategoryIcon(article.category)}
-              {categories.find((c) => c.key === article.category)?.label}
-            </div>
-            {article.is_featured && (
-              <div className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs font-medium">
-                Featured
+          <div className="relative w-full h-64 mb-6">
+            {!article.image || article.image.trim() === "" || imageError ? (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-forest-400 to-sage-500 rounded-xl">
+                <ImageOff className="w-20 h-20 text-sage-200" />
               </div>
+            ) : (
+              <Image
+                src={article.image}
+                alt={article.title}
+                fill
+                className="object-cover rounded-xl"
+                sizes="(max-width: 768px) 100vw, 700px"
+                style={{ objectFit: "cover" }}
+                onError={() => setImageError(true)}
+              />
             )}
           </div>
-          <h1 className="text-3xl font-bold text-forest-900 mb-2">
+          <div className="flex flex-wrap gap-2 mb-3">
+            {article.tags.map((tag) => (
+              <span
+                key={tag}
+                className="bg-forest-100 text-forest-700 px-2 py-1 rounded-full text-xs font-medium"
+              >
+                #{tag}
+              </span>
+            ))}
+          </div>
+          <h1 className="text-3xl font-bold text-forest-900 mb-4">
             {article.title}
           </h1>
-          <div className="flex items-center gap-4 text-sage-600 text-sm mb-4">
-            <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              <span>{article.reading_time} min</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              <span>{article.likes}</span>
-            </div>
-            <div>
-              {new Date(article.published_at).toLocaleDateString("id-ID")}
-            </div>
-          </div>
-          <p className="text-lg text-sage-800 mb-6">{article.excerpt}</p>
-          <div className="text-sage-700">
-            <em>(Konten lengkap artikel bisa ditambahkan di sini...)</em>
+          <div className="text-sage-700 whitespace-pre-line text-lg">
+            {article.content}
           </div>
         </div>
       </div>

@@ -1,555 +1,999 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Heart, MessageSquare, Image as ImageIcon, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ToastProvider";
 import Image from "next/image";
-
-interface Post {
-  id: string;
-  title: string;
-  content: string;
-  user_id: string;
-  created_at: string;
-  likes_count: number;
-  comments_count: number;
-  images?: string[];
-  user: {
-    username: string;
-    avatar_url: string;
-  };
-}
+import { supabase } from "@/lib/supabaseClient";
+import {
+  Users,
+  Plus,
+  Heart,
+  MessageCircle,
+  Star,
+  Clock,
+  ChefHat,
+  BookOpen,
+  HelpCircle,
+  Lightbulb,
+  Award,
+  Search,
+  X,
+  Send,
+} from "lucide-react";
+import Link from "next/link";
 
 interface Comment {
-  id: string;
+  id: number;
   content: string;
-  user_id: string;
   created_at: string;
-  user: {
-    username: string;
-    avatar_url: string;
+  parent_id: number | null;
+  user_id: string;
+  profiles: {
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
   };
+  replies?: Comment[];
+}
+
+interface CommunityPost {
+  id: number;
+  user_id: string;
+  user_avatar_url: string | null;
+  type: "recipe" | "story" | "question" | "tip" | "review";
+  title: string;
+  content: string;
+  images: string[];
+  tags: string[];
+  food_name: string | null;
+  rating: number | null;
+  likes_count: number;
+  comments_count: number;
+  is_featured: boolean;
+  created_at: string;
+  updated_at: string;
+  profiles: {
+    full_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  };
+  post_likes: { user_id: string }[];
+  comments: Comment[];
+}
+
+interface NewPostData {
+  type: "recipe" | "story" | "question" | "tip" | "review";
+  title: string;
+  content: string;
+  food_name: string;
+  rating: number | null;
+  tags: string[];
 }
 
 export default function CommunityPage() {
-  const { user, loading: authLoading } = useAuth();
-  const { error, success } = useToast();
-
-  const [posts, setPosts] = useState<Post[]>([]);
+  const { user, userProfile } = useAuth();
+  const { success, error } = useToast();
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [showCreatePost, setShowCreatePost] = useState(false);
-  const [newPost, setNewPost] = useState({
+  const [selectedType, setSelectedType] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [newPost, setNewPost] = useState<NewPostData>({
+    type: "story",
     title: "",
     content: "",
-    images: [] as File[],
+    food_name: "",
+    rating: null,
+    tags: [],
   });
-  const [uploading, setUploading] = useState(false);
-  const [selectedPost, setSelectedPost] = useState<string | null>(null);
-  const [comments, setComments] = useState<{ [key: string]: Comment[] }>({});  const [newComment, setNewComment] = useState("");
+  const [newComment, setNewComment] = useState<{ [key: string]: string }>({});
+  const [replyingTo, setReplyingTo] = useState<{
+    [key: number]: number | null;
+  }>({});
+  const [showReplies, setShowReplies] = useState<{ [key: number]: boolean }>(
+    {}
+  );
 
-  const handleLikePost = async (postId: string) => {
-    if (!user) {
-      error("Login Diperlukan", "Anda harus login untuk menyukai postingan.");
+  const postTypes = [
+    { value: "all", label: "Semua", icon: Users, color: "bg-gray-100" },
+    { value: "recipe", label: "Resep", icon: ChefHat, color: "bg-orange-100" },
+    { value: "story", label: "Cerita", icon: BookOpen, color: "bg-blue-100" },
+    {
+      value: "question",
+      label: "Pertanyaan",
+      icon: HelpCircle,
+      color: "bg-purple-100",
+    },
+    { value: "tip", label: "Tips", icon: Lightbulb, color: "bg-yellow-100" },
+    { value: "review", label: "Review", icon: Award, color: "bg-green-100" },
+  ];
+  const fetchPosts = useCallback(async () => {
+    try {
+      setLoading(true);
+      let query = supabase
+        .from("community_posts")
+        .select(
+          `
+          *,
+          profiles (full_name, username, avatar_url),
+          post_likes (user_id),
+          comments (
+            id,
+            content,
+            created_at,
+            parent_id,
+            user_id,
+            profiles (full_name, username, avatar_url)
+          )
+        `
+        )
+        .order("created_at", { ascending: false });
+
+      if (selectedType !== "all") {
+        query = query.eq("type", selectedType);
+      }
+
+      if (searchQuery) {
+        query = query.or(
+          `title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
+        );
+      }
+
+      const { data, error: fetchError } = await query;
+
+      if (fetchError) throw fetchError; // Organize comments into nested structure
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const postsWithNestedComments = (data || []).map((post: any) => {
+        const allComments = post.comments || [];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const mainComments = allComments.filter(
+          (comment: any) => !comment.parent_id
+        );
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const nestedComments = mainComments.map((mainComment: any) => ({
+          ...mainComment,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          replies: allComments.filter(
+            (comment: any) => comment.parent_id === mainComment.id
+          ),
+        }));
+
+        return {
+          ...post,
+          comments: nestedComments,
+        };
+      });
+
+      setPosts(postsWithNestedComments);
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+      error("Gagal Memuat", "Tidak dapat memuat posting komunitas");
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedType, searchQuery, error]);
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
+
+  const handleCreatePost = async () => {
+    if (!user || !newPost.title.trim() || !newPost.content.trim()) {
+      error("Form Tidak Lengkap", "Harap lengkapi judul dan konten posting");
       return;
     }
 
-    const isLiked = likedPosts.has(postId);
+    try {
+      const { error: insertError } = await supabase
+        .from("community_posts")
+        .insert({
+          user_id: user.id,
+          type: newPost.type,
+          title: newPost.title.trim(),
+          content: newPost.content.trim(),
+          food_name: newPost.food_name.trim() || null,
+          rating: newPost.rating,
+          tags: newPost.tags,
+          user_avatar_url: userProfile?.avatar_url,
+        });
+
+      if (insertError) throw insertError;
+
+      success("Berhasil", "Posting berhasil dibuat!");
+      setShowCreatePost(false);
+      setNewPost({
+        type: "story",
+        title: "",
+        content: "",
+        food_name: "",
+        rating: null,
+        tags: [],
+      });
+      fetchPosts();
+    } catch (err) {
+      console.error("Error creating post:", err);
+      error("Gagal Membuat Posting", "Terjadi kesalahan saat membuat posting");
+    }
+  };
+
+  const handleLikePost = async (postId: number) => {
+    if (!user) return;
 
     try {
+      const post = posts.find((p) => p.id === postId);
+      const isLiked = post?.post_likes.some((like) => like.user_id === user.id);
+
       if (isLiked) {
         // Unlike
         await supabase
           .from("post_likes")
           .delete()
-          .match({ user_id: user.id, post_id: postId });
+          .eq("post_id", postId)
+          .eq("user_id", user.id);
 
-        await supabase.rpc("decrement_post_likes", { post_id: postId });
+        await supabase
+          .from("community_posts")
+          .update({ likes_count: (post?.likes_count || 1) - 1 })
+          .eq("id", postId);
       } else {
         // Like
-        await supabase
-          .from("post_likes")
-          .insert({ user_id: user.id, post_id: postId });
+        await supabase.from("post_likes").insert({
+          post_id: postId,
+          user_id: user.id,
+        });
 
-        await supabase.rpc("increment_post_likes", { post_id: postId });
+        await supabase
+          .from("community_posts")
+          .update({ likes_count: (post?.likes_count || 0) + 1 })
+          .eq("id", postId);
       }
 
-      // Update local state
-      setLikedPosts((prev) => {
-        const newSet = new Set(prev);
-        if (isLiked) {
-          newSet.delete(postId);
-        } else {
-          newSet.add(postId);
-        }
-        return newSet;
-      });
-
-      // Update posts state
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, likes_count: post.likes_count + (isLiked ? -1 : 1) }
-            : post
-        )
-      );
+      fetchPosts();
     } catch (err) {
       console.error("Error toggling like:", err);
-      error("Gagal Menyukai", "Terjadi kesalahan saat menyukai postingan.");
     }
   };
-
-  const handleCreatePost = async () => {
-    if (!user) {
-      error("Login Diperlukan", "Anda harus login untuk membuat postingan.");
-      return;
-    }
-
-    if (!newPost.content.trim()) {
-      error("Konten Kosong", "Konten tidak boleh kosong.");
-      return;
-    }
-
-    setUploading(true);
+  const handleAddComment = async (postId: number, parentId?: number) => {
+    const commentKey = parentId ? `${postId}-${parentId}` : postId;
+    if (!user || !newComment[commentKey]?.trim()) return;
 
     try {
-      // Upload images first
-      const imageUrls = [];
-      for (const image of newPost.images) {
-        const fileExt = image.name.split(".").pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `${user.id}/${fileName}`;
+      const { error: insertError } = await supabase.from("comments").insert({
+        post_id: postId,
+        user_id: user.id,
+        content: newComment[commentKey].trim(),
+        parent_id: parentId || null,
+      });
 
-        const { error: uploadError } = await supabase.storage
-          .from("post-images")
-          .upload(filePath, image);
+      if (insertError) throw insertError;
 
-        if (uploadError) throw uploadError;
-
-        const {
-          data: { publicUrl },
-        } = supabase.storage.from("post-images").getPublicUrl(filePath);
-
-        imageUrls.push(publicUrl);
+      // Update comments count only for main comments (not replies)
+      if (!parentId) {
+        const post = posts.find((p) => p.id === postId);
+        await supabase
+          .from("community_posts")
+          .update({ comments_count: (post?.comments_count || 0) + 1 })
+          .eq("id", postId);
       }
 
-      // Create post
-      const { data: post, error: postError } = await supabase
-        .from("community_posts")
-        .insert({
-          user_id: user.id,
-          title: newPost.title,
-          content: newPost.content,
-          images: imageUrls,
-        })
-        .select()
-        .single();
-
-      if (postError) throw postError;
-
-      // Update UI
-      setPosts((prev) => [post, ...prev]);
-      setNewPost({ title: "", content: "", images: [] });
-      setShowCreatePost(false);
-      success("Berhasil", "Postingan berhasil dibuat!");
-    } catch (err) {
-      console.error("Error creating post:", err);
-      error("Gagal Membuat Post", "Terjadi kesalahan saat membuat postingan.");
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setNewPost((prev) => ({
-      ...prev,
-      images: [...prev.images, ...files],
-    }));
-  };
-
-  const removeImage = (index: number) => {
-    setNewPost((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
-  };
-
-  const handleAddComment = async (postId: string) => {
-    if (!user) {
-      error("Login Diperlukan", "Anda harus login untuk berkomentar.");
-      return;
-    }
-
-    if (!newComment.trim()) {
-      error("Komentar Kosong", "Komentar tidak boleh kosong.");
-      return;
-    }
-
-    try {
-      const { data: comment, error: commentError } = await supabase
-        .from("comments")
-        .insert({
-          user_id: user.id,
-          post_id: postId,
-          content: newComment,
-        })
-        .select()
-        .single();
-
-      if (commentError) throw commentError;
-
-      // Update UI
-      setComments((prev) => ({
-        ...prev,
-        [postId]: [...(prev[postId] || []), comment],
-      }));
-      setNewComment("");
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? { ...post, comments_count: post.comments_count + 1 }
-            : post
-        )
-      );
-      success("Berhasil", "Komentar berhasil ditambahkan!");
+      setNewComment((prev) => ({ ...prev, [commentKey]: "" }));
+      setReplyingTo((prev) => ({ ...prev, [postId]: null }));
+      fetchPosts();
     } catch (err) {
       console.error("Error adding comment:", err);
-      error(
-        "Gagal Menambah Komentar",
-        "Terjadi kesalahan saat menambah komentar."
-      );
-    }  };
-  // useEffect to load data when user authentication state changes
-  useEffect(() => {
-    if (authLoading) {
-      return; // Still loading auth state
+      error("Gagal Menambah Komentar", "Terjadi kesalahan");
     }
-    
-    if (user) {
-      // Load community data
-      const loadData = async () => {
-        try {
-          const postsQuery = supabase
-            .from("community_posts")
-            .select(
-              `
-              *,
-              profiles(full_name, avatar_url)
-            `
-            )
-            .order("created_at", { ascending: false })
-            .limit(20);
+  };
 
-          const { data: postsData } = await postsQuery;
-          setPosts(postsData || []);
-        } catch (err) {
-          console.error("Error loading community data:", err);
-        } finally {
-          setLoading(false);
-        }
-      };
+  const handleReplyToComment = (
+    postId: number,
+    commentId: number,
+    username: string
+  ) => {
+    setReplyingTo((prev) => ({ ...prev, [postId]: commentId }));
+    const replyKey = `${postId}-${commentId}`;
+    setNewComment((prev) => ({
+      ...prev,
+      [replyKey]: `@${username} `,
+    }));
+  };
 
-      // Load user likes
-      const loadLikes = async () => {
-        try {
-          const { data } = await supabase
-            .from("post_likes")
-            .select("post_id")
-            .eq("user_id", user.id);
+  const toggleReplies = (commentId: number) => {
+    setShowReplies((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
+  };
 
-          if (data) {
-            setLikedPosts(new Set(data.map((like) => like.post_id)));
-          }
-        } catch (err) {
-          console.error("Error loading user likes:", err);
-        }
-      };
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-      loadData();
-      loadLikes();
-    } else {
-      setLoading(false);
-    }
-  }, [user, authLoading]); // REMOVED error dependency
+    if (diffMins < 1) return "baru saja";
+    if (diffMins < 60) return `${diffMins} menit lalu`;
+    if (diffHours < 24) return `${diffHours} jam lalu`;
+    if (diffDays < 7) return `${diffDays} hari lalu`;
 
-  // Show auth loading state
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50">
-        <div className="text-sage-700">Memeriksa autentikasi...</div>
-      </div>
-    );
-  }
+    return date.toLocaleDateString("id-ID", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
-  // Show login prompt if not authenticated
+  const getTypeConfig = (type: string) => {
+    const config = postTypes.find((t) => t.value === type);
+    return config || postTypes[0];
+  };
+
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-sage-700">Anda belum login.</div>
-          <a
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md">
+          <Users className="w-16 h-16 text-sage-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-forest-900 mb-2">
+            Masuk untuk Mengakses Komunitas
+          </h2>
+          <p className="text-sage-600 mb-6">
+            Bergabunglah dengan komunitas NutriMood untuk berbagi pengalaman dan
+            tips nutrisi
+          </p>
+          <Link
             href="/auth/login"
-            className="px-4 py-2 rounded bg-forest-600 text-white hover:bg-forest-700 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
           >
-            Login Ulang
-          </a>
+            Masuk Sekarang
+          </Link>
         </div>
-      </div>
-    );
-  }
-
-  // Show data loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50">
-        <div className="text-sage-700">Memuat komunitas...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-sage-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Tombol Buat Post */}
-        <div className="flex justify-end mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-forest-900 mb-4">
+            Komunitas NutriMood
+          </h1>
+          <p className="text-lg text-sage-600 mb-6">
+            Berbagi pengalaman dan tips nutrisi dengan komunitas
+          </p>
+
           <button
             onClick={() => setShowCreatePost(true)}
-            className="bg-forest-600 hover:bg-forest-700 text-white px-6 py-2 rounded-lg font-medium shadow-sm transition-all"
+            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
           >
-            Buat Post
+            <Plus className="w-5 h-5" />
+            <span>Buat Posting</span>
           </button>
         </div>
 
-        {/* Modal Create Post */}
-        {showCreatePost && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-            <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-lg relative">
-              <button
-                className="absolute top-4 right-4 text-sage-500 hover:text-red-500"
-                onClick={() => setShowCreatePost(false)}
+        {/* Filters */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 w-5 h-5 text-sage-400" />
+                <input
+                  type="text"
+                  placeholder="Cari posting..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Type Filter */}
+            <div className="flex gap-2 overflow-x-auto">
+              {postTypes.map((type) => {
+                const Icon = type.icon;
+                return (
+                  <button
+                    key={type.value}
+                    onClick={() => setSelectedType(type.value)}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                      selectedType === type.value
+                        ? `${type.color} text-forest-700`
+                        : "text-sage-600 hover:bg-sage-100"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    <span>{type.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Posts */}
+        {loading ? (
+          <div className="space-y-6">
+            {[...Array(3)].map((_, i) => (
+              <div
+                key={i}
+                className="bg-white rounded-2xl shadow-sm p-6 animate-pulse"
               >
-                <X className="w-6 h-6" />
-              </button>
-              <h2 className="text-xl font-bold mb-4 text-forest-900">
-                Buat Postingan Baru
-              </h2>
-              <input
-                type="text"
-                placeholder="Judul (opsional)"
-                className="w-full mb-3 rounded-lg border-sage-300 focus:border-forest-500 focus:ring-forest-500"
-                value={newPost.title}
-                onChange={(e) =>
-                  setNewPost({ ...newPost, title: e.target.value })
-                }
-              />
-              <textarea
-                placeholder="Apa yang ingin kamu bagikan?"
-                className="w-full mb-3 rounded-lg border-sage-300 focus:border-forest-500 focus:ring-forest-500"
-                rows={4}
-                value={newPost.content}
-                onChange={(e) =>
-                  setNewPost({ ...newPost, content: e.target.value })
-                }
-              />
-              {/* Upload Gambar */}
-              <div className="mb-3">
-                <label className="flex items-center gap-2 cursor-pointer text-sage-700 hover:text-forest-700">
-                  <ImageIcon className="w-5 h-5" />
-                  <span>Upload Gambar</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    className="hidden"
-                    onChange={handleImageUpload}
-                  />
-                </label>
-                {/* Preview Gambar */}
-                <div className="flex gap-2 mt-2 flex-wrap">
-                  {newPost.images.map((img, idx) => (
-                    <div
-                      key={idx}
-                      className="relative w-20 h-20 rounded-lg overflow-hidden border border-sage-200"
-                    >
-                      <Image
-                        src={URL.createObjectURL(img)}
-                        alt="preview"
-                        width={80}
-                        height={80}
-                        className="object-cover w-full h-full"
-                      />
-                      <button
-                        className="absolute top-1 right-1 bg-white/80 rounded-full p-1 text-red-500"
-                        onClick={() => removeImage(idx)}
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="flex items-center space-x-4 mb-4">
+                  <div className="w-12 h-12 bg-sage-200 rounded-full"></div>
+                  <div className="flex-1">
+                    <div className="h-4 bg-sage-200 rounded w-1/4 mb-2"></div>
+                    <div className="h-3 bg-sage-200 rounded w-1/6"></div>
+                  </div>
+                </div>
+                <div className="h-6 bg-sage-200 rounded w-3/4 mb-4"></div>
+                <div className="space-y-2">
+                  <div className="h-4 bg-sage-200 rounded"></div>
+                  <div className="h-4 bg-sage-200 rounded w-5/6"></div>
                 </div>
               </div>
-              <div className="flex justify-end gap-2 mt-4">
+            ))}
+          </div>
+        ) : posts.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <Users className="w-16 h-16 text-sage-400 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-forest-900 mb-2">
+              Belum Ada Posting
+            </h3>
+            <p className="text-sage-600 mb-6">
+              Jadilah yang pertama membagikan pengalaman Anda!
+            </p>
+            <button
+              onClick={() => setShowCreatePost(true)}
+              className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Buat Posting Pertama</span>
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {posts.map((post) => {
+              const typeConfig = getTypeConfig(post.type);
+              const isLiked = post.post_likes.some(
+                (like) => like.user_id === user.id
+              );
+
+              return (
+                <div
+                  key={post.id}
+                  className="bg-white rounded-2xl shadow-sm p-6"
+                >
+                  {/* Post Header */}{" "}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-4">
+                      <Image
+                        src={
+                          post.profiles.avatar_url || "/api/placeholder/48/48"
+                        }
+                        alt="Avatar"
+                        width={48}
+                        height={48}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div>
+                        <h4 className="font-semibold text-forest-900">
+                          {post.profiles.full_name ||
+                            post.profiles.username ||
+                            "Pengguna"}
+                        </h4>
+                        <div className="flex items-center space-x-2 text-sm text-sage-600">
+                          <span
+                            className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${typeConfig.color}`}
+                          >
+                            <typeConfig.icon className="w-3 h-3" />
+                            <span>{typeConfig.label}</span>
+                          </span>
+                          <Clock className="w-3 h-3" />
+                          <span>{formatDate(post.created_at)}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {post.is_featured && (
+                      <Star className="w-5 h-5 text-yellow-500 fill-current" />
+                    )}
+                  </div>
+                  {/* Post Content */}
+                  <h3 className="text-xl font-semibold text-forest-900 mb-3">
+                    {post.title}
+                  </h3>
+                  <p className="text-sage-700 mb-4 leading-relaxed">
+                    {post.content}
+                  </p>
+                  {/* Food Name & Rating */}
+                  {post.food_name && (
+                    <div className="flex items-center justify-between mb-4 p-3 bg-sage-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <ChefHat className="w-4 h-4 text-forest-600" />
+                        <span className="font-medium text-forest-900">
+                          {post.food_name}
+                        </span>
+                      </div>
+                      {post.rating && (
+                        <div className="flex items-center space-x-1">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              className={`w-4 h-4 ${
+                                i < post.rating!
+                                  ? "text-yellow-500 fill-current"
+                                  : "text-sage-300"
+                              }`}
+                            />
+                          ))}
+                          <span className="text-sm text-sage-600 ml-1">
+                            ({post.rating}/5)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {/* Tags */}
+                  {post.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {post.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {/* Post Actions */}
+                  <div className="flex items-center justify-between pt-4 border-t border-sage-200">
+                    <div className="flex items-center space-x-6">
+                      <button
+                        onClick={() => handleLikePost(post.id)}
+                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
+                          isLiked
+                            ? "bg-red-50 text-red-600"
+                            : "text-sage-600 hover:bg-sage-50"
+                        }`}
+                      >
+                        <Heart
+                          className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`}
+                        />
+                        <span>{post.likes_count}</span>
+                      </button>
+
+                      <div className="flex items-center space-x-2 text-sage-600">
+                        <MessageCircle className="w-5 h-5" />
+                        <span>{post.comments_count}</span>
+                      </div>
+                    </div>
+                  </div>{" "}
+                  {/* Comments Section */}
+                  {post.comments.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-sage-200 space-y-4">
+                      {post.comments.slice(0, 3).map((comment) => (
+                        <div key={comment.id} className="space-y-3">
+                          {/* Main Comment */}
+                          <div className="flex space-x-3">
+                            <Image
+                              src={
+                                comment.profiles.avatar_url ||
+                                "/api/placeholder/32/32"
+                              }
+                              alt="Avatar"
+                              width={32}
+                              height={32}
+                              className="w-8 h-8 rounded-full object-cover"
+                            />
+                            <div className="flex-1 bg-sage-50 rounded-lg p-3">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-medium text-sm text-forest-900">
+                                  {comment.profiles.full_name ||
+                                    comment.profiles.username ||
+                                    "Pengguna"}
+                                </span>
+                                <span className="text-xs text-sage-600">
+                                  {formatDate(comment.created_at)}
+                                </span>
+                              </div>
+                              <p className="text-sage-700 text-sm mb-2">
+                                {comment.content}
+                              </p>
+                              <div className="flex items-center space-x-4">
+                                <button
+                                  onClick={() =>
+                                    handleReplyToComment(
+                                      post.id,
+                                      comment.id,
+                                      comment.profiles.username ||
+                                        comment.profiles.full_name ||
+                                        "Pengguna"
+                                    )
+                                  }
+                                  className="text-xs text-forest-600 hover:text-forest-700 font-medium"
+                                >
+                                  Balas
+                                </button>
+                                {comment.replies &&
+                                  comment.replies.length > 0 && (
+                                    <button
+                                      onClick={() => toggleReplies(comment.id)}
+                                      className="text-xs text-sage-600 hover:text-sage-700 font-medium"
+                                    >
+                                      {showReplies[comment.id]
+                                        ? "Sembunyikan"
+                                        : "Lihat"}{" "}
+                                      {comment.replies.length} balasan
+                                    </button>
+                                  )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Replies */}
+                          {comment.replies &&
+                            comment.replies.length > 0 &&
+                            showReplies[comment.id] && (
+                              <div className="ml-11 space-y-3">
+                                {comment.replies.map((reply) => (
+                                  <div
+                                    key={reply.id}
+                                    className="flex space-x-3"
+                                  >
+                                    <Image
+                                      src={
+                                        reply.profiles.avatar_url ||
+                                        "/api/placeholder/28/28"
+                                      }
+                                      alt="Avatar"
+                                      width={28}
+                                      height={28}
+                                      className="w-7 h-7 rounded-full object-cover"
+                                    />
+                                    <div className="flex-1 bg-white border border-sage-200 rounded-lg p-3">
+                                      <div className="flex items-center justify-between mb-1">
+                                        <span className="font-medium text-sm text-forest-900">
+                                          {reply.profiles.full_name ||
+                                            reply.profiles.username ||
+                                            "Pengguna"}
+                                        </span>
+                                        <span className="text-xs text-sage-600">
+                                          {formatDate(reply.created_at)}
+                                        </span>
+                                      </div>
+                                      <p className="text-sage-700 text-sm">
+                                        {reply.content}
+                                      </p>
+                                      <div className="flex items-center space-x-4 mt-2">
+                                        <button
+                                          onClick={() =>
+                                            handleReplyToComment(
+                                              post.id,
+                                              comment.id,
+                                              reply.profiles.username ||
+                                                reply.profiles.full_name ||
+                                                "Pengguna"
+                                            )
+                                          }
+                                          className="text-xs text-forest-600 hover:text-forest-700 font-medium"
+                                        >
+                                          Balas
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                          {/* Reply Input */}
+                          {replyingTo[post.id] === comment.id && (
+                            <div className="ml-11 flex space-x-3">
+                              <Image
+                                src={
+                                  userProfile?.avatar_url ||
+                                  "/api/placeholder/28/28"
+                                }
+                                alt="Avatar"
+                                width={28}
+                                height={28}
+                                className="w-7 h-7 rounded-full object-cover"
+                              />
+                              <div className="flex-1 flex space-x-2">
+                                <input
+                                  type="text"
+                                  placeholder="Tulis balasan..."
+                                  value={
+                                    newComment[`${post.id}-${comment.id}`] || ""
+                                  }
+                                  onChange={(e) =>
+                                    setNewComment((prev) => ({
+                                      ...prev,
+                                      [`${post.id}-${comment.id}`]:
+                                        e.target.value,
+                                    }))
+                                  }
+                                  onKeyPress={(e) => {
+                                    if (e.key === "Enter") {
+                                      handleAddComment(post.id, comment.id);
+                                    }
+                                  }}
+                                  className="flex-1 px-3 py-2 text-sm border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
+                                  autoFocus
+                                />
+                                <button
+                                  onClick={() =>
+                                    handleAddComment(post.id, comment.id)
+                                  }
+                                  disabled={
+                                    !newComment[
+                                      `${post.id}-${comment.id}`
+                                    ]?.trim()
+                                  }
+                                  className="px-3 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                >
+                                  <Send className="w-3 h-3" />
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    setReplyingTo((prev) => ({
+                                      ...prev,
+                                      [post.id]: null,
+                                    }))
+                                  }
+                                  className="px-3 py-2 text-sage-600 hover:text-sage-700 transition-all"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                      {post.comments.length > 3 && (
+                        <button className="text-sm text-forest-600 hover:text-forest-700 font-medium">
+                          Lihat {post.comments.length - 3} komentar lainnya
+                        </button>
+                      )}
+                    </div>
+                  )}{" "}
+                  {/* Add Comment */}
+                  <div className="mt-4 pt-4 border-t border-sage-200">
+                    <div className="flex space-x-3">
+                      <Image
+                        src={
+                          userProfile?.avatar_url || "/api/placeholder/32/32"
+                        }
+                        alt="Avatar"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                      <div className="flex-1 flex space-x-2">
+                        <input
+                          type="text"
+                          placeholder="Tulis komentar..."
+                          value={newComment[post.id] || ""}
+                          onChange={(e) =>
+                            setNewComment((prev) => ({
+                              ...prev,
+                              [post.id]: e.target.value,
+                            }))
+                          }
+                          onKeyPress={(e) => {
+                            if (e.key === "Enter") {
+                              handleAddComment(post.id);
+                            }
+                          }}
+                          className="flex-1 px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
+                        />
+                        <button
+                          onClick={() => handleAddComment(post.id)}
+                          disabled={!newComment[post.id]?.trim()}
+                          className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                        >
+                          <Send className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Create Post Modal */}
+        {showCreatePost && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="flex items-center justify-between p-6 border-b border-sage-200">
+                <h2 className="text-2xl font-bold text-forest-900">
+                  Buat Posting Baru
+                </h2>
                 <button
-                  className="px-4 py-2 rounded-lg bg-sage-200 text-sage-700 hover:bg-sage-300"
                   onClick={() => setShowCreatePost(false)}
-                  disabled={uploading}
+                  className="p-2 text-sage-400 hover:text-sage-600 rounded-lg"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                {/* Post Type */}
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-3">
+                    Jenis Posting
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    {postTypes.slice(1).map((type) => {
+                      const Icon = type.icon;
+                      return (
+                        <button
+                          key={type.value}
+                          onClick={() =>
+                            setNewPost((prev) => ({
+                              ...prev,
+                              type: type.value as
+                                | "recipe"
+                                | "story"
+                                | "question"
+                                | "tip"
+                                | "review",
+                            }))
+                          }
+                          className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all ${
+                            newPost.type === type.value
+                              ? "border-forest-500 bg-forest-50"
+                              : "border-sage-200 hover:border-sage-300"
+                          }`}
+                        >
+                          <Icon className="w-6 h-6 text-forest-600" />
+                          <span className="text-sm font-medium">
+                            {type.label}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Title */}
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-2">
+                    Judul
+                  </label>
+                  <input
+                    type="text"
+                    value={newPost.title}
+                    onChange={(e) =>
+                      setNewPost((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                    placeholder="Masukkan judul posting..."
+                  />
+                </div>
+
+                {/* Content */}
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-2">
+                    Konten
+                  </label>{" "}
+                  <textarea
+                    value={newPost.content}
+                    onChange={(e) =>
+                      setNewPost((prev) => ({
+                        ...prev,
+                        content: e.target.value,
+                      }))
+                    }
+                    rows={6}
+                    className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
+                    placeholder="Tulis konten posting Anda..."
+                  />
+                </div>
+
+                {/* Food Name (if recipe or review) */}
+                {(newPost.type === "recipe" || newPost.type === "review") && (
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 mb-2">
+                      Nama Makanan
+                    </label>
+                    <input
+                      type="text"
+                      value={newPost.food_name}
+                      onChange={(e) =>
+                        setNewPost((prev) => ({
+                          ...prev,
+                          food_name: e.target.value,
+                        }))
+                      }
+                      className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
+                      placeholder="Nama makanan..."
+                    />
+                  </div>
+                )}
+
+                {/* Rating (if review) */}
+                {newPost.type === "review" && (
+                  <div>
+                    <label className="block text-sm font-medium text-sage-700 mb-2">
+                      Rating
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <button
+                          key={rating}
+                          onClick={() =>
+                            setNewPost((prev) => ({ ...prev, rating }))
+                          }
+                          className="p-1"
+                        >
+                          <Star
+                            className={`w-8 h-8 ${
+                              (newPost.rating || 0) >= rating
+                                ? "text-yellow-500 fill-current"
+                                : "text-sage-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Tags */}
+                <div>
+                  <label className="block text-sm font-medium text-sage-700 mb-2">
+                    Tags (opsional)
+                  </label>{" "}
+                  <input
+                    type="text"
+                    placeholder="Pisahkan dengan koma (contoh: sehat, enak, mudah)"
+                    onChange={(e) => {
+                      const tags = e.target.value
+                        .split(",")
+                        .map((tag) => tag.trim())
+                        .filter(Boolean);
+                      setNewPost((prev) => ({ ...prev, tags }));
+                    }}
+                    className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
+                  />
+                  {newPost.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {newPost.tags.map((tag, index) => (
+                        <span
+                          key={index}
+                          className="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-4 p-6 border-t border-sage-200">
+                <button
+                  onClick={() => setShowCreatePost(false)}
+                  className="px-6 py-3 text-sage-600 hover:text-sage-700 font-medium"
                 >
                   Batal
                 </button>
                 <button
-                  className="px-6 py-2 rounded-lg bg-forest-600 text-white hover:bg-forest-700 font-medium shadow-sm disabled:opacity-50"
                   onClick={handleCreatePost}
-                  disabled={uploading}
+                  disabled={!newPost.title.trim() || !newPost.content.trim()}
+                  className="px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  {uploading ? "Mengirim..." : "Posting"}
+                  Posting
                 </button>
               </div>
             </div>
           </div>
-        )}        {/* Daftar Post */}
-        <div className="space-y-8">
-          {posts.length === 0 ? (
-            <div className="text-center text-sage-500 py-16">
-              Belum ada postingan komunitas.
-            </div>
-          ) : (
-            posts.map((post) => (
-              <div
-                key={post.id}
-                className="bg-white rounded-2xl shadow-sm border border-sage-200 p-6"
-              >
-                <div className="flex items-center gap-3 mb-2">
-                  <Image
-                    src={post.user.avatar_url || "/default-avatar.png"}
-                    alt={post.user.username}
-                    width={40}
-                    height={40}
-                    className="w-10 h-10 rounded-full object-cover border border-sage-200"
-                  />
-                  <div>
-                    <div className="font-semibold text-forest-900">
-                      {post.user.username}
-                    </div>
-                    <div className="text-xs text-sage-500">
-                      {new Date(post.created_at).toLocaleString("id-ID", {
-                        dateStyle: "medium",
-                        timeStyle: "short",
-                      })}
-                    </div>
-                  </div>
-                </div>
-                {post.title && (
-                  <div className="font-bold text-lg text-forest-900 mb-1">
-                    {post.title}
-                  </div>
-                )}
-                <div className="mb-2 text-sage-800 whitespace-pre-line">
-                  {post.content}
-                </div>
-                {/* Gambar Post */}
-                {post.images && post.images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    {post.images.map((img, idx) => (
-                      <Image
-                        key={idx}
-                        src={img}
-                        alt={`post-img-${idx}`}
-                        width={128}
-                        height={96}
-                        className="rounded-lg object-cover w-full h-32 border border-sage-200"
-                      />
-                    ))}
-                  </div>
-                )}
-                <div className="flex items-center gap-6 mt-2">
-                  <button
-                    className={`flex items-center gap-1 text-sm font-medium ${
-                      likedPosts.has(post.id)
-                        ? "text-red-600"
-                        : "text-sage-600 hover:text-red-600"
-                    }`}
-                    onClick={() => handleLikePost(post.id)}
-                  >
-                    <Heart className="w-5 h-5" /> {post.likes_count}
-                  </button>
-                  <button
-                    className="flex items-center gap-1 text-sm text-sage-600 hover:text-forest-700"
-                    onClick={() =>
-                      setSelectedPost(selectedPost === post.id ? null : post.id)
-                    }
-                  >
-                    <MessageSquare className="w-5 h-5" /> {post.comments_count}
-                  </button>
-                </div>
-                {/* Komentar */}
-                {selectedPost === post.id && (
-                  <div className="mt-4 bg-sage-50 rounded-xl p-4 border border-sage-200">
-                    <div className="mb-2 font-semibold text-sage-700">
-                      Komentar
-                    </div>
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
-                      {comments[post.id]?.length ? (
-                        comments[post.id].map((comment) => (
-                          <div
-                            key={comment.id}
-                            className="flex items-start gap-3"
-                          >
-                            <Image
-                              src={
-                                comment.user.avatar_url || "/default-avatar.png"
-                              }
-                              alt={comment.user.username}
-                              width={32}
-                              height={32}
-                              className="w-8 h-8 rounded-full object-cover border border-sage-200"
-                            />
-                            <div>
-                              <div className="font-semibold text-forest-900 text-sm">
-                                {comment.user.username}
-                              </div>
-                              <div className="text-xs text-sage-500">
-                                {new Date(comment.created_at).toLocaleString(
-                                  "id-ID",
-                                  { dateStyle: "medium", timeStyle: "short" }
-                                )}
-                              </div>
-                              <div className="text-sage-800 text-sm mt-1 whitespace-pre-line">
-                                {comment.content}
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-sage-500 text-center py-4">
-                          Belum ada komentar.
-                        </div>
-                      )}
-                    </div>
-                    {/* Form Komentar */}
-                    <div className="flex items-center gap-2 mt-4">
-                      <input
-                        type="text"
-                        placeholder="Tulis komentar..."
-                        className="flex-1 rounded-lg border-sage-300 focus:border-forest-500 focus:ring-forest-500"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                      />
-                      <button
-                        className="px-4 py-2 rounded-lg bg-forest-600 text-white hover:bg-forest-700 font-medium shadow-sm"
-                        onClick={() => handleAddComment(post.id)}
-                      >
-                        Kirim
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        )}
       </div>
     </div>
   );

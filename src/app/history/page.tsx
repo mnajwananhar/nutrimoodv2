@@ -7,13 +7,13 @@ import {
   Calendar,
   TrendingUp,
   Brain,
-  Utensils,
   Download,
   BarChart3,
   Clock,
   Heart,
   ChevronDown,
   ChevronUp,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
@@ -73,7 +73,7 @@ const getMoodEmoji = (mood: string): string => {
 };
 
 export default function HistoryPage() {
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
   const { error } = useToast();
 
   const [assessments, setAssessments] = useState<NutritionAssessment[]>([]);
@@ -83,14 +83,16 @@ export default function HistoryPage() {
     moodDistribution: {},
     streakDays: 0,
     favoriteTime: "",
-  });  const [loading, setLoading] = useState(true);
+  });
+  const [loading, setLoading] = useState(true);
 
   type TabType = "assessments" | "analytics" | "foods";
   type TimeFilterType = "all" | "week" | "month" | "year";
 
   const [activeTab, setActiveTab] = useState<TabType>("assessments");
   const [timeFilter, setTimeFilter] = useState<TimeFilterType>("all");
-  const [moodFilter, setMoodFilter] = useState<string>("all");  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [moodFilter, setMoodFilter] = useState<string>("all");
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
 
   const loadHistoryData = useCallback(async () => {
     try {
@@ -173,16 +175,9 @@ export default function HistoryPage() {
       console.error("Error loading history:", err);
       error("Gagal memuat data riwayat");
     } finally {
-      setLoading(false);    }
-  }, [user?.id, timeFilter, moodFilter, error]);
-
-  useEffect(() => {
-    if (user) {
-      loadHistoryData();
-    } else if (!authLoading) {
       setLoading(false);
     }
-  }, [user, authLoading, loadHistoryData]);
+  }, [user?.id, timeFilter, moodFilter, error]);
 
   const calculateStreakDays = (data: NutritionAssessment[]): number => {
     if (!data.length) return 0;
@@ -282,36 +277,25 @@ export default function HistoryPage() {
       loadHistoryData();
     } else {
       setLoading(false);
-    }  }, [user, loadHistoryData]);
+    }
+  }, [user, loadHistoryData]);
 
-  // Show auth loading state
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50">
-        <div className="text-sage-700">Memeriksa autentikasi...</div>
-      </div>
-    );
-  }
-
-  // Show login prompt if not authenticated
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-sage-700">Anda belum login.</div>
-          <a
-            href="/auth/login"
-            className="px-4 py-2 rounded bg-forest-600 text-white hover:bg-forest-700 transition-colors"
-          >
-            Login Ulang
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  // Show data loading state
   if (loading) {
+    if (!user) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-sage-50">
+          <div className="flex flex-col items-center gap-4">
+            <div className="text-sage-700">Anda belum login.</div>
+            <a
+              href="/auth/login"
+              className="px-4 py-2 rounded bg-forest-600 text-white"
+            >
+              Login Ulang
+            </a>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center bg-sage-50">
         <div className="text-sage-700">Memuat riwayat...</div>
@@ -609,10 +593,78 @@ export default function HistoryPage() {
                                       <h5 className="font-medium text-forest-900">
                                         {food.food_name}
                                       </h5>
-                                      <div className="flex items-center gap-1">
-                                        {food.is_liked && (
-                                          <Heart className="w-4 h-4 text-red-500 fill-current" />
-                                        )}
+                                      <div className="flex items-center gap-2">
+                                        <button
+                                          onClick={async () => {
+                                            try {
+                                              const { error: updateError } =
+                                                await supabase
+                                                  .from("food_recommendations")
+                                                  .update({
+                                                    is_liked: !food.is_liked,
+                                                  })
+                                                  .eq("id", food.id);
+                                              if (updateError) {
+                                                error(
+                                                  "Gagal update favorit",
+                                                  updateError.message
+                                                );
+                                              } else {
+                                                // Optimistic update UI
+                                                setAssessments((prev) =>
+                                                  prev.map((assess) =>
+                                                    assess.id === assessment.id
+                                                      ? {
+                                                          ...assess,
+                                                          food_recommendations:
+                                                            assess.food_recommendations?.map(
+                                                              (f) =>
+                                                                f.id === food.id
+                                                                  ? {
+                                                                      ...f,
+                                                                      is_liked:
+                                                                        !food.is_liked,
+                                                                    }
+                                                                  : f
+                                                            ),
+                                                        }
+                                                      : assess
+                                                  )
+                                                );
+                                              }
+                                            } catch (e: unknown) {
+                                              if (e instanceof Error) {
+                                                error(
+                                                  "Gagal update favorit",
+                                                  e.message
+                                                );
+                                              } else {
+                                                error(
+                                                  "Gagal update favorit",
+                                                  "Terjadi error tidak diketahui"
+                                                );
+                                              }
+                                            }
+                                          }}
+                                          className={`p-1 rounded-full transition-colors ${
+                                            food.is_liked
+                                              ? "bg-red-100 text-red-600"
+                                              : "bg-sage-100 text-sage-600"
+                                          }`}
+                                          title={
+                                            food.is_liked
+                                              ? "Hapus dari favorit"
+                                              : "Tambah ke favorit"
+                                          }
+                                        >
+                                          <Heart
+                                            className={`w-4 h-4 ${
+                                              food.is_liked
+                                                ? "fill-current"
+                                                : ""
+                                            }`}
+                                          />
+                                        </button>
                                         {food.is_consumed && (
                                           <span className="text-green-600">
                                             ✓
@@ -679,13 +731,54 @@ export default function HistoryPage() {
 
             {activeTab === "foods" && (
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
-                <div className="text-center py-12">
-                  <Utensils className="w-16 h-16 text-sage-400 mx-auto mb-4" />
-                  <h3 className="text-xl font-semibold text-sage-600 mb-2">
-                    Makanan Favorit
-                  </h3>
-                  <p className="text-sage-500">Fitur ini akan segera hadir!</p>
-                </div>
+                {(() => {
+                  // Ambil semua makanan favorit dari seluruh assessment
+                  const favoriteFoods: string[] = [];
+                  assessments.forEach((assessment) => {
+                    assessment.food_recommendations?.forEach((food) => {
+                      if (
+                        food.is_liked &&
+                        !favoriteFoods.includes(food.food_name)
+                      ) {
+                        favoriteFoods.push(food.food_name);
+                      }
+                    });
+                  });
+                  if (favoriteFoods.length === 0) {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <User className="w-16 h-16 text-sage-400 mb-4" />
+                        <h3 className="text-xl font-semibold text-sage-600 mb-2">
+                          Belum Ada Makanan Favorit
+                        </h3>
+                        <p className="text-sage-500">
+                          Tandai makanan favorit Anda di hasil analisis atau
+                          riwayat!
+                        </p>
+                      </div>
+                    );
+                  }
+                  return (
+                    <div>
+                      <h3 className="text-xl font-semibold text-forest-900 mb-6 text-center">
+                        Makanan Favorit Anda
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {favoriteFoods.map((food, idx) => (
+                          <div
+                            key={idx}
+                            className="bg-sage-50 rounded-lg p-4 flex items-center gap-4"
+                          >
+                            <Heart className="w-6 h-6 text-red-500" />
+                            <span className="font-medium text-forest-900 text-lg">
+                              {food}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </>

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { Brain } from 'lucide-react';
-import Link from 'next/link';
+import React from "react";
+import { Brain } from "lucide-react";
+import Link from "next/link";
 
 interface Props {
   children: React.ReactNode;
@@ -24,7 +24,7 @@ export class AuthErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Auth Error Boundary caught an error:', error, errorInfo);
+    console.error("Auth Error Boundary caught an error:", error, errorInfo);
   }
 
   render() {

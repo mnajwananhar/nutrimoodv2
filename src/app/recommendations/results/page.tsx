@@ -93,7 +93,7 @@ export default function ResultsPage() {
         if (user) {
           // Ambil assessment terbaru dari Supabase
           const { data: assessment, error: err1 } = await supabase
-            .from("NutritionAssessment")
+            .from("nutrition_assessments")
             .select("*")
             .eq("user_id", user.id)
             .order("created_at", { ascending: false })
@@ -103,7 +103,7 @@ export default function ResultsPage() {
             throw err1 || new Error("Assessment tidak ditemukan");
           // Ambil food recommendations
           const { data: foods, error: err2 } = await supabase
-            .from("FoodRecommendation")
+            .from("food_recommendations")
             .select("*")
             .eq("assessment_id", assessment.id);
           if (err2) throw err2;
@@ -155,7 +155,7 @@ export default function ResultsPage() {
     loadAssessmentData();
   }, [router, error, user]);
 
-  const handleLikeFood = (foodName: string) => {
+  const handleLikeFood = async (foodName: string) => {
     setLikedFoods((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(foodName)) {
@@ -166,9 +166,44 @@ export default function ResultsPage() {
       return newSet;
     });
 
-    // TODO: Save to database if user is logged in
-    if (user) {
-      // API call to save like status
+    // Simpan ke database jika user login dan assessmentData ada
+    if (user && assessmentData) {
+      try {
+        // Ambil assessment terbaru dari Supabase (agar dapat id assessment)
+        const { data: assessment, error: err1 } = await supabase
+          .from("nutrition_assessments")
+          .select("id")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .single();
+        if (err1 || !assessment) return;
+
+        // Cari food_recommendation yang sesuai
+        const { data: foodRec } = await supabase
+          .from("food_recommendations")
+          .select("id, is_liked")
+          .eq("user_id", user.id)
+          .eq("assessment_id", assessment.id)
+          .eq("food_name", foodName)
+          .single();
+
+        if (foodRec) {
+          const { error: updateError } = await supabase
+            .from("food_recommendations")
+            .update({ is_liked: !foodRec.is_liked })
+            .eq("id", foodRec.id);
+          if (updateError) {
+            error("Gagal update favorit", updateError.message);
+          }
+        }
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          error("Gagal update favorit", e.message);
+        } else {
+          error("Gagal update favorit", "Terjadi error tidak diketahui");
+        }
+      }
     }
   };
 
