@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mail, Loader2, Brain } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
+import { AuthSkeleton } from "@/components/Skeleton";
 
 export default function ForgotPasswordPage() {
   const { resetPassword } = useAuth();
@@ -33,6 +34,14 @@ export default function ForgotPasswordPage() {
       setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">
+        <AuthSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">

@@ -25,7 +25,7 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   session: Session | null;
-  loading: boolean;
+  isAuthLoading: boolean;
   signIn: (
     email: string,
     password: string
@@ -54,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
   const initialized = useRef(false);
 
   useEffect(() => {
@@ -123,10 +123,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (initialized.current) return;
 
       try {
+        setIsAuthLoading(true);
         console.log("Initializing auth...");
-
-        // Set loading false immediately for better UX
-        setLoading(false);
 
         // Get current session
         const {
@@ -159,6 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) {
           initialized.current = true;
         }
+      } finally {
+        setIsAuthLoading(false);
       }
     };
 
@@ -256,7 +256,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/recommendations`,
+        redirectTo: `${window.location.origin}/recommendations/assessment`,
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
     return { error };
@@ -289,7 +292,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     userProfile,
     session,
-    loading,
+    isAuthLoading,
     signIn,
     signUp,
     signInWithGoogle,

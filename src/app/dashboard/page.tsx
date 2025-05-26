@@ -19,6 +19,8 @@ import {
   BarChart3,
 } from "lucide-react";
 import Link from "next/link";
+import { DashboardSkeleton } from "@/components/Skeleton";
+import { useRouter } from "next/navigation";
 
 interface UserStats {
   assessments_count: number;
@@ -41,11 +43,12 @@ interface RecentActivity {
 }
 
 export default function DashboardPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, isAuthLoading } = useAuth();
   const { error } = useToast();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   const fetchUserStats = useCallback(async () => {
     if (!user) return;
@@ -204,6 +207,12 @@ export default function DashboardPage() {
   }, [user]);
 
   useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, isAuthLoading, router]);
+
+  useEffect(() => {
     if (!user) return;
 
     const initializeData = async () => {
@@ -260,27 +269,11 @@ export default function DashboardPage() {
     }
   };
 
+  if (isAuthLoading) {
+    return <DashboardSkeleton />;
+  }
   if (!user) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md">
-          <User className="w-16 h-16 text-sage-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-forest-900 mb-2">
-            Masuk untuk Melihat Dashboard
-          </h2>
-          <p className="text-sage-600 mb-6">
-            Akses dashboard pribadi Anda untuk melihat statistik dan aktivitas
-            terbaru
-          </p>
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
-          >
-            Masuk Sekarang
-          </Link>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   return (

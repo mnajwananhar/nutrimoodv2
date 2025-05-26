@@ -22,7 +22,8 @@ import {
   Send,
   Trash2,
 } from "lucide-react";
-import Link from "next/link";
+import { CommunitySkeleton } from "@/components/Skeleton";
+import { useRouter } from "next/navigation";
 
 interface Comment {
   id: number;
@@ -73,7 +74,7 @@ interface NewPostData {
 }
 
 export default function CommunityPage() {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, isAuthLoading } = useAuth();
   const { success, error } = useToast();
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -113,6 +114,7 @@ export default function CommunityPage() {
     postId?: number;
     parentId?: number | null;
   } | null>(null);
+  const router = useRouter();
 
   const postTypes = [
     { value: "all", label: "Semua", icon: Users, color: "bg-gray-100" },
@@ -195,6 +197,12 @@ export default function CommunityPage() {
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, isAuthLoading, router]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -407,25 +415,13 @@ export default function CommunityPage() {
     }
   };
 
-  if (!user) {
+  if (isAuthLoading) return <CommunitySkeleton />;
+  if (!user) return null;
+
+  if (!posts || loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-lg p-8 text-center max-w-md">
-          <Users className="w-16 h-16 text-sage-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-forest-900 mb-2">
-            Masuk untuk Mengakses Komunitas
-          </h2>
-          <p className="text-sage-600 mb-6">
-            Bergabunglah dengan komunitas NutriMood untuk berbagi pengalaman dan
-            tips nutrisi
-          </p>
-          <Link
-            href="/auth/login"
-            className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
-          >
-            Masuk Sekarang
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
+        <CommunitySkeleton />
       </div>
     );
   }

@@ -323,7 +323,7 @@ export default function HomePage() {
               <ul className="space-y-2">
                 <li>
                   <Link
-                    href="/recommendations"
+                    href="#demo"
                     className="hover:text-white transition-colors"
                   >
                     Analisis Nutrisi

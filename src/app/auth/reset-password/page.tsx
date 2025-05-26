@@ -1,19 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Lock, Loader2, Brain } from "lucide-react";
+import { Lock, Loader2, Brain, Eye, EyeOff } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ToastProvider";
+import { AuthSkeleton } from "@/components/Skeleton";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const { success, error } = useToast();
+  const { user, isAuthLoading } = useAuth();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const getPasswordStrength = () => {
+    if (password.length === 0) return { strength: 0, label: "", color: "" };
+    if (password.length < 6)
+      return { strength: 1, label: "Lemah", color: "bg-red-500" };
+    if (password.length < 8)
+      return { strength: 2, label: "Sedang", color: "bg-yellow-500" };
+    if (
+      password.length >= 8 &&
+      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)
+    ) {
+      return { strength: 3, label: "Kuat", color: "bg-green-500" };
+    }
+    return { strength: 2, label: "Sedang", color: "bg-yellow-500" };
+  };
+
+  const passwordStrength = getPasswordStrength();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +65,22 @@ export default function ResetPasswordPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, isAuthLoading, router]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">
+        <AuthSkeleton />
+      </div>
+    );
+  }
+
+  if (user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">
@@ -81,7 +119,7 @@ export default function ResetPasswordPage() {
                 {" "}
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={password}
@@ -91,7 +129,35 @@ export default function ResetPasswordPage() {
                   className="w-full pl-10 pr-4 py-3 bg-white border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500 transition-colors text-sage-900 placeholder-sage-400"
                   placeholder="Password baru"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sage-400"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
+              {password && (
+                <div className="mt-2">
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 h-2 bg-sage-200 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full ${passwordStrength.color}`}
+                        style={{
+                          width: `${(passwordStrength.strength / 3) * 100}%`,
+                        }}
+                      />
+                    </div>
+                    <span className="text-sm text-sage-600">
+                      {passwordStrength.label}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
             <div>
               <label
@@ -103,7 +169,7 @@ export default function ResetPasswordPage() {
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sage-400 w-5 h-5" />
                 <input
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   id="confirmPassword"
                   name="confirmPassword"
                   value={confirmPassword}
@@ -113,6 +179,17 @@ export default function ResetPasswordPage() {
                   className="w-full pl-10 pr-4 py-3 bg-white border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500 transition-colors text-sage-900 placeholder-sage-400"
                   placeholder="Ulangi password baru"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sage-400"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
               </div>
             </div>
             <button

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileText, ImageOff } from "lucide-react";
 import { articles } from "../data";
 import Image from "next/image";
+import { LearnSkeleton } from "@/components/Skeleton";
 
 export default function ArticleDetailPage() {
   const params = useParams();
@@ -16,13 +17,8 @@ export default function ArticleDetailPage() {
 
   if (!article) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Artikel tidak ditemukan</h2>
-          <Link href="/learn" className="text-forest-600 underline">
-            Kembali ke Learn
-          </Link>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+        <LearnSkeleton />
       </div>
     );
   }

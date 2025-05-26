@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Brain,
@@ -15,6 +15,7 @@ import {
 import { useToast } from "@/components/ToastProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
+import { AssessmentSkeleton } from "@/components/Skeleton";
 
 interface NutritionInput {
   calorie_level: number;
@@ -26,7 +27,7 @@ interface NutritionInput {
 export default function AssessmentPage() {
   const router = useRouter();
   const { success, error } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthLoading } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [nutritionInput, setNutritionInput] = useState<NutritionInput>({
@@ -246,6 +247,15 @@ export default function AssessmentPage() {
   const currentStepData = steps[currentStep];
   const currentValue = nutritionInput[currentStepData.key];
   const progress = ((currentStep + 1) / steps.length) * 100;
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, isAuthLoading, router]);
+
+  if (isAuthLoading) return <AssessmentSkeleton />;
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">

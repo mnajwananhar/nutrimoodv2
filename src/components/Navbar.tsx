@@ -128,7 +128,7 @@ export default function Navbar() {
       console.log("Sign out clicked"); // Tambah log untuk debug
       await signOut();
       success("Berhasil Keluar", "Anda telah berhasil keluar dari akun Anda.");
-      router.push("/");
+      router.push("/recommendations/assessment");
     } catch (err) {
       console.error("Error signing out:", err);
       error(

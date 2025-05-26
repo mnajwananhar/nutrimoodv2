@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
+import { ResultsSkeleton } from "@/components/Skeleton";
 
 interface AssessmentData {
   input: {
@@ -77,7 +78,7 @@ function getMoodColor(mood: string) {
 export default function ResultsPage() {
   const router = useRouter();
   const { success, error } = useToast();
-  const { user } = useAuth();
+  const { user, isAuthLoading } = useAuth();
 
   const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(
     null
@@ -154,6 +155,12 @@ export default function ResultsPage() {
     };
     loadAssessmentData();
   }, [router, error, user]);
+
+  useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, isAuthLoading, router]);
 
   const handleLikeFood = async (foodName: string) => {
     setLikedFoods((prev) => {
@@ -248,13 +255,13 @@ export default function ResultsPage() {
     }
   };
 
+  if (isAuthLoading) return <ResultsSkeleton />;
+  if (!user) return null;
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-forest-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-sage-700">Memuat hasil analisis...</p>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+        <ResultsSkeleton />
       </div>
     );
   }

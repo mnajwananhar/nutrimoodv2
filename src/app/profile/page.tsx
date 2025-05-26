@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ProfileSkeleton } from "@/components/Skeleton";
 
 interface Profile {
   id: string;
@@ -49,11 +50,10 @@ interface UserStats {
 }
 
 export default function ProfilePage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAuthLoading } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -79,12 +79,31 @@ export default function ProfilePage() {
     confirm: false,
   });
 
+  // Tambahkan state untuk show/hide password dan indikator kekuatan password
+  const getPasswordStrength = () => {
+    if (passwordForm.newPassword.length === 0)
+      return { strength: 0, label: "", color: "" };
+    if (passwordForm.newPassword.length < 6)
+      return { strength: 1, label: "Lemah", color: "bg-red-500" };
+    if (passwordForm.newPassword.length < 8)
+      return { strength: 2, label: "Sedang", color: "bg-yellow-500" };
+    if (
+      passwordForm.newPassword.length >= 8 &&
+      /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(passwordForm.newPassword)
+    ) {
+      return { strength: 3, label: "Kuat", color: "bg-green-500" };
+    }
+    return { strength: 2, label: "Sedang", color: "bg-yellow-500" };
+  };
+  const passwordStrength = getPasswordStrength();
+
   // Single useEffect to handle all data fetching
   useEffect(() => {
-    if (!user) {
-      router.push("/auth");
-      return;
+    if (!isAuthLoading && !user) {
+      router.push("/auth/login");
     }
+
+    if (!user) return;
 
     let mounted = true;
 
@@ -112,6 +131,7 @@ export default function ProfilePage() {
 
     const fetchUserStats = async () => {
       try {
+        if (!user) return;
         // Get assessments count and stats
         const { data: assessments, error: assessmentsError } = await supabase
           .from("nutrition_assessments")
@@ -188,15 +208,10 @@ export default function ProfilePage() {
     const initializeData = async () => {
       if (!mounted) return;
 
-      setLoading(true);
       try {
         await Promise.all([fetchProfile(), fetchUserStats()]);
       } catch (error) {
         console.error("Error initializing profile data:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
       }
     };
 
@@ -204,7 +219,7 @@ export default function ProfilePage() {
     return () => {
       mounted = false;
     };
-  }, [user, router]);
+  }, [user, isAuthLoading, router]);
 
   const handleSaveProfile = async () => {
     if (!user || !profile) return;
@@ -342,31 +357,15 @@ export default function ProfilePage() {
     }
   };
 
-  if (loading) {
+  if (isAuthLoading || (user && !profile)) {
     return (
-      <div className="min-h-screen bg-sage-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-sage-600"></div>
+      <div className="min-h-screen bg-sage-50">
+        <ProfileSkeleton />
       </div>
     );
   }
 
-  if (!profile) {
-    return (
-      <div className="min-h-screen bg-sage-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-sage-900 mb-4">
-            Profil tidak ditemukan
-          </h2>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="bg-sage-600 text-white px-6 py-2 rounded-lg hover:bg-sage-700 transition-colors"
-          >
-            Ke Dashboard
-          </button>
-        </div>
-      </div>
-    );
-  }
+  if (!user) return null;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -745,6 +744,25 @@ export default function ProfilePage() {
                         </button>
                       </div>
                     </div>
+                    {passwordForm.newPassword && (
+                      <div className="mt-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-sage-200 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full ${passwordStrength.color}`}
+                              style={{
+                                width: `${
+                                  (passwordStrength.strength / 3) * 100
+                                }%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm text-sage-600">
+                            {passwordStrength.label}
+                          </span>
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-2">
                         Konfirmasi Kata Sandi Baru

@@ -18,6 +18,8 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { useToast } from "@/components/ToastProvider";
+import { HistorySkeleton } from "@/components/Skeleton";
+import { useRouter } from "next/navigation";
 
 interface NutritionAssessment {
   id: string;
@@ -73,8 +75,9 @@ const getMoodEmoji = (mood: string): string => {
 };
 
 export default function HistoryPage() {
-  const { user } = useAuth();
+  const { user, isAuthLoading } = useAuth();
   const { error } = useToast();
+  const router = useRouter();
 
   const [assessments, setAssessments] = useState<NutritionAssessment[]>([]);
   const [stats, setStats] = useState<MoodStats>({
@@ -273,6 +276,12 @@ export default function HistoryPage() {
   };
 
   useEffect(() => {
+    if (!isAuthLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, isAuthLoading, router]);
+
+  useEffect(() => {
     if (user) {
       loadHistoryData();
     } else {
@@ -280,25 +289,13 @@ export default function HistoryPage() {
     }
   }, [user, loadHistoryData]);
 
-  if (loading) {
-    if (!user) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-sage-50">
-          <div className="flex flex-col items-center gap-4">
-            <div className="text-sage-700">Anda belum login.</div>
-            <a
-              href="/auth/login"
-              className="px-4 py-2 rounded bg-forest-600 text-white"
-            >
-              Login Ulang
-            </a>
-          </div>
-        </div>
-      );
-    }
+  if (isAuthLoading) return <HistorySkeleton />;
+  if (!user) return null;
+
+  if (loading || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-sage-50">
-        <div className="text-sage-700">Memuat riwayat...</div>
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+        <HistorySkeleton />
       </div>
     );
   }

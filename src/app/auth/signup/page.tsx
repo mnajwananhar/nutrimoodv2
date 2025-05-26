@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -15,10 +15,11 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
+import { AuthSkeleton } from "@/components/Skeleton";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, user, isAuthLoading } = useAuth();
   const { success, error } = useToast();
 
   const [formData, setFormData] = useState({
@@ -151,6 +152,22 @@ export default function SignUpPage() {
   };
 
   const passwordStrength = getPasswordStrength();
+
+  useEffect(() => {
+    if (!isAuthLoading && user) {
+      router.push("/recommendations/assessment");
+    }
+  }, [user, isAuthLoading, router]);
+
+  if (isAuthLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">
+        <AuthSkeleton />
+      </div>
+    );
+  }
+
+  if (user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">

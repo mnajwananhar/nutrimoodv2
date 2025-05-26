@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { articles } from "./data";
+import { LearnSkeleton } from "@/components/Skeleton";
 
 export default function LearnPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -39,6 +40,14 @@ export default function LearnPage() {
     const Icon = cat?.icon || BookOpen;
     return <Icon className="w-4 h-4" />;
   };
+
+  if (!articles || articles.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+        <LearnSkeleton />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
@@ -135,31 +144,6 @@ export default function LearnPage() {
                 </div>
               </Link>
             ))}
-          </div>
-        </div>
-
-        {/* CTA Section */}
-        <div className="bg-gradient-to-r from-forest-600 to-forest-700 rounded-2xl p-8 text-center text-white">
-          <h3 className="text-3xl font-bold mb-4">
-            Siap Memulai Perjalanan Sehat Anda?
-          </h3>
-          <p className="text-forest-100 mb-6 max-w-2xl mx-auto">
-            Bergabunglah dengan ribuan orang yang telah meningkatkan kesehatan
-            dan mood mereka melalui pendekatan nutrisi yang tepat.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/recommendations/assessment"
-              className="bg-white text-forest-700 px-8 py-3 rounded-xl font-semibold hover:bg-forest-50 transition-colors"
-            >
-              Mulai Analisis Nutrisi
-            </Link>
-            <Link
-              href="/auth/signup"
-              className="border-2 border-forest-200 text-white px-8 py-3 rounded-xl font-semibold hover:bg-forest-500 transition-colors"
-            >
-              Daftar Gratis Sekarang
-            </Link>
           </div>
         </div>
       </div>
