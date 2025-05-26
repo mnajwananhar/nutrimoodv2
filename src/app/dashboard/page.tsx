@@ -6,7 +6,6 @@ import { useToast } from "@/components/ToastProvider";
 import Image from "next/image";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  User,
   TrendingUp,
   Heart,
   Target,

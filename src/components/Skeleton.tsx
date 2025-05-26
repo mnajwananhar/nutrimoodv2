@@ -94,7 +94,7 @@ export function DashboardSkeleton() {
               key={i}
               className="flex items-start space-x-4 p-4 bg-sage-50 rounded-lg"
             >
-              <div className="bg-white p-2 rounded-lg shadow-sm w-8 h-8 bg-sage-200" />
+              <div className="p-2 rounded-lg shadow-sm w-8 h-8 bg-sage-200" />
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="h-4 bg-sage-200 rounded w-1/3" />
                 <div className="h-3 bg-sage-100 rounded w-1/2" />

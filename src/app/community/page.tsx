@@ -164,27 +164,24 @@ export default function CommunityPage() {
       const { data, error: fetchError } = await query;
 
       if (fetchError) throw fetchError; // Organize comments into nested structure
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const postsWithNestedComments = (data || []).map((post: any) => {
-        const allComments = post.comments || [];
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const mainComments = allComments.filter(
-          (comment: any) => !comment.parent_id
-        );
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const nestedComments = mainComments.map((mainComment: any) => ({
-          ...mainComment,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          replies: allComments.filter(
-            (comment: any) => comment.parent_id === mainComment.id
-          ),
-        }));
-
-        return {
-          ...post,
-          comments: nestedComments,
-        };
-      });
+      const postsWithNestedComments = (data || []).map(
+        (post: CommunityPost) => {
+          const allComments: Comment[] = post.comments || [];
+          const mainComments = allComments.filter(
+            (comment) => !comment.parent_id
+          );
+          const nestedComments = mainComments.map((mainComment) => ({
+            ...mainComment,
+            replies: allComments.filter(
+              (comment) => comment.parent_id === mainComment.id
+            ),
+          }));
+          return {
+            ...post,
+            comments: nestedComments,
+          };
+        }
+      );
 
       setPosts(postsWithNestedComments);
     } catch (err) {
@@ -615,7 +612,7 @@ export default function CommunityPage() {
                                   });
                                   setShowPostDropdown(null);
                                 }}
-                                className="block w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
+                                className="w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
                               >
                                 <Trash2 className="w-4 h-4" /> Hapus
                               </button>
@@ -636,10 +633,12 @@ export default function CommunityPage() {
                   {post.images && post.images.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto py-2 mb-4">
                       {post.images.map((img, idx) => (
-                        <img
+                        <Image
                           key={idx}
                           src={img}
                           alt={`post-img-${idx}`}
+                          width={128}
+                          height={128}
                           className="w-32 h-32 object-cover rounded-lg cursor-pointer"
                           onClick={() => {
                             setModalImageUrl(img);
@@ -648,6 +647,7 @@ export default function CommunityPage() {
                           onError={(e) => {
                             e.currentTarget.src = "/api/placeholder/128/128";
                           }}
+                          style={{ objectFit: "cover" }}
                         />
                       ))}
                     </div>
@@ -786,7 +786,7 @@ export default function CommunityPage() {
                                                 });
                                                 setShowCommentDropdown(null);
                                               }}
-                                              className="block w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
+                                              className="w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
                                             >
                                               <Trash2 className="w-4 h-4" />{" "}
                                               Hapus
@@ -923,7 +923,7 @@ export default function CommunityPage() {
                                                           null
                                                         );
                                                       }}
-                                                      className="block w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
+                                                      className="w-full text-left px-4 py-2 text-red-600 hover:bg-sage-50 flex items-center gap-2 text-sm"
                                                     >
                                                       <Trash2 className="w-4 h-4" />{" "}
                                                       Hapus
@@ -1261,15 +1261,18 @@ export default function CommunityPage() {
                   {imagePreviews.length > 0 && (
                     <div className="flex gap-2 mt-2 overflow-x-auto">
                       {imagePreviews.map((src, idx) => (
-                        <img
+                        <Image
                           key={idx}
                           src={src}
                           alt="preview"
+                          width={96}
+                          height={96}
                           className="w-24 h-24 object-cover rounded-lg border cursor-pointer"
                           onClick={() => {
                             setModalImageUrl(src);
                             setShowImageModal(true);
                           }}
+                          style={{ objectFit: "cover" }}
                         />
                       ))}
                     </div>
@@ -1302,13 +1305,16 @@ export default function CommunityPage() {
             className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
             onClick={() => setShowImageModal(false)}
           >
-            <img
+            <Image
               src={modalImageUrl}
               alt="modal-img"
+              width={512}
+              height={512}
               className="max-w-full max-h-full rounded-lg shadow-lg"
               onError={(e) => {
                 e.currentTarget.src = "/api/placeholder/512/512";
               }}
+              style={{ objectFit: "contain" }}
             />
           </div>
         )}

@@ -2,17 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  BookOpen,
-  Brain,
-  Utensils,
-  Heart,
-  Search,
-  FileText,
-  Target,
-  Lightbulb,
-  ImageOff,
-} from "lucide-react";
+import { BookOpen, Search, ImageOff } from "lucide-react";
 import Image from "next/image";
 import { articles } from "./data";
 import { LearnSkeleton } from "@/components/Skeleton";
@@ -22,24 +12,9 @@ export default function LearnPage() {
   // Tambahkan state untuk error gambar
   const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
 
-  const categories = [
-    { key: "all", label: "Semua", icon: BookOpen },
-    { key: "nutrition-basics", label: "Dasar Nutrisi", icon: Utensils },
-    { key: "mood-food", label: "Mood & Makanan", icon: Brain },
-    { key: "indonesian-foods", label: "Makanan Indonesia", icon: Heart },
-    { key: "health-tips", label: "Tips Kesehatan", icon: Target },
-    { key: "myths-facts", label: "Mitos vs Fakta", icon: Lightbulb },
-  ];
-
   const filteredArticles = articles.filter((article) =>
     article.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const getCategoryIcon = (category: string) => {
-    const cat = categories.find((c) => c.key === category);
-    const Icon = cat?.icon || BookOpen;
-    return <Icon className="w-4 h-4" />;
-  };
 
   if (!articles || articles.length === 0) {
     return (
