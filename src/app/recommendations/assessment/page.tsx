@@ -44,8 +44,9 @@ export default function AssessmentPage() {
     fat_level: 1, // Default ke low
     carb_level: 2,
   });
-  const [healthCondition, setHealthCondition] =
-    useState<HealthCondition | null>(null);
+  const [selectedHealthConditions, setSelectedHealthConditions] = useState<
+    HealthCondition[]
+  >([]);
   const [healthConditions, setHealthConditions] = useState<HealthCondition[]>(
     []
   );
@@ -117,10 +118,11 @@ export default function AssessmentPage() {
     {
       key: "health_condition" as const,
       title: "Kondisi Kesehatan",
-      description: "Apakah Anda memiliki kondisi kesehatan khusus?",
+      description:
+        "Pilih kondisi kesehatan yang Anda miliki (bisa lebih dari satu)",
       icon: <Brain className="w-8 h-8" />,
       color: "from-purple-500 to-purple-600",
-      info: "Kondisi kesehatan tertentu memerlukan perhatian khusus dalam pemilihan makanan. Pilih kondisi yang sesuai untuk mendapatkan rekomendasi yang lebih tepat.",
+      info: "Kondisi kesehatan tertentu memerlukan perhatian khusus dalam pemilihan makanan. Anda dapat memilih lebih dari satu kondisi untuk mendapatkan rekomendasi yang lebih tepat.",
       examples: [
         "Tidak Ada: Semua makanan akan direkomendasikan",
         "Diabetes: Fokus pada makanan rendah gula dan karbohidrat",
@@ -142,10 +144,24 @@ export default function AssessmentPage() {
     if (currentStepKey === "health_condition") {
       // For health condition step, level represents the index in healthConditions array
       if (level < healthConditions.length) {
-        setHealthCondition(healthConditions[level]);
+        const selectedCondition = healthConditions[level];
+        setSelectedHealthConditions((prev) => {
+          const isAlreadySelected = prev.some(
+            (condition) => condition.value === selectedCondition.value
+          );
+          if (isAlreadySelected) {
+            // Remove if already selected
+            return prev.filter(
+              (condition) => condition.value !== selectedCondition.value
+            );
+          } else {
+            // Add if not selected
+            return [...prev, selectedCondition];
+          }
+        });
       } else if (level === healthConditions.length) {
-        // "Tidak Ada" option
-        setHealthCondition(null);
+        // "Tidak Ada" option - clear all selections
+        setSelectedHealthConditions([]);
       }
     } else {
       // For nutrition steps
@@ -178,18 +194,21 @@ export default function AssessmentPage() {
         protein_category: nutritionInput.protein_level,
         fat_category: nutritionInput.fat_level,
         carb_category: nutritionInput.carb_level,
-      });
-
-      // 2. Rekomendasi makanan ke backend (with health conditions)
+      }); // 2. Rekomendasi makanan ke backend (with health conditions)
       const foodData = await api.recommend({
         mood: moodData.mood,
         top_n: 5,
-        health_conditions: healthCondition ? [healthCondition.value] : [],
-      });
-      // 3. Simpan ke Supabase jika user login
+        health_conditions: selectedHealthConditions.map((hc) => hc.value),
+      }); // 3. Simpan ke Supabase jika user login
       let assessmentId = null;
       if (user) {
-        // Insert ke NutritionAssessment
+        // Prepare health conditions array
+        const healthConditionsArray =
+          selectedHealthConditions.length > 0
+            ? selectedHealthConditions.map((condition) => condition.value)
+            : ["tidak_ada"];
+
+        // Insert assessment ke database with health conditions as TEXT[] array
         const { data: assessment, error: err1 } = await supabase
           .from("nutrition_assessments")
           .insert([
@@ -199,7 +218,7 @@ export default function AssessmentPage() {
               protein_level: nutritionInput.protein_level,
               fat_level: nutritionInput.fat_level,
               carb_level: nutritionInput.carb_level,
-              health_condition: healthCondition?.value || null,
+              health_conditions: healthConditionsArray,
               predicted_mood: moodData.mood,
               confidence_score: moodData.confidence,
               created_at: new Date().toISOString(),
@@ -208,7 +227,9 @@ export default function AssessmentPage() {
           .select()
           .single();
         if (err1) throw err1;
-        assessmentId = assessment.id; // Insert food recommendations
+        assessmentId = assessment.id;
+
+        // Insert food recommendations
         for (const food of foodData) {
           const { error: err2 } = await supabase
             .from("food_recommendations")
@@ -238,7 +259,7 @@ export default function AssessmentPage() {
         JSON.stringify({
           input: {
             ...nutritionInput,
-            health_condition: healthCondition,
+            health_condition: selectedHealthConditions,
           },
           result: {
             mood_prediction: {
@@ -279,9 +300,9 @@ export default function AssessmentPage() {
   const currentStepData = allSteps[currentStep];
   const currentValue =
     currentStepData.key === "health_condition"
-      ? healthCondition
-        ? healthConditions.findIndex((hc) => hc.value === healthCondition.value)
-        : healthConditions.length
+      ? selectedHealthConditions.length === 0
+        ? healthConditions.length // "Tidak Ada" option
+        : -1 // Multiple selections, no single value
       : nutritionInput[currentStepData.key as keyof NutritionInput];
   const progress = ((currentStep + 1) / allSteps.length) * 100;
 
@@ -381,13 +402,14 @@ export default function AssessmentPage() {
             {currentStepData.key === "health_condition" ? (
               // Health Condition Selection
               <div className="grid md:grid-cols-2 gap-4 mb-8">
+                {" "}
                 {/* "Tidak Ada" option */}
                 <button
                   onClick={() => handleLevelSelect(healthConditions.length)}
                   className={`
                     p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
                     ${
-                      currentValue === healthConditions.length
+                      selectedHealthConditions.length === 0
                         ? "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
                         : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
                     }
@@ -397,7 +419,7 @@ export default function AssessmentPage() {
                     <div>
                       <h3
                         className={`font-semibold text-lg mb-1 ${
-                          currentValue === healthConditions.length
+                          selectedHealthConditions.length === 0
                             ? ""
                             : "text-sage-900"
                         }`}
@@ -406,7 +428,7 @@ export default function AssessmentPage() {
                       </h3>
                       <p
                         className={`text-sm ${
-                          currentValue === healthConditions.length
+                          selectedHealthConditions.length === 0
                             ? ""
                             : "text-sage-700"
                         }`}
@@ -416,63 +438,67 @@ export default function AssessmentPage() {
                     </div>
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        currentValue === healthConditions.length
+                        selectedHealthConditions.length === 0
                           ? "border-current bg-current"
                           : "border-sage-300"
                       }`}
                     >
-                      {currentValue === healthConditions.length && (
+                      {selectedHealthConditions.length === 0 && (
                         <div className="w-2 h-2 bg-white rounded-full" />
                       )}
                     </div>
                   </div>
                 </button>
-
                 {/* Health condition options */}
-                {healthConditions.map((condition, index) => (
-                  <button
-                    key={condition.value}
-                    onClick={() => handleLevelSelect(index)}
-                    className={`
-                      p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
-                      ${
-                        currentValue === index
-                          ? "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
-                          : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
-                      }
-                    `}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3
-                          className={`font-semibold text-lg mb-1 ${
-                            currentValue === index ? "" : "text-sage-900"
+                {healthConditions.map((condition, index) => {
+                  const isSelected = selectedHealthConditions.some(
+                    (hc) => hc.value === condition.value
+                  );
+                  return (
+                    <button
+                      key={condition.value}
+                      onClick={() => handleLevelSelect(index)}
+                      className={`
+                        p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
+                        ${
+                          isSelected
+                            ? "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                            : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
+                        }
+                      `}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3
+                            className={`font-semibold text-lg mb-1 ${
+                              isSelected ? "" : "text-sage-900"
+                            }`}
+                          >
+                            {condition.name}
+                          </h3>
+                          <p
+                            className={`text-sm ${
+                              isSelected ? "" : "text-sage-700"
+                            }`}
+                          >
+                            {condition.description}
+                          </p>
+                        </div>
+                        <div
+                          className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                            isSelected
+                              ? "border-current bg-current"
+                              : "border-sage-300"
                           }`}
                         >
-                          {condition.name}
-                        </h3>
-                        <p
-                          className={`text-sm ${
-                            currentValue === index ? "" : "text-sage-700"
-                          }`}
-                        >
-                          {condition.description}
-                        </p>
+                          {isSelected && (
+                            <div className="w-3 h-3 text-white">✓</div>
+                          )}
+                        </div>
                       </div>
-                      <div
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                          currentValue === index
-                            ? "border-current bg-current"
-                            : "border-sage-300"
-                        }`}
-                      >
-                        {currentValue === index && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
-                        )}
-                      </div>
-                    </div>
-                  </button>
-                ))}
+                    </button>
+                  );
+                })}
               </div>
             ) : (
               // Nutrition Level Selection
@@ -598,14 +624,16 @@ export default function AssessmentPage() {
                     </div>
                   </div>
                 ))}
-              {/* Show health condition if we're on or past that step */}
+              {/* Show health condition if we're on or past that step */}{" "}
               {currentStep >= steps.length && (
                 <div className="text-center">
                   <div className="text-sm text-sage-600 mb-1">
                     Kondisi Kesehatan
                   </div>
                   <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700 border border-purple-200">
-                    {healthCondition ? healthCondition.name : "Tidak Ada"}
+                    {selectedHealthConditions.length > 0
+                      ? selectedHealthConditions.map((hc) => hc.name).join(", ")
+                      : "Tidak Ada"}
                   </div>
                 </div>
               )}

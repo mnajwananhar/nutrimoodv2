@@ -1,269 +1,44 @@
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import numpy as np
-import pandas as pd
-import tensorflow as tf
-import joblib
-import pickle
-import traceback
-from typing import List, Optional, Dict
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
+import pandas as pd
+import numpy as np
+import tensorflow as tf
+import pickle
+import joblib
+import os
+import warnings
+import uvicorn
+from datetime import datetime
 
-# ===== HELPER FUNCTIONS =====
-def recommend_foods_by_mood(mood, top_n=10, health_conditions=None):
-    """Recommend foods based on mood and health conditions using real data from pickle"""
-    try:
-        if food_recommender is None:
-            return []
-        
-        # Get the actual food DataFrame from the loaded recommender
-        food_df = None
-        if hasattr(food_recommender, 'food_df') and food_recommender.food_df is not None:
-            food_df = food_recommender.food_df.copy()
-        elif hasattr(food_recommender, 'df') and food_recommender.df is not None:
-            food_df = food_recommender.df.copy()
-        else:
-            return []
-        
-        if food_df.empty:
-            return []
-        
-        # Filter berdasarkan mood
-        if mood and mood != "neutral":
-            filtered_df = food_df[food_df['primary_mood'] == mood]
-            
-            if filtered_df.empty:
-                mood_col = f'mood_{mood}'
-                if mood_col in food_df.columns:
-                    filtered_df = food_df[food_df[mood_col] == True]
-                
-                if filtered_df.empty:
-                    filtered_df = food_df[food_df['primary_mood'] == 'neutral']
-                    
-                    if filtered_df.empty:
-                        filtered_df = food_df
-        else:
-            filtered_df = food_df.copy()
-        
-        # Apply health condition filters dengan percentile (PERBAIKAN UTAMA)
-        if health_conditions:
-            for condition in health_conditions:
-                original_count = len(filtered_df)
-                
-                if condition == "diabetes":
-                    # Gunakan percentile 40% untuk kalori dan 35% untuk karbohidrat
-                    calorie_threshold = filtered_df['calories'].quantile(0.4)
-                    carb_threshold = filtered_df['carbohydrate'].quantile(0.35)
-                    
-                    temp_filtered = filtered_df[
-                        (filtered_df['calories'] <= calorie_threshold) & 
-                        (filtered_df['carbohydrate'] <= carb_threshold)
-                    ]
-                    
-                    # Jika hasil terlalu sedikit, gunakan threshold yang lebih longgar
-                    if len(temp_filtered) < top_n:
-                        calorie_threshold = filtered_df['calories'].quantile(0.6)
-                        carb_threshold = filtered_df['carbohydrate'].quantile(0.5)
-                        temp_filtered = filtered_df[
-                            (filtered_df['calories'] <= calorie_threshold) & 
-                            (filtered_df['carbohydrate'] <= carb_threshold)
-                        ]
-                    
-                    filtered_df = temp_filtered if len(temp_filtered) > 0 else filtered_df
-                    
-                elif condition == "hipertensi":
-                    calorie_threshold = filtered_df['calories'].quantile(0.35)
-                    fat_threshold = filtered_df['fat'].quantile(0.3)
-                    
-                    temp_filtered = filtered_df[
-                        (filtered_df['calories'] <= calorie_threshold) & 
-                        (filtered_df['fat'] <= fat_threshold)
-                    ]
-                    
-                    if len(temp_filtered) < top_n:
-                        calorie_threshold = filtered_df['calories'].quantile(0.6)
-                        fat_threshold = filtered_df['fat'].quantile(0.5)
-                        temp_filtered = filtered_df[
-                            (filtered_df['calories'] <= calorie_threshold) & 
-                            (filtered_df['fat'] <= fat_threshold)
-                        ]
-                    
-                    filtered_df = temp_filtered if len(temp_filtered) > 0 else filtered_df
-                    
-                elif condition == "kolesterol":
-                    fat_threshold = filtered_df['fat'].quantile(0.25)
-                    temp_filtered = filtered_df[filtered_df['fat'] <= fat_threshold]
-                    
-                    if len(temp_filtered) < top_n:
-                        fat_threshold = filtered_df['fat'].quantile(0.5)
-                        temp_filtered = filtered_df[filtered_df['fat'] <= fat_threshold]
-                    
-                    filtered_df = temp_filtered if len(temp_filtered) > 0 else filtered_df
-                    
-                elif condition == "obesitas":
-                    calorie_threshold = filtered_df['calories'].quantile(0.2)
-                    fat_threshold = filtered_df['fat'].quantile(0.25)
-                    
-                    temp_filtered = filtered_df[
-                        (filtered_df['calories'] <= calorie_threshold) & 
-                        (filtered_df['fat'] <= fat_threshold)
-                    ]
-                    
-                    if len(temp_filtered) < top_n:
-                        calorie_threshold = filtered_df['calories'].quantile(0.4)
-                        fat_threshold = filtered_df['fat'].quantile(0.4)
-                        temp_filtered = filtered_df[
-                            (filtered_df['calories'] <= calorie_threshold) & 
-                            (filtered_df['fat'] <= fat_threshold)
-                        ]
-                    
-                    filtered_df = temp_filtered if len(temp_filtered) > 0 else filtered_df
-        
-        # Smart fallback jika masih kosong
-        if filtered_df.empty:
-            if mood and mood != "neutral":
-                filtered_df = food_df[food_df['primary_mood'] == mood]
-            if filtered_df.empty:
-                filtered_df = food_df.nsmallest(top_n, 'calories')
-        
-        # Smart sorting berdasarkan health conditions
-        if health_conditions:
-            if any(cond in ['diabetes', 'obesitas'] for cond in health_conditions):
-                # Sort by calories ascending untuk weight management
-                filtered_df = filtered_df.sort_values(['calories', 'carbohydrate']).head(top_n)
-            elif any(cond in ['kolesterol', 'hipertensi'] for cond in health_conditions):
-                # Sort by fat ascending untuk heart health
-                filtered_df = filtered_df.sort_values(['fat', 'calories']).head(top_n)
-            else:
-                filtered_df = filtered_df.sort_values('calories').head(top_n)
-        else:
-            # No health conditions, sort by mood preference
-            if mood == 'energizing':
-                filtered_df = filtered_df.sort_values('carbohydrate', ascending=False).head(top_n)
-            elif mood == 'focusing':
-                filtered_df = filtered_df.sort_values('proteins', ascending=False).head(top_n)
-            else:
-                filtered_df = filtered_df.sort_values('calories').head(top_n)
-        
-        # Calculate proper similarity score
-        filtered_df = filtered_df.copy()
-        base_score = 0.7
-        for idx, row in filtered_df.iterrows():
-            score = base_score
-            
-            # Mood match bonus
-            if row['primary_mood'] == mood:
-                score += 0.2
-            
-            # Health condition compatibility bonus
-            if health_conditions:
-                for condition in health_conditions:
-                    if condition == 'diabetes' and row['carbohydrate'] < 20:
-                        score += 0.05
-                    elif condition == 'hipertensi' and row['fat'] < 8:
-                        score += 0.05
-                    elif condition == 'kolesterol' and row['fat'] < 5:
-                        score += 0.05
-                    elif condition == 'obesitas' and row['calories'] < 100:
-                        score += 0.05
-            
-            filtered_df.at[idx, 'similarity_score'] = min(score, 1.0)
-        
-        return filtered_df
-        
-    except Exception as e:
-        print(f"Error in recommend_foods_by_mood: {e}")
-        return []
+warnings.filterwarnings('ignore')
 
-# ===== INISIALISASI APLIKASI =====
-app = FastAPI(title="NutriMood API", version="1.0.0", description="API untuk prediksi mood dan rekomendasi makanan berdasarkan profil nutrisi")
+# Pydantic models for request/response
+class HealthData(BaseModel):
+    calorie_category: str = Field(..., description="Kategori kalori: very_low, low, medium, high")
+    protein_category: str = Field(..., description="Kategori protein: very_low, low, medium, high")
+    fat_category: str = Field(..., description="Kategori lemak: very_low, low, medium, high")
+    carb_category: str = Field(..., description="Kategori karbohidrat: very_low, low, medium, high")
 
-# Tambahkan CORS
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class PredictRequest(BaseModel):
+    health_data: HealthData
 
-# ===== LOAD MODEL =====
-model = None
-feature_scaler = None
-label_encoder = None
-mood_encoder = None
-food_recommender = None
+class RecommendRequest(BaseModel):
+    mood: str = Field(..., description="Mood untuk rekomendasi")
+    health_conditions: Optional[List[str]] = Field(default=[], description="Kondisi kesehatan")
+    top_n: Optional[int] = Field(default=5, description="Jumlah rekomendasi")
 
-# Dummy class untuk load pickle file
-class FoodRecommender:
-    def __init__(self):
-        self.food_df = None
-        self.df = None
-        self.mood_mapping = {}
-        self.health_mapping = {}
-        self.feature_weights = {}
-        self.category_mapping = {}
-    
-    def recommend_for_mood(self, mood, top_n=5, health_conditions=None):
-        return pd.DataFrame()
+class PredictAndRecommendRequest(BaseModel):
+    health_data: HealthData
+    health_conditions: Optional[List[str]] = Field(default=[], description="Kondisi kesehatan")
+    top_n: Optional[int] = Field(default=5, description="Jumlah rekomendasi")
 
-try:
-    print("Loading NutriMood models...")
-    
-    print("1. Loading mood classifier model...")
-    model = tf.keras.models.load_model('mood_classifier_model.keras')
-    print("✅ Mood classifier model loaded")
-    
-    print("2. Loading feature scaler...")
-    feature_scaler = joblib.load('mood_feature_scaler.pkl')
-    print("✅ Feature scaler loaded")
-    
-    print("3. Loading label encoder...")
-    label_encoder = joblib.load('mood_label_encoder.pkl')
-    print("✅ Label encoder loaded")
-    
-    print("4. Loading mood encoder...")
-    mood_encoder = joblib.load('mood_encoder.pkl')
-    print("✅ Mood encoder loaded")
-    
-    print("5. Loading food recommender...")
-    try:
-        with open('food_recommender.pkl', 'rb') as f:
-            food_recommender = pickle.load(f)
-        print("✅ Food recommender loaded")
-        if hasattr(food_recommender, 'food_df') and food_recommender.food_df is not None:
-            print(f"   📊 Total foods in database: {len(food_recommender.food_df)}")
-            mood_dist = food_recommender.food_df['primary_mood'].value_counts().to_dict() if 'primary_mood' in food_recommender.food_df.columns else {}
-            print(f"   🎭 Mood distribution: {mood_dist}")
-    except FileNotFoundError:
-        print("⚠️  WARNING: File food_recommender.pkl tidak ditemukan!")
-        food_recommender = None
-    except Exception as e:
-        print(f"⚠️  WARNING: Error loading food_recommender.pkl: {e}")
-        food_recommender = None
-    
-    print("🎉 All models loaded successfully!")
-    
-except Exception as e:
-    print(f"❌ Error loading models: {e}")
-    print(f"Traceback: {traceback.format_exc()}")
-
-# ===== SCHEMAS =====
-class HealthInput(BaseModel):
-    calorie_category: int  # 0=very_low, 1=low, 2=medium, 3=high
-    protein_category: int
-    fat_category: int
-    carb_category: int
-
-class HealthInputWithConditions(BaseModel):
-    calorie_category: int
-    protein_category: int
-    fat_category: int
-    carb_category: int
-    health_conditions: Optional[List[str]] = []
+class BatchPredictRequest(BaseModel):
+    batch_data: List[HealthData]
 
 class MoodPrediction(BaseModel):
-    mood: str
+    predicted_mood: str
     confidence: float
     mood_probabilities: Dict[str, float]
 
@@ -274,196 +49,397 @@ class FoodRecommendation(BaseModel):
     fat: float
     carbohydrate: float
     primary_mood: str
-    similarity_score: Optional[float] = 0.0
+    similarity_score: float
 
-class RecommendationRequest(BaseModel):
-    mood: Optional[str] = None
-    health_conditions: Optional[List[str]] = []
-    top_n: Optional[int] = 5
+class RecommendationResponse(BaseModel):
+    mood: str
+    recommendations: List[FoodRecommendation]
+    total_recommendations: int
 
-# ===== ENDPOINTS =====
-@app.get("/")
-def root():
-    return {
-        "status": "NutriMood API is running",
-        "version": "1.0.0",
-        "description": "API untuk prediksi mood dan rekomendasi makanan berdasarkan profil nutrisi",
-        "endpoints": {
-            "/predict": "POST - Prediksi mood berdasarkan data kesehatan",
-            "/recommend": "POST - Dapatkan rekomendasi makanan berdasarkan mood",
-            "/predict-and-recommend": "POST - Prediksi mood dan rekomendasi sekaligus",
-            "/moods": "GET - Daftar mood yang tersedia",
-            "/health-conditions": "GET - Daftar kondisi kesehatan"
-        },
-        "model_status": {
-            "mood_classifier": "loaded" if model is not None else "not loaded",
-            "feature_scaler": "loaded" if feature_scaler is not None else "not loaded",
-            "label_encoder": "loaded" if label_encoder is not None else "not loaded",
-            "mood_encoder": "loaded" if mood_encoder is not None else "not loaded",
-            "food_recommender": "loaded" if food_recommender is not None else "not loaded"
+class PredictAndRecommendResponse(BaseModel):
+    predicted_mood: str
+    confidence: float
+    mood_probabilities: Dict[str, float]
+    recommendations: List[FoodRecommendation]
+    total_recommendations: int
+
+class BatchPredictResponse(BaseModel):
+    predictions: List[MoodPrediction]
+    total_processed: int
+
+# NutriMood Model Class
+class NutriMoodModel:
+    def __init__(self, 
+                 model_path: str = 'mood_classifier_model.keras',
+                 scaler_path: str = 'mood_feature_scaler.pkl',
+                 encoder_path: str = 'mood_encoder.pkl',
+                 recommender_path: str = 'food_recommender.pkl'):
+        
+        self.model_path = model_path
+        self.scaler_path = scaler_path
+        self.encoder_path = encoder_path
+        self.recommender_path = recommender_path
+        
+        # Initialize variables
+        self.model = None
+        self.feature_scaler = None
+        self.encoder = None
+        self.recommender = None
+        
+        # Mapping categories to numeric values
+        self.category_mapping = {
+            'very_low': 0, 
+            'low': 1, 
+            'medium': 2, 
+            'high': 3
         }
+        
+        # Mood mapping
+        self.mood_mapping = {
+            'energizing': 0,
+            'relaxing': 1,
+            'focusing': 2,
+            'multi_category': 3,
+            'neutral': 4
+        }
+        
+        # Health conditions mapping
+        self.health_conditions_list = [
+            'diabetes', 'hipertensi', 'kolesterol', 'obesitas', 
+            'alergi_gluten', 'vegetarian', 'diet_rendah_garam'
+        ]
+        
+        # Load all models
+        self.load_models()
+    
+    def load_models(self):
+        """Load semua model yang diperlukan"""
+        try:
+            # Load mood classifier
+            if os.path.exists(self.model_path):
+                self.model = tf.keras.models.load_model(self.model_path)
+                print(f"✓ Mood classifier loaded from {self.model_path}")
+            else:
+                print(f"✗ Mood classifier not found at {self.model_path}")
+            
+            # Load feature scaler
+            if os.path.exists(self.scaler_path):
+                self.feature_scaler = joblib.load(self.scaler_path)
+                print(f"✓ Feature scaler loaded from {self.scaler_path}")
+            else:
+                print(f"✗ Feature scaler not found at {self.scaler_path}")
+            
+            # Load encoder
+            if os.path.exists(self.encoder_path):
+                self.encoder = joblib.load(self.encoder_path)
+                print(f"✓ Encoder loaded from {self.encoder_path}")
+            else:
+                print(f"✗ Encoder not found at {self.encoder_path}")
+            
+            # Load food recommender
+            if os.path.exists(self.recommender_path):
+                with open(self.recommender_path, 'rb') as f:
+                    self.recommender = pickle.load(f)
+                print(f"✓ Food recommender loaded from {self.recommender_path}")
+            else:
+                print(f"✗ Food recommender not found at {self.recommender_path}")
+                
+        except Exception as e:
+            print(f"Error loading models: {str(e)}")
+            raise e
+    
+    def predict_mood(self, health_data: Dict[str, str]) -> tuple:
+        """Prediksi mood berdasarkan data kesehatan"""
+        if not all([self.model, self.feature_scaler, self.encoder]):
+            raise ValueError("Model mood classifier belum dimuat dengan benar")
+        
+        # Convert string categories to numeric values
+        numeric_health_data = {}
+        for key, value in health_data.items():
+            if isinstance(value, str) and value in self.category_mapping:
+                numeric_health_data[key] = self.category_mapping[value]
+            else:
+                numeric_health_data[key] = value
+        
+        # Prepare feature vector
+        features = np.array([
+            numeric_health_data.get('calorie_category', 1),
+            numeric_health_data.get('protein_category', 1),
+            numeric_health_data.get('fat_category', 1),
+            numeric_health_data.get('carb_category', 1)
+        ]).reshape(1, -1)
+        
+        # Preprocess data
+        features_scaled = self.feature_scaler.transform(features)
+        
+        # Predict mood
+        proba = self.model.predict(features_scaled, verbose=0)
+        pred_class = np.argmax(proba, axis=1)[0]
+        confidence = float(proba[0][pred_class])
+        
+        # Decode class to mood label
+        mood_labels = self.encoder.inverse_transform(
+            np.eye(proba.shape[1])[pred_class].reshape(1, -1)
+        )[0][0]
+        
+        # Create probability dictionary
+        mood_names = list(self.mood_mapping.keys())
+        mood_probabilities = {}
+        for i, mood in enumerate(mood_names):
+            if i < len(proba[0]):
+                mood_probabilities[mood] = float(proba[0][i])
+        
+        return mood_labels, confidence, mood_probabilities
+    
+    def get_recommendations(self, mood: str, health_conditions: List[str] = None, top_n: int = 5) -> pd.DataFrame:
+        """Dapatkan rekomendasi makanan berdasarkan mood dan kondisi kesehatan"""
+        if not self.recommender:
+            raise ValueError("Food recommender belum dimuat dengan benar")
+        
+        return self.recommender.recommend_for_mood(mood, top_n, health_conditions)
+    
+    def check_models_status(self) -> Dict[str, bool]:
+        """Cek status semua model"""
+        return {
+            'mood_classifier': self.model is not None,
+            'feature_scaler': self.feature_scaler is not None,
+            'encoder': self.encoder is not None,
+            'food_recommender': self.recommender is not None
+        }
+
+# Initialize FastAPI app
+app = FastAPI(
+    title="NutriMood API",
+    description="API untuk prediksi mood dan rekomendasi makanan berdasarkan data kesehatan",
+    version="1.0.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize NutriMood model
+try:
+    nutrimood_model = NutriMoodModel()
+    print("NutriMood model initialized successfully")
+except Exception as e:
+    print(f"Error initializing NutriMood model: {str(e)}")
+    nutrimood_model = None
+
+# API Endpoints sesuai dengan requirement
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {
+        "message": "Welcome to NutriMood API",
+        "version": "1.0.0",
+        "docs": "/docs"
     }
 
 @app.post("/predict", response_model=MoodPrediction)
-async def predict_mood(input_data: HealthInput):
+async def predict(request: PredictRequest):
     """Prediksi mood berdasarkan data kesehatan"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
     try:
-        if model is None or feature_scaler is None or label_encoder is None:
-            raise HTTPException(500, detail="Model belum dimuat lengkap")
+        # Convert HealthData to dict
+        health_dict = request.health_data.dict()
         
-        for field_name, field_value in input_data.dict().items():
-            if field_value < 0 or field_value > 3:
-                raise HTTPException(400, detail=f"{field_name} harus dalam rentang 0-3")
-        
-        input_array = np.array([
-            input_data.calorie_category,
-            input_data.protein_category,
-            input_data.fat_category,
-            input_data.carb_category
-        ], dtype=np.float32).reshape(1, -1)
-        
-        scaled_input = feature_scaler.transform(input_array)
-        predictions = model.predict(scaled_input, verbose=0)
-        
-        pred_class = np.argmax(predictions, axis=1)[0]
-        confidence = float(predictions[0][pred_class])
-        
-        mood_label = label_encoder.inverse_transform([pred_class])[0]
-        
-        mood_names = list(label_encoder.classes_)
-        mood_probs = {}
-        for i, prob in enumerate(predictions[0]):
-            if i < len(mood_names):
-                mood_probs[mood_names[i]] = float(prob)
+        # Predict mood
+        mood, confidence, probabilities = nutrimood_model.predict_mood(health_dict)
         
         return MoodPrediction(
-            mood=mood_label,
+            predicted_mood=mood,
             confidence=confidence,
-            mood_probabilities=mood_probs
+            mood_probabilities=probabilities
+        )
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error predicting mood: {str(e)}")
+
+@app.post("/recommend", response_model=RecommendationResponse)
+async def recommend(request: RecommendRequest):
+    """Dapatkan rekomendasi makanan berdasarkan mood"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
+    try:
+        # Get recommendations
+        recommendations_df = nutrimood_model.get_recommendations(
+            mood=request.mood,
+            health_conditions=request.health_conditions,
+            top_n=request.top_n
         )
         
-    except HTTPException:
-        raise
+        # Convert DataFrame to list of FoodRecommendation
+        recommendations = []
+        for _, row in recommendations_df.iterrows():
+            recommendations.append(FoodRecommendation(
+                name=row['name'],
+                calories=float(row['calories']) if pd.notna(row['calories']) else 0.0,
+                proteins=float(row['proteins']) if pd.notna(row['proteins']) else 0.0,
+                fat=float(row['fat']) if pd.notna(row['fat']) else 0.0,
+                carbohydrate=float(row['carbohydrate']) if pd.notna(row['carbohydrate']) else 0.0,
+                primary_mood=str(row['primary_mood']) if pd.notna(row['primary_mood']) else '',
+                similarity_score=float(row['similarity_score']) if 'similarity_score' in row and pd.notna(row['similarity_score']) else 0.0
+            ))
+        
+        return RecommendationResponse(
+            mood=request.mood,
+            recommendations=recommendations,
+            total_recommendations=len(recommendations)
+        )
+    
     except Exception as e:
-        raise HTTPException(500, detail=f"Error prediksi: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error getting recommendations: {str(e)}")
 
-@app.post("/recommend", response_model=List[FoodRecommendation])
-async def get_recommendations(request: RecommendationRequest):
-    """Dapatkan rekomendasi makanan berdasarkan mood dan kondisi kesehatan"""
+@app.post("/predict-and-recommend", response_model=PredictAndRecommendResponse)
+async def predict_and_recommend(request: PredictAndRecommendRequest):
+    """Prediksi mood dan dapatkan rekomendasi makanan sekaligus"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
     try:
-        if food_recommender is None:
-            raise HTTPException(500, detail="Food recommender belum dimuat")
+        # Convert HealthData to dict
+        health_dict = request.health_data.dict()
         
-        valid_moods = ["energizing", "relaxing", "focusing", "neutral"]
-        if request.mood and request.mood.lower() not in valid_moods:
-            raise HTTPException(400, detail=f"Mood tidak valid. Harus salah satu dari: {valid_moods}")
+        # Predict mood
+        mood, confidence, probabilities = nutrimood_model.predict_mood(health_dict)
         
-        valid_conditions = ["diabetes", "hipertensi", "kolesterol", "obesitas", "alergi_gluten", "vegetarian"]
-        if request.health_conditions:
-            filtered_conditions = [c for c in request.health_conditions if c and c.lower() not in ['none', '']]
-            
-            for condition in filtered_conditions:
-                if condition not in valid_conditions:
-                    raise HTTPException(400, detail=f"Kondisi kesehatan '{condition}' tidak valid")
-            
-            request.health_conditions = filtered_conditions
-        
-        top_n = max(1, min(request.top_n if request.top_n else 5, 20))
-        
-        mood = request.mood.lower() if request.mood else "neutral"
-        health_conditions = request.health_conditions if request.health_conditions else None
-        
-        recommendations = recommend_foods_by_mood(
+        # Get recommendations based on predicted mood
+        recommendations_df = nutrimood_model.get_recommendations(
             mood=mood,
-            top_n=top_n,
-            health_conditions=health_conditions
+            health_conditions=request.health_conditions,
+            top_n=request.top_n
         )
         
-        result = []
-        if hasattr(recommendations, 'iterrows'):
-            for _, row in recommendations.iterrows():
-                result.append(FoodRecommendation(
-                    name=str(row['name']),
-                    calories=float(row['calories']),
-                    proteins=float(row['proteins']),
-                    fat=float(row['fat']),
-                    carbohydrate=float(row['carbohydrate']),
-                    primary_mood=str(row['primary_mood']),
-                    similarity_score=float(row.get('similarity_score', 0.0))
-                ))
+        # Convert DataFrame to list of FoodRecommendation
+        recommendations = []
+        for _, row in recommendations_df.iterrows():
+            recommendations.append(FoodRecommendation(
+                name=row['name'],
+                calories=float(row['calories']) if pd.notna(row['calories']) else 0.0,
+                proteins=float(row['proteins']) if pd.notna(row['proteins']) else 0.0,
+                fat=float(row['fat']) if pd.notna(row['fat']) else 0.0,
+                carbohydrate=float(row['carbohydrate']) if pd.notna(row['carbohydrate']) else 0.0,
+                primary_mood=str(row['primary_mood']) if pd.notna(row['primary_mood']) else '',
+                similarity_score=float(row['similarity_score']) if 'similarity_score' in row and pd.notna(row['similarity_score']) else 0.0
+            ))
         
-        return result
-        
-    except HTTPException:
-        raise
+        return PredictAndRecommendResponse(
+            predicted_mood=mood,
+            confidence=confidence,
+            mood_probabilities=probabilities,
+            recommendations=recommendations,
+            total_recommendations=len(recommendations)
+        )
+    
     except Exception as e:
-        raise HTTPException(500, detail=f"Error rekomendasi: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error in predict and recommend: {str(e)}")
 
-@app.post("/predict-and-recommend")
-async def predict_and_recommend(input_data: HealthInputWithConditions):
-    """Prediksi mood dan dapatkan rekomendasi dalam satu panggilan"""
+@app.get("/moods", response_model=List[str])
+async def get_moods():
+    """Dapatkan daftar mood yang tersedia"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
+    return list(nutrimood_model.mood_mapping.keys())
+
+@app.get("/health-conditions", response_model=List[str])
+async def get_health_conditions():
+    """Dapatkan daftar kondisi kesehatan yang tersedia"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
+    return nutrimood_model.health_conditions_list
+
+@app.get("/categories")
+async def get_categories():
+    """Dapatkan daftar kategori nutrisi yang tersedia"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
+    return {
+        "calorie_category": list(nutrimood_model.category_mapping.keys()),
+        "protein_category": list(nutrimood_model.category_mapping.keys()),
+        "fat_category": list(nutrimood_model.category_mapping.keys()),
+        "carb_category": list(nutrimood_model.category_mapping.keys())
+    }
+
+@app.post("/predict/batch", response_model=BatchPredictResponse)
+async def predict_batch(request: BatchPredictRequest):
+    """Prediksi mood untuk multiple data kesehatan sekaligus"""
+    if nutrimood_model is None:
+        raise HTTPException(status_code=500, detail="NutriMood model not initialized")
+    
     try:
-        mood_prediction = await predict_mood(HealthInput(
-            calorie_category=input_data.calorie_category,
-            protein_category=input_data.protein_category,
-            fat_category=input_data.fat_category,
-            carb_category=input_data.carb_category
-        ))
+        predictions = []
         
-        filtered_health_conditions = None
-        if input_data.health_conditions:
-            filtered_conditions = [c for c in input_data.health_conditions if c and c.lower() not in ['none', '']]
-            filtered_health_conditions = filtered_conditions if filtered_conditions else None
+        for health_data in request.batch_data:
+            # Convert HealthData to dict
+            health_dict = health_data.dict()
+            
+            # Predict mood
+            mood, confidence, probabilities = nutrimood_model.predict_mood(health_dict)
+            
+            predictions.append(MoodPrediction(
+                predicted_mood=mood,
+                confidence=confidence,
+                mood_probabilities=probabilities
+            ))
         
-        recommendation_request = RecommendationRequest(
-            mood=mood_prediction.mood,
-            health_conditions=filtered_health_conditions,
-            top_n=5
+        return BatchPredictResponse(
+            predictions=predictions,
+            total_processed=len(predictions)
         )
-        
-        recommendations = await get_recommendations(recommendation_request)
-        
-        return {
-            "mood_prediction": mood_prediction,
-            "recommendations": recommendations,
-            "summary": {
-                "predicted_mood": mood_prediction.mood,
-                "confidence": mood_prediction.confidence,
-                "total_recommendations": len(recommendations),
-                "health_conditions_applied": filtered_health_conditions
-            }
-        }
-        
-    except HTTPException:
-        raise
+    
     except Exception as e:
-        raise HTTPException(500, detail=f"Error prediksi dan rekomendasi: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error in batch prediction: {str(e)}")
 
-@app.get("/moods")
-def get_available_moods():
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    if nutrimood_model is None:
+        return {
+            "status": "error",
+            "message": "NutriMood model not initialized",
+            "models_loaded": {},
+            "timestamp": datetime.now()
+        }
+    
+    models_status = nutrimood_model.check_models_status()
+    all_loaded = all(models_status.values())
+    
     return {
-        "moods": [
-            {"value": "energizing", "name": "Energizing", "description": "Makanan untuk meningkatkan energi"},
-            {"value": "relaxing", "name": "Relaxing", "description": "Makanan untuk relaksasi"},
-            {"value": "focusing", "name": "Focusing", "description": "Makanan untuk meningkatkan fokus"},
-            {"value": "neutral", "name": "Neutral", "description": "Makanan sehari-hari"}
-        ]
+        "status": "healthy" if all_loaded else "partial",
+        "message": "All models loaded" if all_loaded else "Some models not loaded",
+        "models_loaded": models_status,
+        "timestamp": datetime.now()
     }
 
-@app.get("/health-conditions")
-def get_health_conditions():
-    return {
-        "conditions": [
-            {"value": "diabetes", "name": "Diabetes", "description": "Kalori rendah, karbohidrat rendah"},
-            {"value": "hipertensi", "name": "Hipertensi", "description": "Kalori rendah, lemak rendah"},
-            {"value": "kolesterol", "name": "Kolesterol Tinggi", "description": "Lemak rendah"},
-            {"value": "obesitas", "name": "Obesitas", "description": "Kalori sangat rendah"},
-            {"value": "alergi_gluten", "name": "Alergi Gluten", "description": "Makanan bebas gluten"},
-            {"value": "vegetarian", "name": "Vegetarian", "description": "Makanan nabati"}
-        ]
-    }
+# Exception handlers
+@app.exception_handler(404)
+async def not_found_handler(request, exc):
+    return {"error": "Endpoint not found", "detail": str(exc)}
+
+@app.exception_handler(500)
+async def internal_error_handler(request, exc):
+    return {"error": "Internal server error", "detail": str(exc)}
 
 if __name__ == "__main__":
-    import uvicorn
-    print("🚀 Starting NutriMood API Server...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Run the server
+    uvicorn.run(
+        "nutrimood_api:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True,
+        log_level="info"
+    )

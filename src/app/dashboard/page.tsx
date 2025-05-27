@@ -537,13 +537,39 @@ export default function DashboardPage() {
                             <p className="text-sm text-sage-600">
                               {activity.type === "assessment" &&
                               activity.metadata &&
-                              typeof activity.metadata.health_condition ===
-                                "string"
+                              activity.metadata.health_conditions
                                 ? `Kondisi: ${
-                                    healthConditionLabels[
-                                      activity.metadata
-                                        .health_condition as string
-                                    ] || activity.metadata.health_condition
+                                    Array.isArray(
+                                      activity.metadata.health_conditions
+                                    )
+                                      ? activity.metadata.health_conditions
+                                          .filter(
+                                            (condition) =>
+                                              condition !== "tidak_ada"
+                                          )
+                                          .map(
+                                            (condition) =>
+                                              healthConditionLabels[
+                                                condition
+                                              ] || condition
+                                          )
+                                          .join(", ") || "Tidak Ada"
+                                      : typeof activity.metadata
+                                          .health_conditions === "string"
+                                      ? activity.metadata.health_conditions
+                                          .split(",")
+                                          .filter(
+                                            (condition) =>
+                                              condition.trim() !== "tidak_ada"
+                                          )
+                                          .map(
+                                            (condition) =>
+                                              healthConditionLabels[
+                                                condition.trim()
+                                              ] || condition.trim()
+                                          )
+                                          .join(", ") || "Tidak Ada"
+                                      : "Tidak Ada"
                                   }`
                                 : activity.description}
                             </p>

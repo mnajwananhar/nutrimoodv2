@@ -33,7 +33,7 @@ interface AssessmentData {
     protein_level: number;
     fat_level: number;
     carb_level: number;
-    health_condition?: HealthCondition | null;
+    health_condition?: HealthCondition[] | HealthCondition | null; // Support both formats for backwards compatibility
   };
   result: {
     mood_prediction: {
@@ -94,13 +94,12 @@ export default function ResultsPage() {
   const [likedFoods, setLikedFoods] = useState<Set<string>>(new Set());
   const [consumedFoods, setConsumedFoods] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const loadAssessmentData = async () => {
       setIsLoading(true);
       try {
         if (user) {
-          // Ambil assessment terbaru dari Supabase
+          // Ambil assessment terbaru dari Supabase dengan health conditions
           const { data: assessment, error: err1 } = await supabase
             .from("nutrition_assessments")
             .select("*")
@@ -110,26 +109,35 @@ export default function ResultsPage() {
             .single();
           if (err1 || !assessment)
             throw err1 || new Error("Assessment tidak ditemukan");
+
           // Ambil food recommendations
           const { data: foods, error: err2 } = await supabase
             .from("food_recommendations")
             .select("*")
             .eq("assessment_id", assessment.id);
           if (err2) throw err2;
+
+          // Transform health conditions from TEXT[] array to HealthCondition objects
+          const healthConditions =
+            assessment.health_conditions
+              ?.filter(
+                (condition: string) => condition && condition !== "tidak_ada"
+              )
+              ?.map((condition: string) => ({
+                value: condition,
+                name: condition,
+                description: condition,
+                filter: condition,
+              })) || [];
+
           setAssessmentData({
             input: {
               calorie_level: assessment.calorie_level,
               protein_level: assessment.protein_level,
               fat_level: assessment.fat_level,
               carb_level: assessment.carb_level,
-              health_condition: assessment.health_condition
-                ? {
-                    value: assessment.health_condition,
-                    name: assessment.health_condition, // This could be improved by fetching the full health condition data
-                    description: "",
-                    filter: "",
-                  }
-                : null,
+              health_condition:
+                healthConditions.length > 0 ? healthConditions : null,
             },
             result: {
               mood_prediction: {
@@ -393,18 +401,43 @@ export default function ResultsPage() {
                   <span className="font-medium text-forest-700">
                     {levelLabels[input.carb_level]}
                   </span>
-                </div>
+                </div>{" "}
                 {/* Health Condition */}
-                {input.health_condition && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-sage-600">Kondisi Kesehatan:</span>
-                    <span className="font-medium text-blue-700">
-                      {healthConditionLabels[input.health_condition.value] ||
-                        input.health_condition.value}
-                    </span>
-                  </div>
-                )}
-                {!input.health_condition && (
+                {input.health_condition &&
+                  Array.isArray(input.health_condition) &&
+                  input.health_condition.length > 0 && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-sage-600">Kondisi Kesehatan:</span>
+                      <div className="text-right">
+                        {input.health_condition.map((condition, index) => (
+                          <span
+                            key={condition.value}
+                            className="font-medium text-blue-700"
+                          >
+                            {healthConditionLabels[condition.value] ||
+                              condition.value}
+                            {index <
+                              (input.health_condition as HealthCondition[])
+                                .length -
+                                1 && ", "}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                {input.health_condition &&
+                  !Array.isArray(input.health_condition) && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-sage-600">Kondisi Kesehatan:</span>
+                      <span className="font-medium text-blue-700">
+                        {healthConditionLabels[input.health_condition.value] ||
+                          input.health_condition.value}
+                      </span>
+                    </div>
+                  )}
+                {(!input.health_condition ||
+                  (Array.isArray(input.health_condition) &&
+                    input.health_condition.length === 0)) && (
                   <div className="flex justify-between items-center">
                     <span className="text-sage-600">Kondisi Kesehatan:</span>
                     <span className="font-medium text-gray-700">Tidak Ada</span>

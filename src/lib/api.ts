@@ -7,9 +7,7 @@ export const API_CONFIG = {
     PREDICT_AND_RECOMMEND: "/predict-and-recommend",
     MOODS: "/moods",
     HEALTH_CONDITIONS: "/health-conditions",
-    DEBUG_STATUS: "/debug/status",
     CATEGORIES: "/categories",
-    EXAMPLES: "/examples",
     PREDICT_BATCH: "/predict/batch",
   },
 } as const;

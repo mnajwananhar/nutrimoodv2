@@ -48,6 +48,7 @@ interface AnalysisResult {
     fat: number;
     carbohydrate: number;
     primary_mood: string;
+    similarity_score?: number;
   }>;
   nutritional_advice: string[];
   mood_description: string;
@@ -62,8 +63,9 @@ export default function NutritionDemo() {
     carbohydrate: 0,
   });
 
-  const [healthCondition, setHealthCondition] =
-    useState<HealthCondition | null>(null);
+  const [selectedHealthConditions, setSelectedHealthConditions] = useState<
+    HealthCondition[]
+  >([]);
   const [healthConditions, setHealthConditions] = useState<HealthCondition[]>(
     []
   );
@@ -100,7 +102,6 @@ export default function NutritionDemo() {
       relaxing: "Mood relaxing - cocok untuk istirahat dan relaksasi",
       focusing:
         "Mood focusing - cocok untuk aktivitas yang membutuhkan konsentrasi",
-      multi_category: "Mood multi kategori - seimbang untuk berbagai aktivitas",
       neutral: "Mood netral - kondisi mood seimbang",
     };
     return descriptions[mood] || "Mood tidak dikenali";
@@ -109,18 +110,22 @@ export default function NutritionDemo() {
   const generateNutritionalAdvice = (
     mood: string,
     nutrientCategories: Record<string, string>,
-    selectedHealthCondition?: HealthCondition | null
+    selectedHealthConditions?: HealthCondition[]
   ) => {
     const advice: string[] = [];
 
     // Health condition specific advice
-    if (selectedHealthCondition) {
+    if (selectedHealthConditions && selectedHealthConditions.length > 0) {
       advice.push(
-        `🏥 Kondisi kesehatan: ${selectedHealthCondition.name} - ${selectedHealthCondition.description}`
+        `🏥 Kondisi kesehatan: ${selectedHealthConditions
+          .map((hc) => hc.name)
+          .join(", ")}`
       );
-      advice.push(
-        `📋 Filter makanan yang diterapkan: ${selectedHealthCondition.filter}`
-      );
+      selectedHealthConditions.forEach((condition) => {
+        advice.push(
+          `📋 ${condition.name}: ${condition.description} - Filter: ${condition.filter}`
+        );
+      });
     }
 
     // Mood-based advice
@@ -149,7 +154,7 @@ export default function NutritionDemo() {
           "Pertahankan kadar gula darah stabil dengan makanan rendah indeks glikemik"
         );
         break;
-      case "multi_category":
+      case "neutral":
         advice.push(
           "Mood seimbang menunjukkan pola makan yang baik, pertahankan variasi nutrisi"
         );
@@ -264,14 +269,26 @@ export default function NutritionDemo() {
     setError(null);
   };
 
-  const handleHealthConditionChange = (condition: HealthCondition | null) => {
-    setHealthCondition(condition);
+  const handleHealthConditionChange = (condition: HealthCondition) => {
+    setSelectedHealthConditions((prev) => {
+      const isAlreadySelected = prev.some((hc) => hc.value === condition.value);
+      if (isAlreadySelected) {
+        return prev.filter((hc) => hc.value !== condition.value);
+      } else {
+        return [...prev, condition];
+      }
+    });
+    setResult(null);
+    setError(null);
+  };
+
+  const handleClearHealthConditions = () => {
+    setSelectedHealthConditions([]);
     setResult(null);
     setError(null);
   };
 
   const handlePredict = async () => {
-    // Validate input
     const validationError = validateNutritionLevels();
     if (validationError) {
       setError(validationError);
@@ -283,7 +300,6 @@ export default function NutritionDemo() {
     setResult(null);
 
     try {
-      // Mapping kategori ke angka (0-3)
       const getLevelIndex = (
         value: number,
         nutrient: keyof NutritionLevels
@@ -326,6 +342,12 @@ export default function NutritionDemo() {
         ).toString(),
       };
 
+      console.log(
+        "🔍 DEBUG: Selected health conditions:",
+        selectedHealthConditions
+      );
+      console.log("🔍 DEBUG: Nutrition categories:", nutrientCategories);
+
       // 1. Prediksi mood ke backend
       const moodData = await api.predict({
         calorie_category: parseInt(nutrientCategories.calories),
@@ -334,26 +356,42 @@ export default function NutritionDemo() {
         carb_category: parseInt(nutrientCategories.carbohydrate),
       });
 
-      // 2. Rekomendasi makanan ke backend dengan health condition
-      const healthConditions = healthCondition ? [healthCondition.value] : [];
+      console.log("🔍 DEBUG: Mood prediction result:", moodData);
+
+      // 2. Rekomendasi makanan ke backend dengan health conditions
+      const healthConditionValues =
+        selectedHealthConditions.length > 0
+          ? selectedHealthConditions.map((hc) => hc.value)
+          : [];
+
+      console.log("🔍 DEBUG: Sending to backend:", {
+        mood: moodData.mood,
+        top_n: 5,
+        health_conditions: healthConditionValues,
+      });
+
       const foodData = await api.recommend({
         mood: moodData.mood,
         top_n: 5,
-        health_conditions: healthConditions,
+        health_conditions: healthConditionValues,
       });
+
+      console.log("🔍 DEBUG: Food recommendations result:", foodData);
 
       // 3. Generate nutritional advice
       const nutritionalAdvice = generateNutritionalAdvice(
         moodData.mood,
         nutrientCategories,
-        healthCondition
+        selectedHealthConditions
       );
 
       // 4. Check if nutrition is balanced
       const levels = Object.values(nutrientCategories).map((cat) =>
         parseInt(cat)
       );
-      const isBalanced = levels.every((level) => level >= 1 && level <= 2); // 5. Set hasil ke state dengan format yang sesuai backend API
+      const isBalanced = levels.every((level) => level >= 1 && level <= 2);
+
+      // 5. Set hasil ke state dengan format yang sesuai backend API
       setResult({
         mood_analysis: {
           predicted_mood: moodData.mood,
@@ -372,6 +410,7 @@ export default function NutritionDemo() {
               fat: food.fat as number,
               carbohydrate: food.carbohydrate as number,
               primary_mood: food.primary_mood as string,
+              similarity_score: food.similarity_score as number,
             }))
           : [],
         nutritional_advice: nutritionalAdvice,
@@ -450,42 +489,75 @@ export default function NutritionDemo() {
           <div>
             <h3 className="font-semibold text-forest-900">Kondisi Kesehatan</h3>
             <p className="text-sm text-sage-600">
-              Pilih kondisi kesehatan khusus (opsional)
+              Pilih kondisi kesehatan yang Anda miliki (bisa lebih dari satu)
             </p>
           </div>
         </div>
 
         <div className="space-y-2">
           <button
-            onClick={() => handleHealthConditionChange(null)}
+            onClick={handleClearHealthConditions}
             className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
-              !healthCondition
+              selectedHealthConditions.length === 0
                 ? "bg-green-100 text-green-700 border-green-200 scale-105 shadow-md"
                 : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
             }`}
           >
-            <div className="font-medium">Tidak Ada Kondisi Khusus</div>
-            <div className="text-xs text-sage-600 mt-1">
-              Semua makanan akan direkomendasikan
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-medium">Tidak Ada Kondisi Khusus</div>
+                <div className="text-xs text-sage-600 mt-1">
+                  Semua makanan akan direkomendasikan
+                </div>
+              </div>
+              <div
+                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                  selectedHealthConditions.length === 0
+                    ? "border-current bg-current"
+                    : "border-sage-300"
+                }`}
+              >
+                {selectedHealthConditions.length === 0 && (
+                  <div className="w-2 h-2 bg-white rounded-full" />
+                )}
+              </div>
             </div>
           </button>
 
-          {healthConditions.map((condition) => (
-            <button
-              key={condition.value}
-              onClick={() => handleHealthConditionChange(condition)}
-              className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
-                healthCondition?.value === condition.value
-                  ? "bg-blue-100 text-blue-700 border-blue-200 scale-105 shadow-md"
-                  : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
-              }`}
-            >
-              <div className="font-medium">{condition.name}</div>
-              <div className="text-xs text-sage-600 mt-1">
-                {condition.description}
-              </div>
-            </button>
-          ))}
+          {healthConditions.map((condition) => {
+            const isSelected = selectedHealthConditions.some(
+              (hc) => hc.value === condition.value
+            );
+            return (
+              <button
+                key={condition.value}
+                onClick={() => handleHealthConditionChange(condition)}
+                className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
+                  isSelected
+                    ? "bg-purple-100 text-purple-700 border-purple-200 scale-105 shadow-md"
+                    : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-medium">{condition.name}</div>
+                    <div className="text-xs text-sage-600 mt-1">
+                      {condition.description}
+                    </div>
+                  </div>
+                  <div
+                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                      isSelected
+                        ? "border-current bg-current"
+                        : "border-sage-300"
+                    }`}
+                  >
+                    {isSelected && <div className="w-3 h-3 text-white">✓</div>}
+                  </div>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
     );
@@ -534,7 +606,6 @@ export default function NutritionDemo() {
           )}
         </div>
 
-        {/* Health Condition Selector */}
         <div className="mb-8">{renderHealthConditionSelector()}</div>
 
         <div className="text-center">
@@ -561,10 +632,10 @@ export default function NutritionDemo() {
               <p>
                 Pastikan memilih setidaknya satu tingkat nutrisi untuk analisis
               </p>
-              {healthCondition && (
-                <p className="text-blue-600 font-medium">
-                  Kondisi kesehatan: {healthCondition.name} -{" "}
-                  {healthCondition.description}
+              {selectedHealthConditions.length > 0 && (
+                <p className="text-purple-600 font-medium">
+                  Kondisi kesehatan:{" "}
+                  {selectedHealthConditions.map((hc) => hc.name).join(", ")}
                 </p>
               )}
             </div>
@@ -588,7 +659,6 @@ export default function NutritionDemo() {
 
       {result && (
         <div className="mt-8 space-y-6 animate-fade-in">
-          {/* Mood Prediction */}
           <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200">
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white">
@@ -599,8 +669,6 @@ export default function NutritionDemo() {
                     ? "😌"
                     : result.mood_analysis.predicted_mood === "focusing"
                     ? "🎯"
-                    : result.mood_analysis.predicted_mood === "multi_category"
-                    ? "🔄"
                     : "🤔"}
                 </span>
               </div>
@@ -619,23 +687,28 @@ export default function NutritionDemo() {
               {result.mood_description}
             </div>
 
-            {/* Health Condition Display */}
-            {healthCondition && (
+            {selectedHealthConditions.length > 0 && (
               <div className="bg-blue-50 rounded-lg p-4 text-blue-800 mb-6">
                 <div className="flex items-center gap-2 mb-2">
                   <User className="w-4 h-4" />
                   <span className="font-medium">
-                    Kondisi Kesehatan: {healthCondition.name}
+                    Kondisi Kesehatan:{" "}
+                    {selectedHealthConditions.map((hc) => hc.name).join(", ")}
                   </span>
                 </div>
-                <p className="text-sm">{healthCondition.description}</p>
-                <p className="text-xs mt-1 text-blue-600">
-                  Filter: {healthCondition.filter}
-                </p>
+                <div className="space-y-2">
+                  {selectedHealthConditions.map((condition, index) => (
+                    <div key={index}>
+                      <p className="text-sm">{condition.description}</p>
+                      <p className="text-xs mt-1 text-blue-600">
+                        Filter: {condition.filter}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            {/* Mood Probabilities */}
             {Object.keys(result.mood_analysis.all_probabilities).length > 0 && (
               <div>
                 <h5 className="font-semibold text-forest-900 mb-3 text-center">
@@ -679,7 +752,6 @@ export default function NutritionDemo() {
             )}
           </div>
 
-          {/* Food Recommendations */}
           <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200">
             <h4 className="text-2xl font-bold text-forest-900 mb-6 text-center">
               Rekomendasi Makanan
@@ -694,12 +766,14 @@ export default function NutritionDemo() {
                     <span className="font-semibold text-orange-600 capitalize">
                       {result.mood_analysis.predicted_mood}
                     </span>
-                    {healthCondition && (
+                    {selectedHealthConditions.length > 0 && (
                       <>
                         {" "}
                         dengan filter untuk kondisi{" "}
-                        <span className="font-semibold text-blue-600">
-                          {healthCondition.name}
+                        <span className="font-semibold text-purple-600">
+                          {selectedHealthConditions
+                            .map((hc) => hc.name)
+                            .join(", ")}
                         </span>
                       </>
                     )}
@@ -721,6 +795,12 @@ export default function NutritionDemo() {
                             <div className="bg-forest-100 text-forest-700 px-3 py-1 rounded-full text-sm font-medium capitalize">
                               {food.primary_mood.replace("_", " ")}
                             </div>
+                            {food.similarity_score && (
+                              <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                                Similarity:{" "}
+                                {(food.similarity_score * 100).toFixed(1)}%
+                              </div>
+                            )}
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
@@ -768,7 +848,7 @@ export default function NutritionDemo() {
                 <Utensils className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Tidak ada rekomendasi makanan tersedia</p>
                 <p className="text-sm mt-2">
-                  {healthCondition
+                  {selectedHealthConditions.length > 0
                     ? "Mungkin tidak ada makanan yang sesuai dengan kondisi kesehatan yang dipilih"
                     : "Pastikan backend server berjalan dengan benar"}
                 </p>

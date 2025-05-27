@@ -19,12 +19,16 @@ CREATE TABLE IF NOT EXISTS nutrition_assessments (
     protein_level INT,
     fat_level INT,
     carb_level INT,
-    health_condition VARCHAR(50), -- Added field for health condition
+    health_conditions TEXT[], -- Array untuk multiple health conditions
     predicted_mood VARCHAR(30),
     confidence_score FLOAT,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Index untuk performa pencarian array
+CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_health_conditions 
+ON nutrition_assessments USING GIN (health_conditions);
 
 -- Tabel rekomendasi makanan per assessment
 CREATE TABLE IF NOT EXISTS food_recommendations (

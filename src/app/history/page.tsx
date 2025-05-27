@@ -154,27 +154,42 @@ export default function HistoryPage() {
 
       if (fetchError) throw fetchError;
 
-      setAssessments(data || []);
+      // Transform data to include health conditions as comma-separated string for backward compatibility
+      const transformedData =
+        (data?.map((assessment: Record<string, unknown>) => ({
+          ...assessment,
+          health_condition:
+            (assessment.health_conditions as string[])
+              ?.filter(
+                (condition: string) => condition && condition !== "tidak_ada"
+              )
+              ?.join(",") || null,
+        })) as NutritionAssessment[]) || [];
+
+      setAssessments(transformedData);
 
       // Calculate statistics
-      if (data && data.length > 0) {
-        const totalAssessments = data.length;
+      if (transformedData && transformedData.length > 0) {
+        const totalAssessments = transformedData.length;
         const averageConfidence =
-          data.reduce((sum, item) => sum + item.confidence_score, 0) /
-          totalAssessments;
+          transformedData.reduce(
+            (sum: number, item: NutritionAssessment) =>
+              sum + item.confidence_score,
+            0
+          ) / totalAssessments;
 
         // Calculate mood distribution
         const moodDistribution: { [key: string]: number } = {};
-        data.forEach((item) => {
+        transformedData.forEach((item: NutritionAssessment) => {
           moodDistribution[item.predicted_mood] =
             (moodDistribution[item.predicted_mood] || 0) + 1;
         });
 
         // Calculate streak (simplified)
-        const streakDays = calculateStreakDays(data);
+        const streakDays = calculateStreakDays(transformedData);
 
         // Find favorite time (simplified)
-        const favoriteTime = findFavoriteTime(data);
+        const favoriteTime = findFavoriteTime(transformedData);
 
         setStats({
           totalAssessments,
@@ -590,9 +605,14 @@ export default function HistoryPage() {
                               Kondisi Kesehatan
                             </div>
                             <div className="text-purple-800 font-semibold">
-                              {healthConditionLabels[
-                                assessment.health_condition
-                              ] || assessment.health_condition}
+                              {assessment.health_condition
+                                .split(",")
+                                .map(
+                                  (condition) =>
+                                    healthConditionLabels[condition.trim()] ||
+                                    condition.trim()
+                                )
+                                .join(", ")}
                             </div>
                           </div>
                         )}
