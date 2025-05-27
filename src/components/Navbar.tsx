@@ -62,6 +62,8 @@ export default function Navbar() {
       if (el) {
         setTimeout(() => {
           el.scrollIntoView({ behavior: "smooth" });
+          // Set active section when navigating via hash
+          setActiveSection(id);
         }, 100); // delay agar elemen sudah render
       }
     }
@@ -71,18 +73,38 @@ export default function Navbar() {
   useEffect(() => {
     if (!user && pathname === "/") {
       const handleScroll = () => {
-        const sections = ["fitur", "demo", "testimoni"];
+        const sections = ["fitur", "demo", "footer"];
         let found = "";
-        for (const id of sections) {
-          const el = document.getElementById(id);
-          if (el) {
-            const rect = el.getBoundingClientRect();
-            if (rect.top <= 80 && rect.bottom > 80) {
-              found = id;
-              break;
+
+        // Check if we're at the bottom of the page for footer
+        const isAtBottom =
+          window.innerHeight + window.scrollY >=
+          document.body.offsetHeight - 100;
+
+        if (isAtBottom) {
+          found = "footer";
+        } else {
+          for (const id of sections) {
+            const el = document.getElementById(id);
+            if (el) {
+              const rect = el.getBoundingClientRect();
+              // For footer, check if it's visible in viewport
+              if (id === "footer") {
+                if (rect.top <= window.innerHeight && rect.bottom >= 0) {
+                  found = id;
+                  break;
+                }
+              } else {
+                // For other sections, use the original logic
+                if (rect.top <= 80 && rect.bottom > 80) {
+                  found = id;
+                  break;
+                }
+              }
             }
           }
         }
+
         setActiveSection(found);
       };
       window.addEventListener("scroll", handleScroll);
@@ -108,7 +130,7 @@ export default function Navbar() {
     { name: "Beranda", href: "/", icon: Brain },
     { name: "Fitur", href: "#fitur", icon: Star },
     { name: "Demo", href: "#demo", icon: Utensils },
-    { name: "Testimoni", href: "#testimoni", icon: Users },
+    { name: "Kontak", href: "#footer", icon: Users },
   ];
 
   const userNavigation = [
@@ -154,6 +176,10 @@ export default function Navbar() {
         if (el) {
           el.scrollIntoView({ behavior: "smooth" });
         }
+        // Set hash di URL untuk semua anchor links
+        window.location.hash = id;
+        // Manually set active section for immediate feedback
+        setActiveSection(id);
       } else {
         router.push("/" + href);
       }
@@ -178,18 +204,22 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-8">
             {(user ? navigation : guestNavigation).map((item) => {
               const Icon = item.icon;
-              const isAnchor = item.href.startsWith("#");
-              const isActiveGuest =
-                !user &&
-                isAnchor &&
-                activeSection &&
-                item.href === `#${activeSection}`;
+              let isActiveGuest = false;
+              if (!user) {
+                if (item.href === "/" && !activeSection) isActiveGuest = true;
+                if (item.href === "#fitur" && activeSection === "fitur")
+                  isActiveGuest = true;
+                if (item.href === "#demo" && activeSection === "demo")
+                  isActiveGuest = true;
+                if (item.href === "#footer" && activeSection === "footer")
+                  isActiveGuest = true;
+              }
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   onClick={
-                    !user && isAnchor
+                    !user && item.href.startsWith("#")
                       ? (e) => handleGuestNavClick(e, item.href)
                       : undefined
                   }
@@ -320,18 +350,22 @@ export default function Navbar() {
           <div className="px-4 py-2 space-y-1">
             {(user ? navigation : guestNavigation).map((item) => {
               const Icon = item.icon;
-              const isAnchor = item.href.startsWith("#");
-              const isActiveGuest =
-                !user &&
-                isAnchor &&
-                activeSection &&
-                item.href === `#${activeSection}`;
+              let isActiveGuest = false;
+              if (!user) {
+                if (item.href === "/" && !activeSection) isActiveGuest = true;
+                if (item.href === "#fitur" && activeSection === "fitur")
+                  isActiveGuest = true;
+                if (item.href === "#demo" && activeSection === "demo")
+                  isActiveGuest = true;
+                if (item.href === "#footer" && activeSection === "footer")
+                  isActiveGuest = true;
+              }
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   onClick={
-                    !user && isAnchor
+                    !user && item.href.startsWith("#")
                       ? (e) => handleGuestNavClick(e, item.href)
                       : undefined
                   }

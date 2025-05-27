@@ -32,7 +32,6 @@ export default function SignUpPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({
@@ -59,11 +58,6 @@ export default function SignUpPage() {
 
     if (formData.password !== formData.confirmPassword) {
       error("Validasi Gagal", "Konfirmasi password tidak cocok.");
-      return false;
-    }
-
-    if (!acceptTerms) {
-      error("Validasi Gagal", "Anda harus menyetujui syarat dan ketentuan.");
       return false;
     }
 
@@ -377,37 +371,6 @@ export default function SignUpPage() {
                     <Eye className="h-5 w-5 text-sage-400" />
                   )}
                 </button>
-              </div>
-            </div>
-
-            {/* Terms and Conditions */}
-            <div className="flex items-start">
-              <div className="flex items-center h-5">
-                <input
-                  id="terms"
-                  type="checkbox"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="h-4 w-4 text-forest-600 focus:ring-forest-500 border-sage-300 rounded"
-                />
-              </div>
-              <div className="ml-3 text-sm">
-                <label htmlFor="terms" className="text-sage-700">
-                  Saya setuju dengan{" "}
-                  <Link
-                    href="/terms"
-                    className="text-forest-600 hover:text-forest-500"
-                  >
-                    Syarat dan Ketentuan
-                  </Link>{" "}
-                  dan{" "}
-                  <Link
-                    href="/privacy"
-                    className="text-forest-600 hover:text-forest-500"
-                  >
-                    Kebijakan Privasi
-                  </Link>
-                </label>
               </div>
             </div>
 

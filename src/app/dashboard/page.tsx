@@ -41,6 +41,15 @@ interface RecentActivity {
   metadata?: Record<string, unknown>;
 }
 
+const healthConditionLabels: Record<string, string> = {
+  diabetes: "Diabetes",
+  hipertensi: "Hipertensi",
+  kolesterol: "Kolesterol Tinggi",
+  obesitas: "Obesitas",
+  alergi_gluten: "Alergi Gluten",
+  vegetarian: "Vegetarian",
+};
+
 export default function DashboardPage() {
   const { user, userProfile, isAuthLoading } = useAuth();
   const { error } = useToast();
@@ -526,7 +535,17 @@ export default function DashboardPage() {
                               {activity.title}
                             </p>
                             <p className="text-sm text-sage-600">
-                              {activity.description}
+                              {activity.type === "assessment" &&
+                              activity.metadata &&
+                              typeof activity.metadata.health_condition ===
+                                "string"
+                                ? `Kondisi: ${
+                                    healthConditionLabels[
+                                      activity.metadata
+                                        .health_condition as string
+                                    ] || activity.metadata.health_condition
+                                  }`
+                                : activity.description}
                             </p>
                             <div className="flex items-center mt-2 text-xs text-sage-500">
                               <Clock className="w-3 h-3 mr-1" />

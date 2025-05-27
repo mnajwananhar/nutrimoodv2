@@ -1,13 +1,29 @@
 "use client";
 
-import { useState } from "react";
-import { Brain, Utensils, Zap, Heart, Target, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Brain,
+  Utensils,
+  Zap,
+  Heart,
+  Target,
+  Loader2,
+  User,
+} from "lucide-react";
+import { api } from "@/lib/api";
 
 interface NutritionLevels {
   calories: number;
   proteins: number;
   fat: number;
   carbohydrate: number;
+}
+
+interface HealthCondition {
+  value: string;
+  name: string;
+  description: string;
+  filter: string;
 }
 
 interface AnalysisResult {
@@ -46,9 +62,28 @@ export default function NutritionDemo() {
     carbohydrate: 0,
   });
 
+  const [healthCondition, setHealthCondition] =
+    useState<HealthCondition | null>(null);
+  const [healthConditions, setHealthConditions] = useState<HealthCondition[]>(
+    []
+  );
+
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Fetch health conditions on component mount
+  useEffect(() => {
+    const fetchHealthConditions = async () => {
+      try {
+        const data = await api.getHealthConditions();
+        setHealthConditions(data.conditions || []);
+      } catch (error) {
+        console.error("Failed to fetch health conditions:", error);
+      }
+    };
+    fetchHealthConditions();
+  }, []);
 
   const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
   const levelColors = [
@@ -73,9 +108,20 @@ export default function NutritionDemo() {
 
   const generateNutritionalAdvice = (
     mood: string,
-    nutrientCategories: Record<string, string>
+    nutrientCategories: Record<string, string>,
+    selectedHealthCondition?: HealthCondition | null
   ) => {
     const advice: string[] = [];
+
+    // Health condition specific advice
+    if (selectedHealthCondition) {
+      advice.push(
+        `🏥 Kondisi kesehatan: ${selectedHealthCondition.name} - ${selectedHealthCondition.description}`
+      );
+      advice.push(
+        `📋 Filter makanan yang diterapkan: ${selectedHealthCondition.filter}`
+      );
+    }
 
     // Mood-based advice
     switch (mood) {
@@ -218,6 +264,12 @@ export default function NutritionDemo() {
     setError(null);
   };
 
+  const handleHealthConditionChange = (condition: HealthCondition | null) => {
+    setHealthCondition(condition);
+    setResult(null);
+    setError(null);
+  };
+
   const handlePredict = async () => {
     // Validate input
     const validationError = validateNutritionLevels();
@@ -275,54 +327,33 @@ export default function NutritionDemo() {
       };
 
       // 1. Prediksi mood ke backend
-      const moodRes = await fetch("http://localhost:8000/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          calorie_category: parseInt(nutrientCategories.calories),
-          protein_category: parseInt(nutrientCategories.proteins),
-          fat_category: parseInt(nutrientCategories.fat),
-          carb_category: parseInt(nutrientCategories.carbohydrate),
-        }),
+      const moodData = await api.predict({
+        calorie_category: parseInt(nutrientCategories.calories),
+        protein_category: parseInt(nutrientCategories.proteins),
+        fat_category: parseInt(nutrientCategories.fat),
+        carb_category: parseInt(nutrientCategories.carbohydrate),
       });
 
-      if (!moodRes.ok) {
-        const errorText = await moodRes.text();
-        throw new Error(`Gagal prediksi mood: ${errorText}`);
-      }
-
-      const moodData = await moodRes.json();
-
-      // 2. Rekomendasi makanan ke backend
-      const foodRes = await fetch("http://localhost:8000/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mood: moodData.mood,
-          top_n: 5,
-        }),
+      // 2. Rekomendasi makanan ke backend dengan health condition
+      const healthConditions = healthCondition ? [healthCondition.value] : [];
+      const foodData = await api.recommend({
+        mood: moodData.mood,
+        top_n: 5,
+        health_conditions: healthConditions,
       });
-
-      if (!foodRes.ok) {
-        const errorText = await foodRes.text();
-        throw new Error(`Gagal mendapatkan rekomendasi makanan: ${errorText}`);
-      }
-
-      const foodData = await foodRes.json();
 
       // 3. Generate nutritional advice
       const nutritionalAdvice = generateNutritionalAdvice(
         moodData.mood,
-        nutrientCategories
+        nutrientCategories,
+        healthCondition
       );
 
       // 4. Check if nutrition is balanced
       const levels = Object.values(nutrientCategories).map((cat) =>
         parseInt(cat)
       );
-      const isBalanced = levels.every((level) => level >= 1 && level <= 2);
-
-      // 5. Set hasil ke state dengan format yang sesuai backend API
+      const isBalanced = levels.every((level) => level >= 1 && level <= 2); // 5. Set hasil ke state dengan format yang sesuai backend API
       setResult({
         mood_analysis: {
           predicted_mood: moodData.mood,
@@ -409,6 +440,57 @@ export default function NutritionDemo() {
     );
   };
 
+  const renderHealthConditionSelector = () => {
+    return (
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-sage-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-600">
+            <User className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-forest-900">Kondisi Kesehatan</h3>
+            <p className="text-sm text-sage-600">
+              Pilih kondisi kesehatan khusus (opsional)
+            </p>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={() => handleHealthConditionChange(null)}
+            className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
+              !healthCondition
+                ? "bg-green-100 text-green-700 border-green-200 scale-105 shadow-md"
+                : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
+            }`}
+          >
+            <div className="font-medium">Tidak Ada Kondisi Khusus</div>
+            <div className="text-xs text-sage-600 mt-1">
+              Semua makanan akan direkomendasikan
+            </div>
+          </button>
+
+          {healthConditions.map((condition) => (
+            <button
+              key={condition.value}
+              onClick={() => handleHealthConditionChange(condition)}
+              className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
+                healthCondition?.value === condition.value
+                  ? "bg-blue-100 text-blue-700 border-blue-200 scale-105 shadow-md"
+                  : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
+              }`}
+            >
+              <div className="font-medium">{condition.name}</div>
+              <div className="text-xs text-sage-600 mt-1">
+                {condition.description}
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="max-w-4xl mx-auto">
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-earth border border-sage-200">
@@ -417,8 +499,8 @@ export default function NutritionDemo() {
             Analisis Nutrisi
           </h3>
           <p className="text-sage-700">
-            Pilih tingkat konsumsi nutrisi Anda untuk mendapatkan prediksi mood
-            dan rekomendasi makanan
+            Pilih tingkat konsumsi nutrisi dan kondisi kesehatan untuk
+            mendapatkan prediksi mood dan rekomendasi makanan yang sesuai
           </p>
         </div>
 
@@ -452,6 +534,9 @@ export default function NutritionDemo() {
           )}
         </div>
 
+        {/* Health Condition Selector */}
+        <div className="mb-8">{renderHealthConditionSelector()}</div>
+
         <div className="text-center">
           <button
             onClick={handlePredict}
@@ -472,9 +557,17 @@ export default function NutritionDemo() {
           </button>
 
           {!isLoading && (
-            <p className="text-sm text-sage-600 mt-3">
-              Pastikan memilih setidaknya satu tingkat nutrisi untuk analisis
-            </p>
+            <div className="text-sm text-sage-600 mt-3 space-y-1">
+              <p>
+                Pastikan memilih setidaknya satu tingkat nutrisi untuk analisis
+              </p>
+              {healthCondition && (
+                <p className="text-blue-600 font-medium">
+                  Kondisi kesehatan: {healthCondition.name} -{" "}
+                  {healthCondition.description}
+                </p>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -525,6 +618,22 @@ export default function NutritionDemo() {
             <div className="bg-orange-50 rounded-lg p-4 text-orange-800 mb-6">
               {result.mood_description}
             </div>
+
+            {/* Health Condition Display */}
+            {healthCondition && (
+              <div className="bg-blue-50 rounded-lg p-4 text-blue-800 mb-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <User className="w-4 h-4" />
+                  <span className="font-medium">
+                    Kondisi Kesehatan: {healthCondition.name}
+                  </span>
+                </div>
+                <p className="text-sm">{healthCondition.description}</p>
+                <p className="text-xs mt-1 text-blue-600">
+                  Filter: {healthCondition.filter}
+                </p>
+              </div>
+            )}
 
             {/* Mood Probabilities */}
             {Object.keys(result.mood_analysis.all_probabilities).length > 0 && (
@@ -585,6 +694,15 @@ export default function NutritionDemo() {
                     <span className="font-semibold text-orange-600 capitalize">
                       {result.mood_analysis.predicted_mood}
                     </span>
+                    {healthCondition && (
+                      <>
+                        {" "}
+                        dengan filter untuk kondisi{" "}
+                        <span className="font-semibold text-blue-600">
+                          {healthCondition.name}
+                        </span>
+                      </>
+                    )}
                   </p>
                 </div>
 
@@ -650,78 +768,12 @@ export default function NutritionDemo() {
                 <Utensils className="w-12 h-12 mx-auto mb-4 opacity-50" />
                 <p>Tidak ada rekomendasi makanan tersedia</p>
                 <p className="text-sm mt-2">
-                  Pastikan backend server berjalan dengan benar
+                  {healthCondition
+                    ? "Mungkin tidak ada makanan yang sesuai dengan kondisi kesehatan yang dipilih"
+                    : "Pastikan backend server berjalan dengan benar"}
                 </p>
               </div>
             )}
-          </div>
-
-          {/* Nutritional Advice */}
-          <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200">
-            <div className="flex items-center justify-between mb-6">
-              <h4 className="text-2xl font-bold text-forest-900">
-                Saran Nutrisi
-              </h4>
-              {result.is_balanced && (
-                <div className="flex items-center gap-2 bg-green-100 text-green-800 px-3 py-2 rounded-full text-sm font-medium">
-                  <span>✅</span>
-                  Pola Makan Seimbang
-                </div>
-              )}
-            </div>
-
-            {result.nutritional_advice &&
-            result.nutritional_advice.length > 0 ? (
-              <ul className="space-y-4">
-                {result.nutritional_advice.map((advice, index) => (
-                  <li key={index} className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-forest-100 rounded-full flex items-center justify-center text-forest-600 mt-0.5 flex-shrink-0">
-                      <span className="text-xs font-bold">{index + 1}</span>
-                    </div>
-                    <p className="text-sage-700 leading-relaxed">{advice}</p>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-center text-sage-600 py-8">
-                <Heart className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Analisis nutrisi sedang diproses...</p>
-              </div>
-            )}
-
-            {/* Nutrient Level Summary */}
-            <div className="mt-6 pt-6 border-t border-sage-200">
-              <h5 className="font-semibold text-forest-900 mb-4">
-                Ringkasan Tingkat Nutrisi Anda:
-              </h5>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { key: "calories", label: "Kalori", icon: "🔥" },
-                  { key: "proteins", label: "Protein", icon: "🥩" },
-                  { key: "fat", label: "Lemak", icon: "🥑" },
-                  { key: "carbohydrate", label: "Karbo", icon: "🍞" },
-                ].map(({ key, label, icon }) => {
-                  const level = parseInt(
-                    result.mood_analysis.nutrient_categories[
-                      key as keyof typeof result.mood_analysis.nutrient_categories
-                    ]
-                  );
-                  return (
-                    <div key={key} className="text-center">
-                      <div className="text-2xl mb-1">{icon}</div>
-                      <div className="text-sm font-medium text-forest-700">
-                        {label}
-                      </div>
-                      <div
-                        className={`text-xs px-2 py-1 rounded-full ${levelColors[level]}`}
-                      >
-                        {levelLabels[level]}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
           </div>
         </div>
       )}

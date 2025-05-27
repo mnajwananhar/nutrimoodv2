@@ -367,7 +367,8 @@ export default function ProfilePage() {
 
   if (!user) return null;
 
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "long",
@@ -396,7 +397,7 @@ export default function ProfilePage() {
             <div className="flex items-center space-x-6">
               <div className="relative">
                 <div className="w-24 h-24 rounded-full bg-sage-200 flex items-center justify-center overflow-hidden">
-                  {profile.avatar_url ? (
+                  {profile?.avatar_url ? (
                     <Image
                       src={profile.avatar_url}
                       alt="Profile Avatar"
@@ -426,17 +427,19 @@ export default function ProfilePage() {
               </div>
               <div>
                 <h1 className="text-3xl font-bold text-sage-900">
-                  {profile.full_name || "User"}
+                  {profile?.full_name || "User"}
                 </h1>
-                <p className="text-sage-600">@{profile.username}</p>
+                <p className="text-sage-600">@{profile?.username}</p>
                 <div className="flex items-center space-x-4 mt-2 text-sm text-sage-500">
                   <div className="flex items-center space-x-1">
                     <Mail className="w-4 h-4" />
-                    <span>{profile.email}</span>
+                    <span>{profile?.email}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <Calendar className="w-4 h-4" />
-                    <span>Bergabung Sejak {formatDate(profile.joined_at)}</span>
+                    <span>
+                      Bergabung Sejak {formatDate(profile?.joined_at)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -632,26 +635,26 @@ export default function ProfilePage() {
                       <label className="block text-sm font-medium text-sage-700 mb-1">
                         Username
                       </label>
-                      <p className="text-sage-900">{profile.username}</p>
+                      <p className="text-sage-900">{profile?.username}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-1">
                         Nama Lengkap
                       </label>
-                      <p className="text-sage-900">{profile.full_name}</p>
+                      <p className="text-sage-900">{profile?.full_name}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-1">
                         Email
                       </label>
-                      <p className="text-sage-900">{profile.email}</p>
+                      <p className="text-sage-900">{profile?.email}</p>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-sage-700 mb-1">
                         Bergabung Sejak
                       </label>
                       <p className="text-sage-900">
-                        {formatDate(profile.joined_at)}
+                        {formatDate(profile?.joined_at)}
                       </p>
                     </div>
                     <div>
@@ -659,7 +662,7 @@ export default function ProfilePage() {
                         Terakhir Aktif
                       </label>
                       <p className="text-sage-900">
-                        {formatDate(profile.last_active)}
+                        {formatDate(profile?.last_active)}
                       </p>
                     </div>
                   </div>

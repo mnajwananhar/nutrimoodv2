@@ -20,12 +20,20 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { ResultsSkeleton } from "@/components/Skeleton";
 
+interface HealthCondition {
+  value: string;
+  name: string;
+  description: string;
+  filter: string;
+}
+
 interface AssessmentData {
   input: {
     calorie_level: number;
     protein_level: number;
     fat_level: number;
     carb_level: number;
+    health_condition?: HealthCondition | null;
   };
   result: {
     mood_prediction: {
@@ -114,6 +122,14 @@ export default function ResultsPage() {
               protein_level: assessment.protein_level,
               fat_level: assessment.fat_level,
               carb_level: assessment.carb_level,
+              health_condition: assessment.health_condition
+                ? {
+                    value: assessment.health_condition,
+                    name: assessment.health_condition, // This could be improved by fetching the full health condition data
+                    description: "",
+                    filter: "",
+                  }
+                : null,
             },
             result: {
               mood_prediction: {
@@ -273,6 +289,16 @@ export default function ResultsPage() {
   const { input, result, timestamp } = assessmentData;
   const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
 
+  // Health condition value-to-label mapping
+  const healthConditionLabels: Record<string, string> = {
+    diabetes: "Diabetes",
+    hipertensi: "Hipertensi",
+    kolesterol: "Kolesterol Tinggi",
+    obesitas: "Obesitas",
+    alergi_gluten: "Alergi Gluten",
+    vegetarian: "Vegetarian",
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -361,13 +387,29 @@ export default function ResultsPage() {
                   <span className="font-medium text-forest-700">
                     {levelLabels[input.fat_level]}
                   </span>
-                </div>
+                </div>{" "}
                 <div className="flex justify-between items-center">
                   <span className="text-sage-600">Karbohidrat:</span>
                   <span className="font-medium text-forest-700">
                     {levelLabels[input.carb_level]}
                   </span>
                 </div>
+                {/* Health Condition */}
+                {input.health_condition && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sage-600">Kondisi Kesehatan:</span>
+                    <span className="font-medium text-blue-700">
+                      {healthConditionLabels[input.health_condition.value] ||
+                        input.health_condition.value}
+                    </span>
+                  </div>
+                )}
+                {!input.health_condition && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sage-600">Kondisi Kesehatan:</span>
+                    <span className="font-medium text-gray-700">Tidak Ada</span>
+                  </div>
+                )}
               </div>
             </div>
 

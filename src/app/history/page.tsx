@@ -32,6 +32,7 @@ interface NutritionAssessment {
   notes?: string;
   created_at: string;
   food_recommendations?: FoodRecommendation[];
+  health_condition?: string;
 }
 
 interface FoodRecommendation {
@@ -72,6 +73,15 @@ const getMoodEmoji = (mood: string): string => {
     balanced: "⚖️",
   };
   return moodEmojis[mood] || "🍽️";
+};
+
+const healthConditionLabels: Record<string, string> = {
+  diabetes: "Diabetes",
+  hipertensi: "Hipertensi",
+  kolesterol: "Kolesterol Tinggi",
+  obesitas: "Obesitas",
+  alergi_gluten: "Alergi Gluten",
+  vegetarian: "Vegetarian",
 };
 
 export default function HistoryPage() {
@@ -570,6 +580,19 @@ export default function HistoryPage() {
                             </div>
                             <div className="text-sage-800">
                               {assessment.notes}
+                            </div>
+                          </div>
+                        )}
+
+                        {assessment.health_condition && (
+                          <div className="bg-purple-50 rounded-lg p-3 mb-4">
+                            <div className="text-sm text-purple-600 mb-1">
+                              Kondisi Kesehatan
+                            </div>
+                            <div className="text-purple-800 font-semibold">
+                              {healthConditionLabels[
+                                assessment.health_condition
+                              ] || assessment.health_condition}
                             </div>
                           </div>
                         )}

@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS nutrition_assessments (
     protein_level INT,
     fat_level INT,
     carb_level INT,
+    health_condition VARCHAR(50), -- Added field for health condition
     predicted_mood VARCHAR(30),
     confidence_score FLOAT,
     notes TEXT,

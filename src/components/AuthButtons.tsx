@@ -12,10 +12,10 @@ export default function AuthButtons({
   className = "",
   mobile = false,
 }: AuthButtonsProps) {
-  const { user, loading } = useAuth();
+  const { user, isAuthLoading } = useAuth();
 
   // Show buttons immediately, even while loading
-  if (loading || !user) {
+  if (isAuthLoading || !user) {
     if (mobile) {
       return (
         <div className={`space-y-2 ${className}`}>

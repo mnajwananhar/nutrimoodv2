@@ -16,12 +16,20 @@ import { useToast } from "@/components/ToastProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { AssessmentSkeleton } from "@/components/Skeleton";
+import { api } from "@/lib/api";
 
 interface NutritionInput {
   calorie_level: number;
   protein_level: number;
   fat_level: number;
   carb_level: number;
+}
+
+interface HealthCondition {
+  value: string;
+  name: string;
+  description: string;
+  filter: string;
 }
 
 export default function AssessmentPage() {
@@ -36,6 +44,11 @@ export default function AssessmentPage() {
     fat_level: 1, // Default ke low
     carb_level: 2,
   });
+  const [healthCondition, setHealthCondition] =
+    useState<HealthCondition | null>(null);
+  const [healthConditions, setHealthConditions] = useState<HealthCondition[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(false);
 
   const steps = [
@@ -98,6 +111,25 @@ export default function AssessmentPage() {
     },
   ];
 
+  // Add health condition step
+  const allSteps = [
+    ...steps,
+    {
+      key: "health_condition" as const,
+      title: "Kondisi Kesehatan",
+      description: "Apakah Anda memiliki kondisi kesehatan khusus?",
+      icon: <Brain className="w-8 h-8" />,
+      color: "from-purple-500 to-purple-600",
+      info: "Kondisi kesehatan tertentu memerlukan perhatian khusus dalam pemilihan makanan. Pilih kondisi yang sesuai untuk mendapatkan rekomendasi yang lebih tepat.",
+      examples: [
+        "Tidak Ada: Semua makanan akan direkomendasikan",
+        "Diabetes: Fokus pada makanan rendah gula dan karbohidrat",
+        "Hipertensi: Fokus pada makanan rendah sodium",
+        "Kolesterol: Fokus pada makanan rendah lemak jenuh",
+      ],
+    },
+  ];
+
   const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
   const levelColors = [
     "bg-red-100 text-red-700 border-red-200 hover:bg-red-200",
@@ -105,17 +137,27 @@ export default function AssessmentPage() {
     "bg-green-100 text-green-700 border-green-200 hover:bg-green-200",
     "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200",
   ];
-
   const handleLevelSelect = (level: number) => {
-    const currentStepKey = steps[currentStep].key;
-    setNutritionInput((prev) => ({
-      ...prev,
-      [currentStepKey]: level,
-    }));
+    const currentStepKey = allSteps[currentStep].key;
+    if (currentStepKey === "health_condition") {
+      // For health condition step, level represents the index in healthConditions array
+      if (level < healthConditions.length) {
+        setHealthCondition(healthConditions[level]);
+      } else if (level === healthConditions.length) {
+        // "Tidak Ada" option
+        setHealthCondition(null);
+      }
+    } else {
+      // For nutrition steps
+      setNutritionInput((prev) => ({
+        ...prev,
+        [currentStepKey]: level,
+      }));
+    }
   };
 
   const handleNext = () => {
-    if (currentStep < steps.length - 1) {
+    if (currentStep < allSteps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       handleSubmit();
@@ -127,34 +169,23 @@ export default function AssessmentPage() {
       setCurrentStep(currentStep - 1);
     }
   };
-
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
       // 1. Prediksi mood ke backend
-      const moodRes = await fetch("http://localhost:8000/predict", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          calorie_category: nutritionInput.calorie_level,
-          protein_category: nutritionInput.protein_level,
-          fat_category: nutritionInput.fat_level,
-          carb_category: nutritionInput.carb_level,
-        }),
+      const moodData = await api.predict({
+        calorie_category: nutritionInput.calorie_level,
+        protein_category: nutritionInput.protein_level,
+        fat_category: nutritionInput.fat_level,
+        carb_category: nutritionInput.carb_level,
       });
-      if (!moodRes.ok) throw new Error(await moodRes.text());
-      const moodData = await moodRes.json();
-      // 2. Rekomendasi makanan ke backend
-      const foodRes = await fetch("http://localhost:8000/recommend", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mood: moodData.mood,
-          top_n: 5,
-        }),
+
+      // 2. Rekomendasi makanan ke backend (with health conditions)
+      const foodData = await api.recommend({
+        mood: moodData.mood,
+        top_n: 5,
+        health_conditions: healthCondition ? [healthCondition.value] : [],
       });
-      if (!foodRes.ok) throw new Error(await foodRes.text());
-      const foodData = await foodRes.json();
       // 3. Simpan ke Supabase jika user login
       let assessmentId = null;
       if (user) {
@@ -168,6 +199,7 @@ export default function AssessmentPage() {
               protein_level: nutritionInput.protein_level,
               fat_level: nutritionInput.fat_level,
               carb_level: nutritionInput.carb_level,
+              health_condition: healthCondition?.value || null,
               predicted_mood: moodData.mood,
               confidence_score: moodData.confidence,
               created_at: new Date().toISOString(),
@@ -176,8 +208,7 @@ export default function AssessmentPage() {
           .select()
           .single();
         if (err1) throw err1;
-        assessmentId = assessment.id;
-        // Insert food recommendations
+        assessmentId = assessment.id; // Insert food recommendations
         for (const food of foodData) {
           const { error: err2 } = await supabase
             .from("food_recommendations")
@@ -191,7 +222,7 @@ export default function AssessmentPage() {
                 fats: food.fat,
                 carbohydrates: food.carbohydrate,
                 mood_category: food.primary_mood,
-                similarity_score: 0,
+                similarity_score: food.similarity_score || 0,
                 is_liked: false,
                 is_consumed: false,
                 created_at: new Date().toISOString(),
@@ -201,12 +232,14 @@ export default function AssessmentPage() {
             console.error("Insert food_recommendations error:", err2);
           }
         }
-      }
-      // 4. Simpan hasil ke sessionStorage untuk halaman results
+      } // 4. Simpan hasil ke sessionStorage untuk halaman results
       sessionStorage.setItem(
         "nutrition_assessment",
         JSON.stringify({
-          input: nutritionInput,
+          input: {
+            ...nutritionInput,
+            health_condition: healthCondition,
+          },
           result: {
             mood_prediction: {
               mood: moodData.mood,
@@ -219,7 +252,7 @@ export default function AssessmentPage() {
                 proteins: food.proteins as number,
                 fats: food.fat as number,
                 carbohydrates: food.carbohydrate as number,
-                similarity_score: 0,
+                similarity_score: food.similarity_score || 0,
                 mood_category: food.primary_mood as string,
               })
             ),
@@ -243,10 +276,27 @@ export default function AssessmentPage() {
       setIsLoading(false);
     }
   };
+  const currentStepData = allSteps[currentStep];
+  const currentValue =
+    currentStepData.key === "health_condition"
+      ? healthCondition
+        ? healthConditions.findIndex((hc) => hc.value === healthCondition.value)
+        : healthConditions.length
+      : nutritionInput[currentStepData.key as keyof NutritionInput];
+  const progress = ((currentStep + 1) / allSteps.length) * 100;
 
-  const currentStepData = steps[currentStep];
-  const currentValue = nutritionInput[currentStepData.key];
-  const progress = ((currentStep + 1) / steps.length) * 100;
+  // Fetch health conditions on component mount
+  useEffect(() => {
+    const fetchHealthConditions = async () => {
+      try {
+        const data = await api.getHealthConditions();
+        setHealthConditions(data.conditions || []);
+      } catch (error) {
+        console.error("Failed to fetch health conditions:", error);
+      }
+    };
+    fetchHealthConditions();
+  }, []);
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
@@ -274,12 +324,11 @@ export default function AssessmentPage() {
             untuk mendapatkan rekomendasi makanan yang tepat.
           </p>
         </div>
-
         {/* Progress Bar */}
         <div className="mb-8">
           <div className="flex items-center justify-between text-sm text-sage-600 mb-2">
             <span>
-              Langkah {currentStep + 1} dari {steps.length}
+              Langkah {currentStep + 1} dari {allSteps.length}
             </span>
             <span>{Math.round(progress)}% selesai</span>
           </div>
@@ -290,7 +339,6 @@ export default function AssessmentPage() {
             />
           </div>
         </div>
-
         {/* Main Content */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-earth border border-sage-200 overflow-hidden">
           {/* Step Header */}
@@ -328,20 +376,19 @@ export default function AssessmentPage() {
                   </div>
                 </div>
               </div>
-            </div>
-
+            </div>{" "}
             {/* Level Selection */}
-            <div className="grid md:grid-cols-2 gap-4 mb-8">
-              {levelLabels.map((label, index) => (
+            {currentStepData.key === "health_condition" ? (
+              // Health Condition Selection
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                {/* "Tidak Ada" option */}
                 <button
-                  key={index}
-                  onClick={() => handleLevelSelect(index)}
+                  onClick={() => handleLevelSelect(healthConditions.length)}
                   className={`
                     p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
                     ${
-                      currentValue === index
-                        ? levelColors[index] +
-                          " scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                      currentValue === healthConditions.length
+                        ? "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
                         : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
                     }
                   `}
@@ -350,35 +397,133 @@ export default function AssessmentPage() {
                     <div>
                       <h3
                         className={`font-semibold text-lg mb-1 ${
-                          currentValue === index ? "" : "text-sage-900"
+                          currentValue === healthConditions.length
+                            ? ""
+                            : "text-sage-900"
                         }`}
                       >
-                        {label}
-                      </h3>{" "}
+                        Tidak Ada
+                      </h3>
                       <p
                         className={`text-sm ${
-                          currentValue === index ? "" : "text-sage-700"
+                          currentValue === healthConditions.length
+                            ? ""
+                            : "text-sage-700"
                         }`}
                       >
-                        {currentStepData.examples[index].split(": ")[1]}
+                        Tidak memiliki kondisi kesehatan khusus
                       </p>
                     </div>
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        currentValue === index
+                        currentValue === healthConditions.length
                           ? "border-current bg-current"
                           : "border-sage-300"
                       }`}
                     >
-                      {currentValue === index && (
+                      {currentValue === healthConditions.length && (
                         <div className="w-2 h-2 bg-white rounded-full" />
                       )}
                     </div>
                   </div>
                 </button>
-              ))}
-            </div>
 
+                {/* Health condition options */}
+                {healthConditions.map((condition, index) => (
+                  <button
+                    key={condition.value}
+                    onClick={() => handleLevelSelect(index)}
+                    className={`
+                      p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
+                      ${
+                        currentValue === index
+                          ? "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                          : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3
+                          className={`font-semibold text-lg mb-1 ${
+                            currentValue === index ? "" : "text-sage-900"
+                          }`}
+                        >
+                          {condition.name}
+                        </h3>
+                        <p
+                          className={`text-sm ${
+                            currentValue === index ? "" : "text-sage-700"
+                          }`}
+                        >
+                          {condition.description}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          currentValue === index
+                            ? "border-current bg-current"
+                            : "border-sage-300"
+                        }`}
+                      >
+                        {currentValue === index && (
+                          <div className="w-2 h-2 bg-white rounded-full" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              // Nutrition Level Selection
+              <div className="grid md:grid-cols-2 gap-4 mb-8">
+                {levelLabels.map((label, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleLevelSelect(index)}
+                    className={`
+                      p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
+                      ${
+                        currentValue === index
+                          ? levelColors[index] +
+                            " scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                          : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
+                      }
+                    `}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3
+                          className={`font-semibold text-lg mb-1 ${
+                            currentValue === index ? "" : "text-sage-900"
+                          }`}
+                        >
+                          {label}
+                        </h3>
+                        <p
+                          className={`text-sm ${
+                            currentValue === index ? "" : "text-sage-700"
+                          }`}
+                        >
+                          {currentStepData.examples[index].split(": ")[1]}
+                        </p>
+                      </div>
+                      <div
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                          currentValue === index
+                            ? "border-current bg-current"
+                            : "border-sage-300"
+                        }`}
+                      >
+                        {currentValue === index && (
+                          <div className="w-2 h-2 bg-white rounded-full" />
+                        )}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
             {/* Navigation */}
             <div className="flex items-center justify-between">
               <button
@@ -391,7 +536,7 @@ export default function AssessmentPage() {
               </button>
 
               <div className="flex gap-2">
-                {steps.map((_, index) => (
+                {allSteps.map((_, index) => (
                   <div
                     key={index}
                     className={`w-3 h-3 rounded-full transition-colors ${
@@ -415,7 +560,7 @@ export default function AssessmentPage() {
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Menganalisis...
                   </>
-                ) : currentStep === steps.length - 1 ? (
+                ) : currentStep === allSteps.length - 1 ? (
                   <>
                     Dapatkan Rekomendasi
                     <Brain className="w-5 h-5" />
@@ -429,8 +574,7 @@ export default function AssessmentPage() {
               </button>
             </div>
           </div>
-        </div>
-
+        </div>{" "}
         {/* Summary Card */}
         {currentStep > 0 && (
           <div className="mt-8 bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-sage-200">
@@ -438,20 +582,33 @@ export default function AssessmentPage() {
               Ringkasan Input Anda:
             </h3>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {steps.slice(0, currentStep + 1).map((step) => (
-                <div key={step.key} className="text-center">
-                  <div className="text-sm text-sage-600 mb-1">
-                    {step.title.replace(" Hari Ini", "")}
+              {steps
+                .slice(0, Math.min(currentStep + 1, steps.length))
+                .map((step) => (
+                  <div key={step.key} className="text-center">
+                    <div className="text-sm text-sage-600 mb-1">
+                      {step.title.replace(" Hari Ini", "")}
+                    </div>
+                    <div
+                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                        levelColors[nutritionInput[step.key]]
+                      }`}
+                    >
+                      {levelLabels[nutritionInput[step.key]]}
+                    </div>
                   </div>
-                  <div
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
-                      levelColors[nutritionInput[step.key]]
-                    }`}
-                  >
-                    {levelLabels[nutritionInput[step.key]]}
+                ))}
+              {/* Show health condition if we're on or past that step */}
+              {currentStep >= steps.length && (
+                <div className="text-center">
+                  <div className="text-sm text-sage-600 mb-1">
+                    Kondisi Kesehatan
+                  </div>
+                  <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                    {healthCondition ? healthCondition.name : "Tidak Ada"}
                   </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
         )}
