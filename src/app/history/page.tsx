@@ -94,6 +94,14 @@ const healthConditionLabels: Record<string, string> = {
   vegetarian: "Vegetarian",
 };
 
+// Fungsi utilitas untuk menampilkan confidence/accuracy
+function formatConfidence(val: number): string {
+  if (val <= 1) {
+    return (val * 100).toFixed(1) + "%";
+  }
+  return val.toFixed(1) + "%";
+}
+
 export default function HistoryPage() {
   const { user, isAuthLoading } = useAuth();
   const { error } = useToast();
@@ -181,33 +189,29 @@ export default function HistoryPage() {
       // Calculate statistics
       if (transformedData && transformedData.length > 0) {
         const totalAssessments = transformedData.length;
-        // Pastikan confidence_score tidak lebih dari 1 (jika ada data error, auto-normalisasi)
-        const normalizedData = transformedData.map((item) => ({
-          ...item,
-          confidence_score:
-            item.confidence_score > 1
-              ? item.confidence_score / 100
-              : item.confidence_score,
-        }));
+        // Normalisasi confidence_score ke 0-100 untuk rata-rata
         const averageConfidence =
-          normalizedData.reduce(
+          transformedData.reduce(
             (sum: number, item: NutritionAssessment) =>
-              sum + item.confidence_score,
+              sum +
+              (item.confidence_score <= 1
+                ? item.confidence_score * 100
+                : item.confidence_score),
             0
           ) / totalAssessments;
 
         // Calculate mood distribution
         const moodDistribution: { [key: string]: number } = {};
-        normalizedData.forEach((item: NutritionAssessment) => {
+        transformedData.forEach((item: NutritionAssessment) => {
           moodDistribution[item.predicted_mood] =
             (moodDistribution[item.predicted_mood] || 0) + 1;
         });
 
         // Calculate streak (simplified)
-        const streakDays = calculateStreakDays(normalizedData);
+        const streakDays = calculateStreakDays(transformedData);
 
         // Find favorite time (simplified)
-        const favoriteTime = findFavoriteTime(normalizedData);
+        const favoriteTime = findFavoriteTime(transformedData);
 
         setStats({
           totalAssessments,
@@ -216,7 +220,7 @@ export default function HistoryPage() {
           streakDays,
           favoriteTime,
         });
-        setAssessments(normalizedData);
+        setAssessments(transformedData);
       }
     } catch (err) {
       console.error("Error loading history:", err);
@@ -295,7 +299,7 @@ export default function HistoryPage() {
         lemak: assessment.fat_level,
         karbohidrat: assessment.carb_level,
         mood_prediksi: assessment.predicted_mood,
-        akurasi: (assessment.confidence_score * 100).toFixed(1) + "%",
+        akurasi: formatConfidence(assessment.confidence_score),
         catatan: assessment.notes || "",
       }));
 
@@ -383,7 +387,7 @@ export default function HistoryPage() {
               <Activity className="w-6 h-6 text-sage-400" />
             </div>
             <div className="text-2xl font-bold text-forest-900">
-              {(stats.averageConfidence * 100).toFixed(1)}%
+              {formatConfidence(stats.averageConfidence)}
             </div>
             <div className="text-sage-600 text-sm">Rata-rata Akurasi</div>
           </div>
@@ -563,8 +567,7 @@ export default function HistoryPage() {
                                 Akurasi
                               </div>
                               <div className="font-semibold text-forest-900">
-                                {(assessment.confidence_score * 100).toFixed(1)}
-                                %
+                                {formatConfidence(assessment.confidence_score)}
                               </div>
                             </div>
                             <button

@@ -87,6 +87,14 @@ function getMoodColor(mood: string) {
   }
 }
 
+// Fungsi utilitas untuk menampilkan confidence/accuracy
+function formatConfidence(val: number): string {
+  if (val <= 1) {
+    return (val * 100).toFixed(1) + "%";
+  }
+  return val.toFixed(1) + "%";
+}
+
 export default function ResultsPage() {
   const router = useRouter();
   const { success, error } = useToast();
@@ -366,7 +374,7 @@ export default function ResultsPage() {
                   <span>Confidence Score</span>
                 </div>
                 <div className="text-2xl font-bold text-forest-700">
-                  {(result.mood_prediction.confidence * 100).toFixed(1)}%
+                  {formatConfidence(result.mood_prediction.confidence)}
                 </div>
               </div>
               <p className="text-sm text-sage-600 leading-relaxed">

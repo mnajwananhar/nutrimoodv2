@@ -31,7 +31,7 @@ export default function LearnPage() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center px-4 py-2 bg-forest-100 text-forest-700 rounded-full text-sm font-medium border border-forest-200 mb-4">
             <BookOpen className="w-4 h-4 mr-2" />
-            Education Hub
+            Pusat Edukasi
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-forest-900 mb-4">
             Pusat Edukasi NutriMood

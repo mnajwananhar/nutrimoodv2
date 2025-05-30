@@ -280,8 +280,8 @@ export default function AssessmentPage() {
                 food_name: food.name,
                 calories: food.calories,
                 proteins: food.proteins,
-                fats: food.fat,
-                carbohydrates: food.carbohydrate,
+                fat: food.fat, // fix: gunakan 'fat' bukan 'fats'
+                carbohydrate: food.carbohydrate, // fix: gunakan 'carbohydrate' bukan 'carbohydrates'
                 similarity_score: food.similarity_score || 0,
                 mood_category: food.primary_mood,
               })
