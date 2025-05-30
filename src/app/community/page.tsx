@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
 import Image from "next/image";
@@ -73,6 +73,16 @@ interface NewPostData {
   tags: string[];
 }
 
+const triggerPushNotification = async (
+  userId: string,
+  type: string,
+  data: Record<string, unknown>
+) => {
+  // Notification functionality has been disabled
+  console.log("Push notifications disabled:", { userId, type, data });
+  return;
+};
+
 export default function CommunityPage() {
   const { user, userProfile, isAuthLoading } = useAuth();
   const { success, error } = useToast();
@@ -129,6 +139,20 @@ export default function CommunityPage() {
     { value: "tip", label: "Tips", icon: Lightbulb, color: "bg-yellow-100" },
     { value: "review", label: "Review", icon: Award, color: "bg-green-100" },
   ];
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  // Debounce search input
+  useEffect(() => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    searchTimeout.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 400); // 400ms debounce
+    return () => {
+      if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    };
+  }, [searchQuery]);
+
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -155,25 +179,26 @@ export default function CommunityPage() {
         query = query.eq("type", selectedType);
       }
 
-      if (searchQuery) {
+      if (debouncedSearch) {
         query = query.or(
-          `title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
+          `title.ilike.%${debouncedSearch}%,content.ilike.%${debouncedSearch}%,tags.cs.{${debouncedSearch}}`
         );
       }
 
       const { data, error: fetchError } = await query;
 
-      if (fetchError) throw fetchError; // Organize comments into nested structure
+      if (fetchError) throw fetchError;
+      // Organize comments into nested structure
       const postsWithNestedComments = (data || []).map(
         (post: CommunityPost) => {
           const allComments: Comment[] = post.comments || [];
           const mainComments = allComments.filter(
-            (comment) => !comment.parent_id
+            (comment: Comment) => !comment.parent_id
           );
-          const nestedComments = mainComments.map((mainComment) => ({
+          const nestedComments = mainComments.map((mainComment: Comment) => ({
             ...mainComment,
             replies: allComments.filter(
-              (comment) => comment.parent_id === mainComment.id
+              (comment: Comment) => comment.parent_id === mainComment.id
             ),
           }));
           return {
@@ -190,13 +215,16 @@ export default function CommunityPage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedType, searchQuery, error]);
+  }, [selectedType, debouncedSearch, error]);
+
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
-
   useEffect(() => {
     if (!isAuthLoading && !user) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("intendedRoute", window.location.pathname);
+      }
       router.push("/auth/login");
     }
   }, [user, isAuthLoading, router]);
@@ -263,6 +291,11 @@ export default function CommunityPage() {
       setSelectedImages([]);
       setImagePreviews([]);
       fetchPosts();
+      // Trigger push notification to self (optional, or to followers if implemented)
+      await triggerPushNotification(user.id, "post_upload", {
+        title: "Postingan Berhasil Dibuat",
+        body: `Postingan Anda '${newPost.title}' berhasil diunggah ke komunitas!`,
+      });
     } catch (err) {
       console.error("Error creating post:", err);
       error("Gagal Membuat Posting", "Terjadi kesalahan saat membuat posting");
@@ -271,11 +304,9 @@ export default function CommunityPage() {
 
   const handleLikePost = async (postId: number) => {
     if (!user) return;
-
     try {
       const post = posts.find((p) => p.id === postId);
       const isLiked = post?.post_likes.some((like) => like.user_id === user.id);
-
       if (isLiked) {
         // Unlike
         await supabase
@@ -283,7 +314,6 @@ export default function CommunityPage() {
           .delete()
           .eq("post_id", postId)
           .eq("user_id", user.id);
-
         await supabase
           .from("community_posts")
           .update({ likes_count: (post?.likes_count || 1) - 1 })
@@ -294,22 +324,30 @@ export default function CommunityPage() {
           post_id: postId,
           user_id: user.id,
         });
-
         await supabase
           .from("community_posts")
           .update({ likes_count: (post?.likes_count || 0) + 1 })
           .eq("id", postId);
+        // Trigger push notification to post owner
+        if (post && post.user_id !== user.id) {
+          await triggerPushNotification(post.user_id, "like", {
+            title: "Postingan Anda mendapat Like",
+            body: `${
+              userProfile?.full_name || user.email
+            } menyukai postingan Anda: '${post.title}'`,
+            url: `/community#post-${post.id}`,
+          });
+        }
       }
-
       fetchPosts();
     } catch (err) {
       console.error("Error toggling like:", err);
     }
   };
+
   const handleAddComment = async (postId: number, parentId?: number) => {
     const commentKey = parentId ? `${postId}-${parentId}` : postId;
     if (!user || !newComment[commentKey]?.trim()) return;
-
     try {
       const { error: insertError } = await supabase.from("comments").insert({
         post_id: postId,
@@ -317,19 +355,26 @@ export default function CommunityPage() {
         content: newComment[commentKey].trim(),
         parent_id: parentId || null,
       });
-
       if (insertError) throw insertError;
-
       // Update comments count untuk semua komentar (termasuk reply)
       const post = posts.find((p) => p.id === postId);
       await supabase
         .from("community_posts")
         .update({ comments_count: (post?.comments_count || 0) + 1 })
         .eq("id", postId);
-
       setNewComment((prev) => ({ ...prev, [commentKey]: "" }));
       setReplyingTo((prev) => ({ ...prev, [postId]: null }));
       fetchPosts();
+      // Trigger push notification to post owner (not self)
+      if (post && post.user_id !== user.id) {
+        await triggerPushNotification(post.user_id, "comment", {
+          title: "Komentar Baru di Postingan Anda",
+          body: `${
+            userProfile?.full_name || user.email
+          } mengomentari postingan Anda: '${post.title}'`,
+          url: `/community#post-${post.id}`,
+        });
+      }
     } catch (err) {
       console.error("Error adding comment:", err);
       error("Gagal Menambah Komentar", "Terjadi kesalahan");
@@ -411,6 +456,11 @@ export default function CommunityPage() {
       error("Gagal Hapus", "Tidak bisa menghapus komentar");
     }
   };
+
+  // State untuk show all comments per post
+  const [showAllComments, setShowAllComments] = useState<{
+    [postId: number]: boolean;
+  }>({});
 
   if (isAuthLoading) return <CommunitySkeleton />;
   if (!user) return null;
@@ -719,7 +769,10 @@ export default function CommunityPage() {
                   {/* Comments Section */}
                   {post.comments.length > 0 && (
                     <div className="mt-4 pt-4 border-t border-sage-200 space-y-4">
-                      {post.comments.slice(0, 3).map((comment) => (
+                      {(showAllComments[post.id]
+                        ? post.comments
+                        : post.comments.slice(0, 3)
+                      ).map((comment) => (
                         <div key={comment.id} className="space-y-3">
                           {/* Main Comment */}
                           <div className="relative flex space-x-3">
@@ -1024,9 +1077,31 @@ export default function CommunityPage() {
                           )}
                         </div>
                       ))}
-                      {post.comments.length > 3 && (
-                        <button className="text-sm text-forest-600 hover:text-forest-700 font-medium">
-                          Lihat {post.comments.length - 3} komentar lainnya
+                      {post.comments.length > 3 &&
+                        !showAllComments[post.id] && (
+                          <button
+                            className="text-sm text-forest-600 hover:text-forest-700 font-medium"
+                            onClick={() =>
+                              setShowAllComments((prev) => ({
+                                ...prev,
+                                [post.id]: true,
+                              }))
+                            }
+                          >
+                            Lihat {post.comments.length - 3} komentar lainnya
+                          </button>
+                        )}
+                      {post.comments.length > 3 && showAllComments[post.id] && (
+                        <button
+                          className="text-sm text-forest-600 hover:text-forest-700 font-medium"
+                          onClick={() =>
+                            setShowAllComments((prev) => ({
+                              ...prev,
+                              [post.id]: false,
+                            }))
+                          }
+                        >
+                          Sembunyikan komentar
                         </button>
                       )}
                     </div>
@@ -1102,6 +1177,7 @@ export default function CommunityPage() {
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     {postTypes.slice(1).map((type) => {
                       const Icon = type.icon;
+                      const isSelected = newPost.type === type.value;
                       return (
                         <button
                           key={type.value}
@@ -1116,14 +1192,23 @@ export default function CommunityPage() {
                                 | "review",
                             }))
                           }
-                          className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all ${
-                            newPost.type === type.value
-                              ? "border-forest-500 bg-forest-50"
-                              : "border-sage-200 hover:border-sage-300"
+                          className={`flex flex-col items-center space-y-2 p-3 rounded-lg border-2 transition-all focus:outline-none focus:ring-2 focus:ring-forest-400 ${
+                            isSelected
+                              ? "border-forest-500 bg-forest-50 text-forest-700"
+                              : "border-sage-200 hover:border-sage-300 text-sage-600"
                           }`}
+                          type="button"
                         >
-                          <Icon className="w-6 h-6 text-forest-600" />
-                          <span className="text-sm font-medium">
+                          <Icon
+                            className={`w-6 h-6 ${
+                              isSelected ? "text-forest-600" : "text-sage-400"
+                            }`}
+                          />
+                          <span
+                            className={`text-sm font-medium ${
+                              isSelected ? "text-forest-700" : "text-sage-600"
+                            }`}
+                          >
                             {type.label}
                           </span>
                         </button>
@@ -1252,12 +1337,36 @@ export default function CommunityPage() {
                   <label className="block text-sm font-medium text-sage-700 mb-2">
                     Gambar (bisa lebih dari satu)
                   </label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={handleImageChange}
-                  />
+                  <label className="flex flex-col items-center px-4 py-6 bg-white text-forest-700 rounded-lg shadow-md tracking-wide uppercase border border-sage-300 cursor-pointer hover:bg-sage-50 transition-all">
+                    <svg
+                      className="w-8 h-8 mb-2 text-forest-400"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12"
+                      />
+                    </svg>
+                    <span className="text-base leading-normal mb-1">
+                      Pilih gambar
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleImageChange}
+                    />
+                    <span className="text-xs text-sage-500 mt-1">
+                      {selectedImages.length > 0
+                        ? `${selectedImages.length} file dipilih`
+                        : "Belum ada file dipilih"}
+                    </span>
+                  </label>
                   {imagePreviews.length > 0 && (
                     <div className="flex gap-2 mt-2 overflow-x-auto">
                       {imagePreviews.map((src, idx) => (

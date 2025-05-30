@@ -409,10 +409,11 @@ export default function ResultsPage() {
                     <div className="flex justify-between items-start">
                       <span className="text-sage-600">Kondisi Kesehatan:</span>
                       <div className="text-right">
+                        {" "}
                         {input.health_condition.map((condition, index) => (
                           <span
                             key={condition.value}
-                            className="font-medium text-blue-700"
+                            className="font-medium text-forest-700"
                           >
                             {healthConditionLabels[condition.value] ||
                               condition.value}
@@ -429,7 +430,7 @@ export default function ResultsPage() {
                   !Array.isArray(input.health_condition) && (
                     <div className="flex justify-between items-center">
                       <span className="text-sage-600">Kondisi Kesehatan:</span>
-                      <span className="font-medium text-blue-700">
+                      <span className="font-medium text-forest-700">
                         {healthConditionLabels[input.health_condition.value] ||
                           input.health_condition.value}
                       </span>

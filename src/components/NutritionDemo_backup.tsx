@@ -10,7 +10,7 @@ import {
   Loader2,
   User,
 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api } from "../lib/api";
 
 interface NutritionLevels {
   calories: number;

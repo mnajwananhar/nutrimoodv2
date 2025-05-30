@@ -67,6 +67,136 @@ class BatchPredictResponse(BaseModel):
     predictions: List[MoodPrediction]
     total_processed: int
 
+# FoodRecommender Class (diperlukan untuk unpickle)
+class FoodRecommender:
+    def __init__(self):
+        self.food_df = None
+        self.mood_mapping = {
+            'energizing': 0,
+            'relaxing': 1,
+            'focusing': 2,
+            'multi_category': 3,
+            'neutral': 4
+        }
+        self.health_mapping = {
+            'diabetes': {'calorie_category': 'low', 'carb_category': 'low'},
+            'hipertensi': {'calorie_category': 'low', 'fat_category': 'low'},
+            'kolesterol': {'fat_category': 'low'},
+            'obesitas': {'calorie_category': 'low', 'fat_category': 'low'},
+            'alergi_gluten': {'nutrient_balance': 'balanced'},
+            'vegetarian': {'primary_mood': ['relaxing', 'energizing']}
+        }
+
+    def recommend_for_mood(self, mood, top_n=5, health_conditions=None):
+        """Dummy implementation - akan menggunakan data hardcoded dari model"""
+        # Data makanan hardcoded sebagai fallback
+        sample_foods = [
+            {
+                'name': 'Nasi Putih',
+                'calories': 130,
+                'proteins': 2.7,
+                'fat': 0.3,
+                'carbohydrate': 28.0,
+                'primary_mood': 'energizing',
+                'similarity_score': 0.95
+            },
+            {
+                'name': 'Ayam Panggang',
+                'calories': 165,
+                'proteins': 31.0,
+                'fat': 3.6,
+                'carbohydrate': 0.0,
+                'primary_mood': 'focusing',
+                'similarity_score': 0.90
+            },
+            {
+                'name': 'Sayur Bayam',
+                'calories': 23,
+                'proteins': 2.9,
+                'fat': 0.4,
+                'carbohydrate': 3.6,
+                'primary_mood': 'relaxing',
+                'similarity_score': 0.85
+            },
+            {
+                'name': 'Tempe Goreng',
+                'calories': 193,
+                'proteins': 20.8,
+                'fat': 8.8,
+                'carbohydrate': 9.4,
+                'primary_mood': 'energizing',
+                'similarity_score': 0.88
+            },
+            {
+                'name': 'Ikan Bakar',
+                'calories': 206,
+                'proteins': 41.9,
+                'fat': 4.5,
+                'carbohydrate': 0.0,
+                'primary_mood': 'focusing',
+                'similarity_score': 0.92
+            },
+            {
+                'name': 'Tahu Rebus',
+                'calories': 70,
+                'proteins': 8.1,
+                'fat': 4.2,
+                'carbohydrate': 2.3,
+                'primary_mood': 'relaxing',
+                'similarity_score': 0.80
+            },
+            {
+                'name': 'Kentang Rebus',
+                'calories': 87,
+                'proteins': 1.9,
+                'fat': 0.1,
+                'carbohydrate': 20.1,
+                'primary_mood': 'energizing',
+                'similarity_score': 0.75
+            },
+            {
+                'name': 'Dada Ayam Kukus',
+                'calories': 165,
+                'proteins': 31.0,
+                'fat': 3.6,
+                'carbohydrate': 0.0,
+                'primary_mood': 'focusing',
+                'similarity_score': 0.93
+            }
+        ]
+        
+        # Filter berdasarkan mood jika diminta
+        filtered_foods = sample_foods
+        if mood != 'neutral':
+            filtered_foods = [food for food in sample_foods if food['primary_mood'] == mood]
+            
+        # Jika tidak ada yang cocok dengan mood, ambil semua
+        if not filtered_foods:
+            filtered_foods = sample_foods
+            
+        # Filter berdasarkan kondisi kesehatan
+        if health_conditions:
+            for condition in health_conditions:
+                if condition == 'diabetes':
+                    # Prioritas rendah karbohidrat dan kalori
+                    filtered_foods = sorted(filtered_foods, key=lambda x: (x['carbohydrate'], x['calories']))
+                elif condition == 'hipertensi':
+                    # Prioritas rendah lemak dan natrium
+                    filtered_foods = sorted(filtered_foods, key=lambda x: x['fat'])
+                elif condition == 'kolesterol':
+                    # Prioritas rendah lemak
+                    filtered_foods = sorted(filtered_foods, key=lambda x: x['fat'])
+                elif condition == 'obesitas':
+                    # Prioritas rendah kalori dan lemak
+                    filtered_foods = sorted(filtered_foods, key=lambda x: (x['calories'], x['fat']))
+        
+        # Batasi hasil sesuai top_n
+        result_foods = filtered_foods[:top_n]
+        
+        # Convert to DataFrame format
+        df_foods = pd.DataFrame(result_foods)
+        return df_foods
+
 # NutriMood Model Class
 class NutriMoodModel:
     def __init__(self, 
@@ -437,7 +567,7 @@ async def internal_error_handler(request, exc):
 if __name__ == "__main__":
     # Run the server
     uvicorn.run(
-        "nutrimood_api:app",
+        "main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

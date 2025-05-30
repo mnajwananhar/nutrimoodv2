@@ -121,7 +121,7 @@ export default function AssessmentPage() {
       description:
         "Pilih kondisi kesehatan yang Anda miliki (bisa lebih dari satu)",
       icon: <Brain className="w-8 h-8" />,
-      color: "from-purple-500 to-purple-600",
+      color: "from-forest-500 to-forest-600",
       info: "Kondisi kesehatan tertentu memerlukan perhatian khusus dalam pemilihan makanan. Anda dapat memilih lebih dari satu kondisi untuk mendapatkan rekomendasi yang lebih tepat.",
       examples: [
         "Tidak Ada: Semua makanan akan direkomendasikan",
@@ -407,10 +407,9 @@ export default function AssessmentPage() {
                 <button
                   onClick={() => handleLevelSelect(healthConditions.length)}
                   className={`
-                    p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
-                    ${
+                    p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105                    ${
                       selectedHealthConditions.length === 0
-                        ? "bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                        ? "bg-forest-100 text-forest-700 border-forest-300 hover:bg-forest-150 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
                         : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
                     }
                   `}
@@ -439,7 +438,7 @@ export default function AssessmentPage() {
                     <div
                       className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                         selectedHealthConditions.length === 0
-                          ? "border-current bg-current"
+                          ? "border-forest-600 bg-forest-600"
                           : "border-sage-300"
                       }`}
                     >
@@ -459,10 +458,9 @@ export default function AssessmentPage() {
                       key={condition.value}
                       onClick={() => handleLevelSelect(index)}
                       className={`
-                        p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
-                        ${
+                        p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105                        ${
                           isSelected
-                            ? "bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-200 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                            ? "bg-forest-100 text-forest-700 border-forest-300 hover:bg-forest-150 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
                             : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
                         }
                       `}
@@ -487,12 +485,23 @@ export default function AssessmentPage() {
                         <div
                           className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
                             isSelected
-                              ? "border-current bg-current"
+                              ? "border-forest-600 bg-forest-600"
                               : "border-sage-300"
                           }`}
                         >
+                          {" "}
                           {isSelected && (
-                            <div className="w-3 h-3 text-white">✓</div>
+                            <svg
+                              className="w-3 h-3 text-white"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
                           )}
                         </div>
                       </div>
@@ -627,10 +636,11 @@ export default function AssessmentPage() {
               {/* Show health condition if we're on or past that step */}{" "}
               {currentStep >= steps.length && (
                 <div className="text-center">
+                  {" "}
                   <div className="text-sm text-sage-600 mb-1">
                     Kondisi Kesehatan
                   </div>
-                  <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-700 border border-purple-200">
+                  <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-forest-100 text-forest-700 border border-forest-200">
                     {selectedHealthConditions.length > 0
                       ? selectedHealthConditions.map((hc) => hc.name).join(", ")
                       : "Tidak Ada"}

@@ -97,12 +97,4 @@ CREATE TABLE IF NOT EXISTS comments (
 -- Index untuk komentar balasan
 CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
 
--- Tabel komunitas: notifikasi (opsional)
-CREATE TABLE IF NOT EXISTS notifications (
-    id SERIAL PRIMARY KEY,
-    user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
-    type VARCHAR(30),
-    data JSONB,
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-); 
+-- Notifications and push subscriptions have been removed

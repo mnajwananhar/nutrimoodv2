@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Lock, Loader2, Brain, Eye, EyeOff } from "lucide-react";
@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 export default function ResetPasswordPage() {
   const router = useRouter();
   const { success, error } = useToast();
-  const { user, isAuthLoading } = useAuth();
+  const { isAuthLoading } = useAuth();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -66,12 +66,6 @@ export default function ResetPasswordPage() {
     }
   };
 
-  useEffect(() => {
-    if (!isAuthLoading && user) {
-      router.push("/dashboard");
-    }
-  }, [user, isAuthLoading, router]);
-
   if (isAuthLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">
@@ -79,8 +73,6 @@ export default function ResetPasswordPage() {
       </div>
     );
   }
-
-  if (user) return null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">

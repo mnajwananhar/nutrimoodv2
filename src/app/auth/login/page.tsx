@@ -54,7 +54,16 @@ export default function LoginPage() {
         }
       } else {
         success("Login Berhasil!", "Selamat datang di NutriMood.");
-        router.push("/recommendations/assessment");
+        const intendedRoute =
+          typeof window !== "undefined"
+            ? localStorage.getItem("intendedRoute")
+            : null;
+        if (intendedRoute) {
+          localStorage.removeItem("intendedRoute");
+          router.push(intendedRoute);
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch (err) {
       console.error("Login error:", err);
@@ -84,7 +93,16 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!isAuthLoading && user) {
-      router.push("/recommendations/assessment");
+      const intendedRoute =
+        typeof window !== "undefined"
+          ? localStorage.getItem("intendedRoute")
+          : null;
+      if (intendedRoute) {
+        localStorage.removeItem("intendedRoute");
+        router.push(intendedRoute);
+      } else {
+        router.push("/dashboard");
+      }
     }
   }, [user, isAuthLoading, router]);
 

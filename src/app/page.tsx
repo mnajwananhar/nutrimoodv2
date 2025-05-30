@@ -165,6 +165,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* AI Mood Prediction */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-forest-600 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <Brain className="w-8 h-8" />
@@ -177,6 +178,7 @@ export default function HomePage() {
                 berdasarkan pola nutrisi dengan akurasi tinggi.
               </p>
             </div>
+            {/* 1,346 Makanan Indonesia */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-orange-500 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <Utensils className="w-8 h-8" />
@@ -189,8 +191,9 @@ export default function HomePage() {
                 nutrisi detail dan resep autentik.
               </p>
             </div>
+            {/* Analytics & Insights */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
-              <div className="w-14 h-14 bg-sage-600 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
+              <div className="w-14 h-14 bg-sage-700 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <svg
                   className="w-8 h-8"
                   fill="none"
@@ -201,7 +204,7 @@ export default function HomePage() {
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    d="M3 17l6-6 4 4 8-8"
+                    d="M5 12l5 5L20 7"
                   />
                 </svg>
               </div>
@@ -213,6 +216,7 @@ export default function HomePage() {
                 visualisasi yang mudah dipahami.
               </p>
             </div>
+            {/* Komunitas Aktif */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-orange-300 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <svg
@@ -237,6 +241,7 @@ export default function HomePage() {
                 pengguna lainnya.
               </p>
             </div>
+            {/* Kondisi Kesehatan */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-forest-600 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <Heart className="w-8 h-8" />
@@ -249,6 +254,7 @@ export default function HomePage() {
                 diabetes, hipertensi, atau diet khusus.
               </p>
             </div>
+            {/* Dashboard */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-orange-500 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <svg
@@ -258,19 +264,18 @@ export default function HomePage() {
                   strokeWidth="2"
                   viewBox="0 0 24 24"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"
-                  />
+                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
                 </svg>
               </div>
               <h3 className="text-xl font-bold text-forest-900 mb-2 text-center">
-                Review & Rating
+                Dashboard
               </h3>
               <p className="text-sage-700 text-center">
-                Sistem review makanan dari komunitas untuk membantu Anda memilih
-                yang terbaik.
+                Pantau dan kelola data nutrisi serta mood Anda secara terpusat
+                melalui dashboard interaktif.
               </p>
             </div>
           </div>

@@ -25,6 +25,28 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ProfileSkeleton } from "@/components/Skeleton";
 
+// Komponen skeleton untuk statistik (letakkan di atas komponen utama)
+function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="bg-white rounded-xl shadow-sm border border-sage-200 p-6 animate-pulse"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="bg-sage-100 p-3 rounded-lg w-12 h-12" />
+            <div className="flex-1">
+              <div className="h-4 bg-sage-200 rounded w-24 mb-2" />
+              <div className="h-6 bg-sage-300 rounded w-12" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 interface Profile {
   id: string;
   username: string;
@@ -100,9 +122,14 @@ export default function ProfilePage() {
   // Single useEffect to handle all data fetching
   useEffect(() => {
     if (!isAuthLoading && !user) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("intendedRoute", window.location.pathname);
+      }
       router.push("/auth/login");
     }
+  }, [user, isAuthLoading, router]);
 
+  useEffect(() => {
     if (!user) return;
 
     let mounted = true;
@@ -464,7 +491,9 @@ export default function ProfilePage() {
         </div>
 
         {/* Stats Cards */}
-        {userStats && (
+        {userStats === null ? (
+          <StatsSkeleton />
+        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
             <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-6">
               <div className="flex items-center space-x-3">

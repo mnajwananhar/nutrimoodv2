@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Brain,
@@ -26,7 +27,7 @@ export default function Navbar() {
   const [activeSection, setActiveSection] = useState<string>("");
   const pathname = usePathname();
   const router = useRouter();
-  const { user, userProfile, signOut } = useAuth();
+  const { user, userProfile, signOut, isAuthLoading } = useAuth();
   const { success, error } = useToast();
 
   // Close mobile menu when route changes
@@ -186,20 +187,39 @@ export default function Navbar() {
     }
   };
 
+  if (isAuthLoading) {
+    return (
+      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-sage-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="w-32 h-8 bg-sage-100 rounded animate-pulse" />
+            <div className="w-48 h-8 bg-sage-100 rounded animate-pulse" />
+          </div>
+        </div>
+      </nav>
+    );
+  }
+
   return (
     <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-sage-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-gradient-to-r from-forest-600 to-forest-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-              <Brain className="w-6 h-6 text-white" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-200">
+              <Image
+                src="/icons/icon-96x96.png"
+                alt="NutriMood Logo"
+                width={48}
+                height={48}
+                className="w-full h-full object-contain"
+                priority
+              />
             </div>
             <span className="text-2xl font-bold text-forest-900 group-hover:text-forest-700 transition-colors">
               NutriMood
             </span>
           </Link>
-
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {(user ? navigation : guestNavigation).map((item) => {
@@ -238,96 +258,99 @@ export default function Navbar() {
                 </Link>
               );
             })}
-          </div>
-
+          </div>{" "}
           {/* User Menu / Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
-              <div className="relative">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setIsUserMenuOpen(!isUserMenuOpen);
-                  }}
-                  className="flex items-center space-x-2 p-2 rounded-lg hover:bg-sage-50 transition-colors"
-                >
-                  {userProfile?.avatar_url ? (
-                    <img
-                      src={userProfile.avatar_url}
-                      alt="User Avatar"
-                      className="w-8 h-8 rounded-full object-cover border border-sage-200"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                      {userProfile?.full_name?.[0]?.toUpperCase() ||
-                        user?.email?.[0]?.toUpperCase() ||
-                        "U"}
-                    </div>
-                  )}
-                  <span className="text-sage-700 font-medium">
-                    {userProfile?.full_name || "User"}
-                  </span>
-                </button>
+              <>
+                <div className="relative">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsUserMenuOpen(!isUserMenuOpen);
+                    }}
+                    className="flex items-center space-x-2 p-2 rounded-lg hover:bg-sage-50 transition-colors"
+                  >
+                    {userProfile?.avatar_url ? (
+                      <Image
+                        src={userProfile.avatar_url}
+                        alt="User Avatar"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full object-cover border border-sage-200"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        {userProfile?.full_name?.[0]?.toUpperCase() ||
+                          user?.email?.[0]?.toUpperCase() ||
+                          "U"}
+                      </div>
+                    )}
+                    <span className="text-sage-700 font-medium">
+                      {userProfile?.full_name || "User"}
+                    </span>
+                  </button>
 
-                {/* User Dropdown */}
-                {isUserMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-earth border border-sage-200 py-2 z-50">
-                    <div className="px-4 py-2 border-b border-sage-100 flex items-center gap-3">
-                      {userProfile?.avatar_url ? (
-                        <img
-                          src={userProfile.avatar_url}
-                          alt="User Avatar"
-                          className="w-8 h-8 rounded-full object-cover border border-sage-200"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
-                          {userProfile?.full_name?.[0]?.toUpperCase() ||
-                            userProfile?.username?.[0]?.toUpperCase() ||
-                            user?.email?.[0]?.toUpperCase() ||
-                            "U"}
+                  {/* User Dropdown */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-earth border border-sage-200 py-2 z-50">
+                      {" "}
+                      <div className="px-4 py-2 border-b border-sage-100 flex items-center gap-3">
+                        {userProfile?.avatar_url ? (
+                          <Image
+                            src={userProfile.avatar_url}
+                            alt="User Avatar"
+                            width={32}
+                            height={32}
+                            className="w-8 h-8 rounded-full object-cover border border-sage-200"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
+                            {userProfile?.full_name?.[0]?.toUpperCase() ||
+                              userProfile?.username?.[0]?.toUpperCase() ||
+                              user?.email?.[0]?.toUpperCase() ||
+                              "U"}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-forest-900">
+                            {userProfile?.full_name || "User"}
+                          </p>
+                          <p className="text-sm text-sage-600 truncate break-all max-w-[180px]">
+                            {user?.email}
+                          </p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-forest-900">
-                          {userProfile?.full_name || "User"}
-                        </p>
-                        <p className="text-sm text-sage-600 truncate break-all max-w-[180px]">
-                          {user?.email}
-                        </p>
+                      </div>
+                      {userNavigation.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className="flex items-center space-x-3 px-4 py-2 text-sm text-sage-700 hover:bg-sage-50 hover:text-forest-700 transition-colors"
+                          >
+                            <Icon className="w-4 h-4" />
+                            <span>{item.name}</span>
+                          </Link>
+                        );
+                      })}
+                      <div className="border-t border-sage-100 mt-2 pt-2">
+                        <button
+                          onClick={handleSignOut}
+                          className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          <span>Keluar</span>
+                        </button>
                       </div>
                     </div>
-
-                    {userNavigation.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          className="flex items-center space-x-3 px-4 py-2 text-sm text-sage-700 hover:bg-sage-50 hover:text-forest-700 transition-colors"
-                        >
-                          <Icon className="w-4 h-4" />
-                          <span>{item.name}</span>
-                        </Link>
-                      );
-                    })}
-
-                    <div className="border-t border-sage-100 mt-2 pt-2">
-                      <button
-                        onClick={handleSignOut}
-                        className="flex items-center space-x-3 w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        <span>Keluar</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             ) : (
-              <AuthButtons />
+              !isAuthLoading && <AuthButtons />
             )}
           </div>
-
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button
@@ -388,11 +411,14 @@ export default function Navbar() {
 
             {user && (
               <>
+                {" "}
                 <div className="border-t border-sage-200 mt-4 pt-4 flex items-center gap-3">
                   {userProfile?.avatar_url ? (
-                    <img
+                    <Image
                       src={userProfile.avatar_url}
                       alt="User Avatar"
+                      width={32}
+                      height={32}
                       className="w-8 h-8 rounded-full object-cover border border-sage-200"
                     />
                   ) : (
@@ -407,7 +433,6 @@ export default function Navbar() {
                     {userProfile?.full_name || userProfile?.username || "User"}
                   </span>
                 </div>
-
                 <div className="border-t border-sage-200 mt-4 pt-4">
                   {userNavigation.map((item) => {
                     const Icon = item.icon;
@@ -423,7 +448,6 @@ export default function Navbar() {
                     );
                   })}
                 </div>
-
                 <div className="border-t border-sage-200 mt-4 pt-4">
                   <button
                     onClick={handleSignOut}
@@ -436,7 +460,7 @@ export default function Navbar() {
               </>
             )}
 
-            {!user && (
+            {!user && !isAuthLoading && (
               <div className="border-t border-sage-200 mt-4 pt-4">
                 <AuthButtons mobile={true} />
               </div>

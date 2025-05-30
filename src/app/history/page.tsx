@@ -302,6 +302,9 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!isAuthLoading && !user) {
+      if (typeof window !== "undefined") {
+        localStorage.setItem("intendedRoute", window.location.pathname);
+      }
       router.push("/auth/login");
     }
   }, [user, isAuthLoading, router]);
