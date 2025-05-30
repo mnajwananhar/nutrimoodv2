@@ -1,7 +1,7 @@
 // Service Worker NutriMood: Hanya untuk menampilkan halaman offline jika offline
 const OFFLINE_URL = "/offline";
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", () => {
   // Langsung aktif tanpa cache
   self.skipWaiting();
 });
@@ -16,19 +16,8 @@ self.addEventListener("fetch", (event) => {
   if (event.request.mode === "navigate") {
     event.respondWith(
       fetch(event.request).catch(() => {
-        // Jika offline, tampilkan halaman offline sederhana
-        return new Response(
-          `<!DOCTYPE html>
-            <html>
-            <head><title>Offline - NutriMood</title></head>
-            <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
-              <h1>Anda Sedang Offline</h1>
-              <p>Koneksi internet tidak tersedia. Silakan coba lagi nanti.</p>
-              <button onclick="window.location.reload()">Coba Lagi</button>
-            </body>
-            </html>`,
-          { headers: { "Content-Type": "text/html" } }
-        );
+        // Jika offline, redirect ke halaman offline yang sudah dibuat
+        return Response.redirect(OFFLINE_URL, 302);
       })
     );
   }

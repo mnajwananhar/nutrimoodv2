@@ -87,10 +87,10 @@ class MoodClassifier:
             return []
         return list(self.label_encoder.classes_)
 
-    def load(self, model_path='mood_classifier_model.keras', 
-             scaler_path='mood_feature_scaler.pkl', 
-             onehot_encoder_path='mood_encoder.pkl',
-             label_encoder_path='mood_label_encoder.pkl'):
+    def load(self, model_path='models/mood_classifier_model.keras', 
+             scaler_path='models/mood_feature_scaler.pkl', 
+             onehot_encoder_path='models/mood_encoder.pkl',
+             label_encoder_path='models/mood_label_encoder.pkl'):
         """Memuat model dan transformer dari file"""
         # Muat model TensorFlow
         self.model = tf.keras.models.load_model(model_path)
@@ -330,17 +330,17 @@ async def startup_event():
         print("Loading mood classifier...")
         mood_classifier = MoodClassifier()
         mood_classifier.load(
-            model_path='mood_classifier_model.keras',
-            scaler_path='mood_feature_scaler.pkl',
-            onehot_encoder_path='mood_encoder.pkl',
-            label_encoder_path='mood_label_encoder.pkl'
+            model_path='models/mood_classifier_model.keras',
+            scaler_path='models/mood_feature_scaler.pkl',
+            onehot_encoder_path='models/mood_encoder.pkl',
+            label_encoder_path='models/mood_label_encoder.pkl'
         )
         print("Mood classifier loaded successfully")
         print(f"Available moods: {mood_classifier.get_mood_names()}")
         
         # Load food recommender
         print("Loading food recommender...")
-        with open('food_recommender.pkl', 'rb') as f:
+        with open('models/food_recommender.pkl', 'rb') as f:
             food_recommender = pickle.load(f)
         print("Food recommender loaded successfully")
         

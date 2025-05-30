@@ -1,0 +1,10 @@
+/* Favicon Circle Style */
+link[rel="icon"] {
+  border-radius: 50%;
+}
+
+/* PWA Icon Style untuk tampilan circle */
+.pwa-icon-circle {
+  border-radius: 50%;
+  overflow: hidden;
+}
