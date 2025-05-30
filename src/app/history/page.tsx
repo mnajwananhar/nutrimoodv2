@@ -14,6 +14,14 @@ import {
   ChevronDown,
   ChevronUp,
   User,
+  Target,
+  Zap,
+  Award,
+  Activity,
+  Smile,
+  Moon,
+  Scale,
+  Utensils,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
@@ -64,15 +72,17 @@ const getLevelLabelIndonesia = (level: number): string => {
   return "Sangat Tinggi";
 };
 
-const getMoodEmoji = (mood: string): string => {
-  const moodEmojis: { [key: string]: string } = {
-    energizing: "⚡",
-    calming: "😌",
-    focusing: "🎯",
-    relaxing: "😴",
-    balanced: "⚖️",
+const getMoodIcon = (mood: string) => {
+  const moodIcons: {
+    [key: string]: React.ComponentType<{ className?: string }>;
+  } = {
+    energizing: Zap,
+    calming: Smile,
+    focusing: Target,
+    relaxing: Moon,
+    balanced: Scale,
   };
-  return moodEmojis[mood] || "🍽️";
+  return moodIcons[mood] || Utensils;
 };
 
 const healthConditionLabels: Record<string, string> = {
@@ -171,8 +181,16 @@ export default function HistoryPage() {
       // Calculate statistics
       if (transformedData && transformedData.length > 0) {
         const totalAssessments = transformedData.length;
+        // Pastikan confidence_score tidak lebih dari 1 (jika ada data error, auto-normalisasi)
+        const normalizedData = transformedData.map((item) => ({
+          ...item,
+          confidence_score:
+            item.confidence_score > 1
+              ? item.confidence_score / 100
+              : item.confidence_score,
+        }));
         const averageConfidence =
-          transformedData.reduce(
+          normalizedData.reduce(
             (sum: number, item: NutritionAssessment) =>
               sum + item.confidence_score,
             0
@@ -180,16 +198,16 @@ export default function HistoryPage() {
 
         // Calculate mood distribution
         const moodDistribution: { [key: string]: number } = {};
-        transformedData.forEach((item: NutritionAssessment) => {
+        normalizedData.forEach((item: NutritionAssessment) => {
           moodDistribution[item.predicted_mood] =
             (moodDistribution[item.predicted_mood] || 0) + 1;
         });
 
         // Calculate streak (simplified)
-        const streakDays = calculateStreakDays(transformedData);
+        const streakDays = calculateStreakDays(normalizedData);
 
         // Find favorite time (simplified)
-        const favoriteTime = findFavoriteTime(transformedData);
+        const favoriteTime = findFavoriteTime(normalizedData);
 
         setStats({
           totalAssessments,
@@ -198,6 +216,7 @@ export default function HistoryPage() {
           streakDays,
           favoriteTime,
         });
+        setAssessments(normalizedData);
       }
     } catch (err) {
       console.error("Error loading history:", err);
@@ -350,7 +369,7 @@ export default function HistoryPage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
               <Brain className="w-8 h-8 text-forest-600" />
-              <span className="text-2xl">📊</span>
+              <Target className="w-6 h-6 text-sage-400" />
             </div>
             <div className="text-2xl font-bold text-forest-900">
               {stats.totalAssessments}
@@ -361,7 +380,7 @@ export default function HistoryPage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="w-8 h-8 text-blue-600" />
-              <span className="text-2xl">🎯</span>
+              <Activity className="w-6 h-6 text-sage-400" />
             </div>
             <div className="text-2xl font-bold text-forest-900">
               {(stats.averageConfidence * 100).toFixed(1)}%
@@ -372,7 +391,7 @@ export default function HistoryPage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
               <Calendar className="w-8 h-8 text-green-600" />
-              <span className="text-2xl">🔥</span>
+              <Zap className="w-6 h-6 text-sage-400" />
             </div>
             <div className="text-2xl font-bold text-forest-900">
               {stats.streakDays}
@@ -383,7 +402,7 @@ export default function HistoryPage() {
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
               <Clock className="w-8 h-8 text-purple-600" />
-              <span className="text-2xl">⏰</span>
+              <Award className="w-6 h-6 text-sage-400" />
             </div>
             <div className="text-2xl font-bold text-forest-900">
               {stats.favoriteTime || "-"}
@@ -453,11 +472,11 @@ export default function HistoryPage() {
                 className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500"
               >
                 <option value="all">Semua Mood</option>
-                <option value="energizing">Energizing ⚡</option>
-                <option value="calming">Calming 😌</option>
-                <option value="focusing">Focusing 🎯</option>
-                <option value="relaxing">Relaxing 😴</option>
-                <option value="balanced">Balanced ⚖️</option>
+                <option value="energizing">Energizing</option>
+                <option value="calming">Calming</option>
+                <option value="focusing">Focusing</option>
+                <option value="relaxing">Relaxing</option>
+                <option value="balanced">Balanced</option>
               </select>
             </div>
 
@@ -511,9 +530,14 @@ export default function HistoryPage() {
                         <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-forest-100 rounded-xl flex items-center justify-center">
-                              <span className="text-2xl">
-                                {getMoodEmoji(assessment.predicted_mood)}
-                              </span>
+                              {(() => {
+                                const IconComponent = getMoodIcon(
+                                  assessment.predicted_mood
+                                );
+                                return (
+                                  <IconComponent className="w-6 h-6 text-forest-600" />
+                                );
+                              })()}
                             </div>
                             <div>
                               <h3 className="font-semibold text-forest-900 capitalize">
@@ -749,7 +773,10 @@ export default function HistoryPage() {
                     .map(([mood, count]) => (
                       <div key={mood} className="flex items-center gap-4">
                         <div className="w-20 text-sm font-medium text-forest-900 capitalize flex items-center gap-2">
-                          <span>{getMoodEmoji(mood)}</span>
+                          {(() => {
+                            const IconComponent = getMoodIcon(mood);
+                            return <IconComponent className="w-4 h-4" />;
+                          })()}
                           {mood}
                         </div>
                         <div className="flex-1 bg-sage-200 rounded-full h-3">

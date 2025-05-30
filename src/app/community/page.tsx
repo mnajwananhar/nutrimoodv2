@@ -21,6 +21,8 @@ import {
   X,
   Send,
   Trash2,
+  MoreHorizontal,
+  Upload,
 } from "lucide-react";
 import { CommunitySkeleton } from "@/components/Skeleton";
 import { useRouter } from "next/navigation";
@@ -475,16 +477,18 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-forest-900 mb-4">
+      {/* New Heading Section */}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
+        <div className="flex flex-col items-center text-center mb-8">
+          <span className="inline-flex items-center px-4 py-1 rounded-full bg-forest-100 text-forest-700 font-medium text-sm mb-4">
+            <Users className="w-4 h-4 mr-2" /> Komunitas
+          </span>
+          <h1 className="text-4xl font-bold text-forest-900 mb-2">
             Komunitas NutriMood
           </h1>
           <p className="text-lg text-sage-600 mb-6">
             Berbagi pengalaman dan tips nutrisi dengan komunitas
           </p>
-
           <button
             onClick={() => setShowCreatePost(true)}
             className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
@@ -493,7 +497,9 @@ export default function CommunityPage() {
             <span>Buat Posting</span>
           </button>
         </div>
+      </div>
 
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
         <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-4">
@@ -633,16 +639,7 @@ export default function CommunityPage() {
                           className="p-1 text-sage-400 hover:text-sage-700"
                           title="Menu"
                         >
-                          <svg
-                            width="20"
-                            height="20"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <circle cx="4" cy="10" r="1.5" />
-                            <circle cx="10" cy="10" r="1.5" />
-                            <circle cx="16" cy="10" r="1.5" />
-                          </svg>
+                          <MoreHorizontal className="w-5 h-5" />
                         </button>
                         {showPostDropdown === post.id && (
                           <>
@@ -810,16 +807,7 @@ export default function CommunityPage() {
                                         className="p-1 text-sage-400 hover:text-sage-700"
                                         title="Menu"
                                       >
-                                        <svg
-                                          width="18"
-                                          height="18"
-                                          fill="currentColor"
-                                          viewBox="0 0 20 20"
-                                        >
-                                          <circle cx="4" cy="10" r="1.5" />
-                                          <circle cx="10" cy="10" r="1.5" />
-                                          <circle cx="16" cy="10" r="1.5" />
-                                        </svg>
+                                        <MoreHorizontal className="w-4 h-4" />
                                       </button>
                                       {showCommentDropdown === comment.id && (
                                         <>
@@ -918,6 +906,7 @@ export default function CommunityPage() {
                                           </span>
                                           {reply.user_id === user.id && (
                                             <div className="absolute bottom-2 right-2 z-20">
+                                              {" "}
                                               <button
                                                 onClick={() => {
                                                   setShowReplyDropdown(
@@ -930,28 +919,7 @@ export default function CommunityPage() {
                                                 className="p-1 text-sage-400 hover:text-sage-700"
                                                 title="Menu"
                                               >
-                                                <svg
-                                                  width="18"
-                                                  height="18"
-                                                  fill="currentColor"
-                                                  viewBox="0 0 20 20"
-                                                >
-                                                  <circle
-                                                    cx="4"
-                                                    cy="10"
-                                                    r="1.5"
-                                                  />
-                                                  <circle
-                                                    cx="10"
-                                                    cy="10"
-                                                    r="1.5"
-                                                  />
-                                                  <circle
-                                                    cx="16"
-                                                    cy="10"
-                                                    r="1.5"
-                                                  />
-                                                </svg>
+                                                <MoreHorizontal className="w-4 h-4" />
                                               </button>
                                               {showReplyDropdown ===
                                                 reply.id && (
@@ -1336,21 +1304,9 @@ export default function CommunityPage() {
                 <div>
                   <label className="block text-sm font-medium text-sage-700 mb-2">
                     Gambar (bisa lebih dari satu)
-                  </label>
+                  </label>{" "}
                   <label className="flex flex-col items-center px-4 py-6 bg-white text-forest-700 rounded-lg shadow-md tracking-wide uppercase border border-sage-300 cursor-pointer hover:bg-sage-50 transition-all">
-                    <svg
-                      className="w-8 h-8 mb-2 text-forest-400"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5m0 0l5 5m-5-5v12"
-                      />
-                    </svg>
+                    <Upload className="w-8 h-8 mb-2 text-forest-400" />
                     <span className="text-base leading-normal mb-1">
                       Pilih gambar
                     </span>

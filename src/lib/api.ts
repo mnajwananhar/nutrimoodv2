@@ -2,14 +2,8 @@
 export const API_CONFIG = {
   BASE_URL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
   ENDPOINTS: {
-    PREDICT: "/predict",
     RECOMMEND: "/recommend",
-    PREDICT_AND_RECOMMEND: "/predict-and-recommend",
-    MOODS: "/moods",
-    HEALTH_CONDITIONS: "/health-conditions",
-    CATEGORIES: "/categories",
-    PREDICT_BATCH: "/predict/batch",
-    DEBUG_STATUS: "/debug/status",
+    HEALTH: "/health",
   },
 } as const;
 
@@ -49,26 +43,43 @@ export const apiRequest = async (
   }
 };
 
+// Types for API requests and responses
+export interface NutrientInput {
+  calories: number;
+  proteins: number;
+  fat: number;
+  carbohydrate: number;
+}
+
+export interface FoodRecommendationRequest {
+  nutrients: NutrientInput;
+  health_conditions?: string[];
+  top_n?: number;
+}
+
+export interface FoodItem {
+  name: string;
+  calories: number;
+  proteins: number;
+  fat: number;
+  carbohydrate: number;
+  primary_mood: string;
+  similarity_score: number;
+}
+
+export interface FoodRecommendationResponse {
+  predicted_mood: string;
+  mood_probabilities: Record<string, number>;
+  recommendations: FoodItem[];
+  total_recommendations: number;
+}
+
 // Typed API methods
 export const api = {
-  predict: async (data: {
-    calorie_category: number;
-    protein_category: number;
-    fat_category: number;
-    carb_category: number;
-  }) => {
-    const response = await apiRequest(API_CONFIG.ENDPOINTS.PREDICT, {
-      method: "POST",
-      body: JSON.stringify(data),
-    });
-    return response.json();
-  },
-
-  recommend: async (data: {
-    mood: string;
-    health_conditions?: string[];
-    top_n?: number;
-  }) => {
+  // Get food recommendations based on nutrients and health conditions
+  recommend: async (
+    data: FoodRecommendationRequest
+  ): Promise<FoodRecommendationResponse> => {
     const response = await apiRequest(API_CONFIG.ENDPOINTS.RECOMMEND, {
       method: "POST",
       body: JSON.stringify(data),
@@ -76,35 +87,31 @@ export const api = {
     return response.json();
   },
 
-  predictAndRecommend: async (data: {
-    calorie_category: number;
-    protein_category: number;
-    fat_category: number;
-    carb_category: number;
-    health_conditions?: string[];
-  }) => {
-    const response = await apiRequest(
-      API_CONFIG.ENDPOINTS.PREDICT_AND_RECOMMEND,
-      {
-        method: "POST",
-        body: JSON.stringify(data),
-      }
-    );
+  // Health check endpoint
+  healthCheck: async () => {
+    const response = await apiRequest(API_CONFIG.ENDPOINTS.HEALTH);
     return response.json();
   },
 
-  getMoods: async () => {
-    const response = await apiRequest(API_CONFIG.ENDPOINTS.MOODS);
-    return response.json();
-  },
+  // Utility function to convert nutrition levels (0-3) to actual values
+  convertNutritionLevels: (levels: {
+    calorie_level: number;
+    protein_level: number;
+    fat_level: number;
+    carb_level: number;
+  }): NutrientInput => {
+    // Convert categorical levels to actual nutritional values
+    // These ranges are based on typical daily intake values
+    const calorieRanges = [500, 1200, 1800, 2500]; // very_low, low, medium, high
+    const proteinRanges = [15, 40, 70, 120]; // very_low, low, medium, high
+    const fatRanges = [15, 40, 70, 120]; // very_low, low, medium, high
+    const carbRanges = [30, 100, 200, 350]; // very_low, low, medium, high
 
-  getHealthConditions: async () => {
-    const response = await apiRequest(API_CONFIG.ENDPOINTS.HEALTH_CONDITIONS);
-    return response.json();
-  },
-
-  getDebugStatus: async () => {
-    const response = await apiRequest(API_CONFIG.ENDPOINTS.DEBUG_STATUS);
-    return response.json();
+    return {
+      calories: calorieRanges[levels.calorie_level] || calorieRanges[2],
+      proteins: proteinRanges[levels.protein_level] || proteinRanges[2],
+      fat: fatRanges[levels.fat_level] || fatRanges[2],
+      carbohydrate: carbRanges[levels.carb_level] || carbRanges[2],
+    };
   },
 } as const;

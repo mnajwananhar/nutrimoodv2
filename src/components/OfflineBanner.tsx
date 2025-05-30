@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { WifiOff, Wifi, AlertTriangle, RefreshCw } from "lucide-react";
+import { WifiOff, Wifi, AlertTriangle, RefreshCw, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function OfflineBanner() {
@@ -110,21 +110,14 @@ export default function OfflineBanner() {
                   <span>Mode Offline</span>
                 </button>
               </>
-            )}
-
+            )}{" "}
             <button
               onClick={() => setShowBanner(false)}
               className="p-1 hover:bg-white/20 rounded-md transition-colors"
               aria-label="Tutup"
             >
               <span className="sr-only">Tutup</span>
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

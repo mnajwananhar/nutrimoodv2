@@ -11,6 +11,7 @@ import {
   ArrowRight,
   ArrowLeft,
   Info,
+  Check,
 } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { supabase } from "@/lib/supabaseClient";
@@ -188,18 +189,17 @@ export default function AssessmentPage() {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-      // 1. Prediksi mood ke backend
-      const moodData = await api.predict({
-        calorie_category: nutritionInput.calorie_level,
-        protein_category: nutritionInput.protein_level,
-        fat_category: nutritionInput.fat_level,
-        carb_category: nutritionInput.carb_level,
-      }); // 2. Rekomendasi makanan ke backend (with health conditions)
-      const foodData = await api.recommend({
-        mood: moodData.mood,
-        top_n: 5,
+      // Convert nutrition levels to actual values
+      const nutrients = api.convertNutritionLevels(nutritionInput);
+
+      // Call the unified recommend API
+      const recommendationData = await api.recommend({
+        nutrients,
         health_conditions: selectedHealthConditions.map((hc) => hc.value),
-      }); // 3. Simpan ke Supabase jika user login
+        top_n: 5,
+      });
+
+      // 3. Simpan ke Supabase jika user login
       let assessmentId = null;
       if (user) {
         // Prepare health conditions array
@@ -219,8 +219,11 @@ export default function AssessmentPage() {
               fat_level: nutritionInput.fat_level,
               carb_level: nutritionInput.carb_level,
               health_conditions: healthConditionsArray,
-              predicted_mood: moodData.mood,
-              confidence_score: moodData.confidence,
+              predicted_mood: recommendationData.predicted_mood,
+              confidence_score:
+                Math.max(
+                  ...Object.values(recommendationData.mood_probabilities)
+                ) * 100,
               created_at: new Date().toISOString(),
             },
           ])
@@ -230,7 +233,7 @@ export default function AssessmentPage() {
         assessmentId = assessment.id;
 
         // Insert food recommendations
-        for (const food of foodData) {
+        for (const food of recommendationData.recommendations) {
           const { error: err2 } = await supabase
             .from("food_recommendations")
             .insert([
@@ -253,7 +256,9 @@ export default function AssessmentPage() {
             console.error("Insert food_recommendations error:", err2);
           }
         }
-      } // 4. Simpan hasil ke sessionStorage untuk halaman results
+      }
+
+      // 4. Simpan hasil ke sessionStorage untuk halaman results
       sessionStorage.setItem(
         "nutrition_assessment",
         JSON.stringify({
@@ -263,24 +268,29 @@ export default function AssessmentPage() {
           },
           result: {
             mood_prediction: {
-              mood: moodData.mood,
-              confidence: moodData.confidence,
+              mood: recommendationData.predicted_mood,
+              confidence:
+                Math.max(
+                  ...Object.values(recommendationData.mood_probabilities)
+                ) * 100,
+              mood_probabilities: recommendationData.mood_probabilities,
             },
-            food_recommendations: foodData.map(
-              (food: Record<string, unknown>) => ({
-                food_name: food.name as string,
-                calories: food.calories as number,
-                proteins: food.proteins as number,
-                fats: food.fat as number,
-                carbohydrates: food.carbohydrate as number,
+            food_recommendations: recommendationData.recommendations.map(
+              (food) => ({
+                food_name: food.name,
+                calories: food.calories,
+                proteins: food.proteins,
+                fats: food.fat,
+                carbohydrates: food.carbohydrate,
                 similarity_score: food.similarity_score || 0,
-                mood_category: food.primary_mood as string,
+                mood_category: food.primary_mood,
               })
             ),
           },
           timestamp: new Date().toISOString(),
         })
       );
+
       success("Analisis Berhasil!", "Redirecting ke halaman hasil...");
       setTimeout(() => {
         router.push("/recommendations/results");
@@ -305,18 +315,52 @@ export default function AssessmentPage() {
         : -1 // Multiple selections, no single value
       : nutritionInput[currentStepData.key as keyof NutritionInput];
   const progress = ((currentStep + 1) / allSteps.length) * 100;
-
-  // Fetch health conditions on component mount
+  // Load health conditions
   useEffect(() => {
-    const fetchHealthConditions = async () => {
-      try {
-        const data = await api.getHealthConditions();
-        setHealthConditions(data.conditions || []);
-      } catch (error) {
-        console.error("Failed to fetch health conditions:", error);
-      }
+    const loadHealthConditions = () => {
+      // Based on the backend health_mapping, these are the supported conditions
+      const conditions: HealthCondition[] = [
+        {
+          value: "diabetes",
+          name: "Diabetes",
+          description: "Kondisi gula darah tinggi",
+          filter: "low_carb",
+        },
+        {
+          value: "hipertensi",
+          name: "Hipertensi",
+          description: "Tekanan darah tinggi",
+          filter: "low_sodium",
+        },
+        {
+          value: "kolesterol",
+          name: "Kolesterol Tinggi",
+          description: "Kadar kolesterol dalam darah tinggi",
+          filter: "low_fat",
+        },
+        {
+          value: "obesitas",
+          name: "Obesitas",
+          description: "Kelebihan berat badan",
+          filter: "low_calorie",
+        },
+        {
+          value: "alergi_gluten",
+          name: "Alergi Gluten",
+          description: "Tidak dapat mengonsumsi gluten",
+          filter: "gluten_free",
+        },
+        {
+          value: "vegetarian",
+          name: "Vegetarian",
+          description: "Tidak mengonsumsi daging",
+          filter: "vegetarian",
+        },
+      ];
+      setHealthConditions(conditions);
     };
-    fetchHealthConditions();
+
+    loadHealthConditions();
   }, []);
 
   useEffect(() => {
@@ -481,7 +525,7 @@ export default function AssessmentPage() {
                           >
                             {condition.description}
                           </p>
-                        </div>
+                        </div>{" "}
                         <div
                           className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
                             isSelected
@@ -491,17 +535,7 @@ export default function AssessmentPage() {
                         >
                           {" "}
                           {isSelected && (
-                            <svg
-                              className="w-3 h-3 text-white"
-                              fill="currentColor"
-                              viewBox="0 0 20 20"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
+                            <Check className="w-3 h-3 text-white" />
                           )}
                         </div>
                       </div>

@@ -1,6 +1,17 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { ArrowRight, Brain, Utensils, Heart } from "lucide-react";
+import {
+  ArrowRight,
+  Brain,
+  Utensils,
+  Heart,
+  Check,
+  Users,
+  Grid3X3,
+  Instagram,
+  Facebook,
+  Twitter,
+} from "lucide-react";
 import NutritionDemo from "@/components/NutritionDemo";
 
 export default function HomePage() {
@@ -194,19 +205,7 @@ export default function HomePage() {
             {/* Analytics & Insights */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-sage-700 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5 12l5 5L20 7"
-                  />
-                </svg>
+                <Check className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold text-forest-900 mb-2 text-center">
                 Analytics & Insights
@@ -219,19 +218,7 @@ export default function HomePage() {
             {/* Komunitas Aktif */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-orange-300 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M17 20h5v-2a4 4 0 0 0-3-3.87M9 20H4v-2a4 4 0 0 1 3-3.87m13-3.13a4 4 0 1 0-8 0 4 4 0 0 0 8 0zm-8 0a4 4 0 1 1-8 0 4 4 0 0 1 8 0z"
-                  />
-                </svg>
+                <Users className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold text-forest-900 mb-2 text-center">
                 Komunitas Aktif
@@ -257,18 +244,7 @@ export default function HomePage() {
             {/* Dashboard */}
             <div className="bg-white rounded-2xl p-8 border border-sage-200 shadow-earth">
               <div className="w-14 h-14 bg-orange-500 text-white rounded-2xl flex items-center justify-center mb-6 mx-auto">
-                <svg
-                  className="w-8 h-8"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <rect x="3" y="3" width="7" height="7" rx="1.5" />
-                  <rect x="14" y="3" width="7" height="7" rx="1.5" />
-                  <rect x="14" y="14" width="7" height="7" rx="1.5" />
-                  <rect x="3" y="14" width="7" height="7" rx="1.5" />
-                </svg>
+                <Grid3X3 className="w-8 h-8" />
               </div>
               <h3 className="text-xl font-bold text-forest-900 mb-2 text-center">
                 Dashboard
@@ -341,16 +317,7 @@ export default function HomePage() {
                   className="w-10 h-10 bg-forest-700 rounded-lg flex items-center justify-center hover:bg-forest-600 transition-colors"
                 >
                   <span className="sr-only">Facebook</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 320 512"
-                    className="w-6 h-6 text-white"
-                  >
-                    <path
-                      fill="currentColor"
-                      d="M279.14 288l14.22-92.66h-88.91V127.89c0-25.35 12.42-50.06 52.24-50.06H293V6.26S259.5 0 225.36 0c-73.22 0-121 44.38-121 124.72v70.62H22.89V288h81.47v224h100.2V288z"
-                    />
-                  </svg>
+                  <Facebook className="w-6 h-6 text-white" />
                 </a>
                 <a
                   href="https://instagram.com"
@@ -359,18 +326,7 @@ export default function HomePage() {
                   className="w-10 h-10 bg-forest-700 rounded-lg flex items-center justify-center hover:bg-forest-600 transition-colors"
                 >
                   <span className="sr-only">Instagram</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6 text-white"
-                  >
-                    <rect width="20" height="20" x="2" y="2" rx="5" />
-                    <circle cx="12" cy="12" r="5" />
-                    <circle cx="17" cy="7" r="1.5" />
-                  </svg>
+                  <Instagram className="w-6 h-6 text-white" />
                 </a>
                 <a
                   href="https://twitter.com"
@@ -379,20 +335,7 @@ export default function HomePage() {
                   className="w-10 h-10 bg-forest-700 rounded-lg flex items-center justify-center hover:bg-forest-600 transition-colors"
                 >
                   <span className="sr-only">Twitter</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="w-6 h-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M8.29 20.251c7.547 0 11.675-6.155 11.675-11.495 0-.175 0-.349-.012-.522A8.18 8.18 0 0 0 22 5.92a8.19 8.19 0 0 1-2.357.637 4.118 4.118 0 0 0 1.804-2.27 8.224 8.224 0 0 1-2.605.977A4.107 4.107 0 0 0 16.616 4c-2.266 0-4.104 1.828-4.104 4.084 0 .32.036.634.105.934C8.728 8.87 5.8 7.13 3.671 4.149a4.073 4.073 0 0 0-.555 2.052c0 1.42.725 2.675 1.825 3.411a4.093 4.093 0 0 1-1.858-.512v.052c0 1.984 1.417 3.637 3.293 4.017a4.1 4.1 0 0 1-1.853.07c.522 1.623 2.037 2.805 3.833 2.836A8.233 8.233 0 0 1 2 18.407a11.616 11.616 0 0 0 6.29 1.84"
-                    />
-                  </svg>
+                  <Twitter className="w-6 h-6 text-white" />
                 </a>
               </div>
             </div>

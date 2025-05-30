@@ -501,7 +501,7 @@ export default function ProfilePage() {
                   <Activity className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-sage-600">Assessments</p>
+                  <p className="text-sm text-sage-600">Total Analisis</p>
                   <p className="text-2xl font-bold text-sage-900">
                     {userStats.assessments_count}
                   </p>
@@ -891,9 +891,7 @@ export default function ProfilePage() {
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-sage-600">
-                          Total Assessments:
-                        </span>
+                        <span className="text-sage-600">Total Analisis:</span>
                         <span className="font-medium text-sage-900">
                           {userStats.assessments_count}
                         </span>
@@ -923,7 +921,7 @@ export default function ProfilePage() {
 
                   <div className="bg-sage-50 rounded-lg p-4">
                     <h4 className="font-semibold text-sage-900 mb-2">
-                      Insight Mood
+                      Wawasan Mood
                     </h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
@@ -963,7 +961,7 @@ export default function ProfilePage() {
                       <span className="text-sm text-sage-700">
                         Target berikutnya:{" "}
                         {Math.ceil(userStats.assessments_count / 10) * 10}{" "}
-                        assessments
+                        analisis
                       </span>
                     </div>
                   </div>

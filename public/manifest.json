@@ -98,6 +98,64 @@
       ]
     }
   ],
+  "screenshots": [
+    {
+      "src": "/screenshots/mobile-home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Halaman Utama NutriMood"
+    },
+    {
+      "src": "/screenshots/mobile-dashboard.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard Analisis Nutrisi dan Mood"
+    },
+    {
+      "src": "/screenshots/mobile-assessment.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Assessment Nutrisi dan Mood"
+    },
+    {
+      "src": "/screenshots/mobile-recommendations.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Rekomendasi Makanan Indonesia"
+    },
+    {
+      "src": "/screenshots/mobile-community.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Komunitas Pengguna NutriMood"
+    },
+    {
+      "src": "/screenshots/desktop-home.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "NutriMood Desktop - Halaman Utama"
+    },
+    {
+      "src": "/screenshots/desktop-dashboard.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "NutriMood Desktop - Dashboard Lengkap"
+    },
+    {
+      "src": "/screenshots/desktop-recommendations.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "NutriMood Desktop - Rekomendasi Makanan"
+    }
+  ],
   "related_applications": [],
   "prefer_related_applications": false,
   "features": ["offline", "background-sync", "install-prompt"]

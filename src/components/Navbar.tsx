@@ -16,6 +16,8 @@ import {
   History,
   BarChart3,
   Star,
+  Play,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
@@ -125,13 +127,12 @@ export default function Navbar() {
     { name: "Komunitas", href: "/community", icon: Users },
     { name: "Edukasi", href: "/learn", icon: BookOpen },
   ];
-
   // Navigation untuk sebelum login (hanya anchor ke elemen di beranda)
   const guestNavigation = [
     { name: "Beranda", href: "/", icon: Brain },
     { name: "Fitur", href: "#fitur", icon: Star },
-    { name: "Demo", href: "#demo", icon: Utensils },
-    { name: "Kontak", href: "#footer", icon: Users },
+    { name: "Demo", href: "#demo", icon: Play },
+    { name: "Kontak", href: "#footer", icon: Mail },
   ];
 
   const userNavigation = [

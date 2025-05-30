@@ -287,7 +287,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}{" "}
+        {/* Header */}
         <div className="mb-8">
           <div className="flex items-center space-x-4 mb-4">
             <Image
@@ -323,7 +323,7 @@ export default function DashboardPage() {
           </div>
         ) : (
           <>
-            {/* Stats Cards */}
+            {/* Kartu Statistik */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
@@ -338,7 +338,7 @@ export default function DashboardPage() {
                   Analisis Nutrisi
                 </h3>
                 <p className="text-sm text-sage-600">
-                  Total assessment yang dilakukan
+                  Total analisis yang dilakukan
                 </p>
               </div>
 
@@ -386,20 +386,22 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <h3 className="font-semibold text-forest-900 mb-1">
-                  Total Likes
+                  Total Suka
                 </h3>
-                <p className="text-sm text-sage-600">Likes yang diterima</p>
+                <p className="text-sm text-sage-600">
+                  Jumlah suka yang diterima
+                </p>
               </div>
             </div>
 
             {/* Mood & Progress Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-              {/* Mood Progress */}
+              {/* Perkembangan Mood */}
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-forest-900">
-                    Progress Mood
-                  </h2>{" "}
+                    Perkembangan Mood
+                  </h2>
                   <span
                     className={`px-3 py-1 rounded-full text-sm font-medium ${getMoodColor(
                       stats?.mood_trend || "no_data"
@@ -413,7 +415,7 @@ export default function DashboardPage() {
                       ? "Stabil"
                       : "Belum Ada Data"}
                   </span>
-                </div>{" "}
+                </div>
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sage-700">Skor Mood Rata-rata</span>
@@ -458,7 +460,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
 
-              {/* Favorite Foods */}
+              {/* Makanan Favorit */}
               <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-forest-900">
@@ -500,7 +502,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Recent Activity */}
+            {/* Aktivitas Terbaru */}
             <div className="bg-white rounded-2xl shadow-sm border border-sage-200">
               <div className="p-6 border-b border-sage-200">
                 <div className="flex items-center justify-between">
@@ -604,7 +606,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Quick Actions */}
+            {/* Aksi Cepat */}
             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
               <Link
                 href="/recommendations/assessment"

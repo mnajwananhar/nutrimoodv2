@@ -14,6 +14,10 @@ import {
   Utensils,
   ArrowRight,
   Share2,
+  Zap,
+  Smile,
+  Target,
+  HelpCircle,
 } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { useAuth } from "@/hooks/useAuth";
@@ -53,18 +57,18 @@ interface AssessmentData {
   timestamp: string;
 }
 
-function getMoodEmoji(mood: string) {
+function getMoodIcon(mood: string) {
   switch (mood) {
     case "energizing":
-      return "⚡";
+      return Zap;
     case "relaxing":
-      return "😌";
+      return Smile;
     case "focusing":
-      return "🎯";
+      return Target;
     case "uncategorized":
-      return "🤔";
+      return HelpCircle;
     default:
-      return "🤔";
+      return HelpCircle;
   }
 }
 
@@ -337,16 +341,18 @@ export default function ResultsPage() {
           <div className="lg:col-span-1 space-y-6">
             {/* Mood Prediction Card */}
             <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200 text-center">
+              {" "}
               <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white">
-                <span className="text-3xl">
-                  {getMoodEmoji(result.mood_prediction.mood)}
-                </span>
+                {(() => {
+                  const IconComponent = getMoodIcon(
+                    result.mood_prediction.mood
+                  );
+                  return <IconComponent className="w-10 h-10" />;
+                })()}
               </div>
-
               <h2 className="text-2xl font-bold text-forest-900 mb-2">
                 Mood Anda Hari Ini
               </h2>
-
               <div
                 className={`inline-flex items-center px-4 py-2 rounded-full text-lg font-semibold mb-4 ${getMoodColor(
                   result.mood_prediction.mood
@@ -354,7 +360,6 @@ export default function ResultsPage() {
               >
                 {result.mood_prediction.mood}
               </div>
-
               <div className="text-sage-600 mb-6">
                 <div className="flex items-center justify-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4" />
@@ -364,7 +369,6 @@ export default function ResultsPage() {
                   {(result.mood_prediction.confidence * 100).toFixed(1)}%
                 </div>
               </div>
-
               <p className="text-sm text-sage-600 leading-relaxed">
                 Berdasarkan pola nutrisi Anda, AI kami memprediksi mood ini
                 dengan tingkat kepercayaan yang tinggi.

@@ -9,6 +9,13 @@ import {
   Target,
   Loader2,
   User,
+  Smile,
+  HelpCircle,
+  Flame,
+  Beef,
+  Droplets,
+  Wheat,
+  Check,
 } from "lucide-react";
 import { api } from "@/lib/api";
 
@@ -73,18 +80,52 @@ export default function NutritionDemo() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-
   // Fetch health conditions on component mount
   useEffect(() => {
-    const fetchHealthConditions = async () => {
-      try {
-        const data = await api.getHealthConditions();
-        setHealthConditions(data.conditions || []);
-      } catch (error) {
-        console.error("Failed to fetch health conditions:", error);
-      }
+    const loadHealthConditions = () => {
+      // Based on the backend health_mapping, these are the supported conditions
+      const conditions: HealthCondition[] = [
+        {
+          value: "diabetes",
+          name: "Diabetes",
+          description: "Kondisi gula darah tinggi",
+          filter: "low_carb",
+        },
+        {
+          value: "hipertensi",
+          name: "Hipertensi",
+          description: "Tekanan darah tinggi",
+          filter: "low_sodium",
+        },
+        {
+          value: "kolesterol",
+          name: "Kolesterol Tinggi",
+          description: "Kadar kolesterol dalam darah tinggi",
+          filter: "low_fat",
+        },
+        {
+          value: "obesitas",
+          name: "Obesitas",
+          description: "Kelebihan berat badan",
+          filter: "low_calorie",
+        },
+        {
+          value: "alergi_gluten",
+          name: "Alergi Gluten",
+          description: "Tidak dapat mengonsumsi gluten",
+          filter: "gluten_free",
+        },
+        {
+          value: "vegetarian",
+          name: "Vegetarian",
+          description: "Tidak mengonsumsi daging",
+          filter: "vegetarian",
+        },
+      ];
+      setHealthConditions(conditions);
     };
-    fetchHealthConditions();
+
+    loadHealthConditions();
   }, []);
 
   const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
@@ -112,18 +153,16 @@ export default function NutritionDemo() {
     nutrientCategories: Record<string, string>,
     selectedHealthConditions?: HealthCondition[]
   ) => {
-    const advice: string[] = [];
-
-    // Health condition specific advice
+    const advice: string[] = []; // Health condition specific advice
     if (selectedHealthConditions && selectedHealthConditions.length > 0) {
       advice.push(
-        `🏥 Kondisi kesehatan: ${selectedHealthConditions
+        `Kondisi kesehatan: ${selectedHealthConditions
           .map((hc) => hc.name)
           .join(", ")}`
       );
       selectedHealthConditions.forEach((condition) => {
         advice.push(
-          `📋 ${condition.name}: ${condition.description} - Filter: ${condition.filter}`
+          `${condition.name}: ${condition.description} - Filter: ${condition.filter}`
         );
       });
     }
@@ -287,7 +326,6 @@ export default function NutritionDemo() {
     setResult(null);
     setError(null);
   };
-
   const handlePredict = async () => {
     const validationError = validateNutritionLevels();
     if (validationError) {
@@ -300,6 +338,22 @@ export default function NutritionDemo() {
     setResult(null);
 
     try {
+      console.log(
+        "DEBUG: Selected health conditions:",
+        selectedHealthConditions
+      );
+      console.log("DEBUG: Nutrition levels:", nutritionLevels);
+
+      // Call the unified recommend API
+      const recommendationData = await api.recommend({
+        nutrients: nutritionLevels,
+        health_conditions: selectedHealthConditions.map((hc) => hc.value),
+        top_n: 5,
+      });
+
+      console.log("DEBUG: Recommendation result:", recommendationData);
+
+      // Generate nutritional advice
       const getLevelIndex = (
         value: number,
         nutrient: keyof NutritionLevels
@@ -342,79 +396,47 @@ export default function NutritionDemo() {
         ).toString(),
       };
 
-      console.log(
-        "🔍 DEBUG: Selected health conditions:",
-        selectedHealthConditions
-      );
-      console.log("🔍 DEBUG: Nutrition categories:", nutrientCategories);
-
-      // 1. Prediksi mood ke backend
-      const moodData = await api.predict({
-        calorie_category: parseInt(nutrientCategories.calories),
-        protein_category: parseInt(nutrientCategories.proteins),
-        fat_category: parseInt(nutrientCategories.fat),
-        carb_category: parseInt(nutrientCategories.carbohydrate),
-      });
-
-      console.log("🔍 DEBUG: Mood prediction result:", moodData);
-
-      // 2. Rekomendasi makanan ke backend dengan health conditions
-      const healthConditionValues =
-        selectedHealthConditions.length > 0
-          ? selectedHealthConditions.map((hc) => hc.value)
-          : [];
-
-      console.log("🔍 DEBUG: Sending to backend:", {
-        mood: moodData.mood,
-        top_n: 5,
-        health_conditions: healthConditionValues,
-      });
-
-      const foodData = await api.recommend({
-        mood: moodData.mood,
-        top_n: 5,
-        health_conditions: healthConditionValues,
-      });
-
-      console.log("🔍 DEBUG: Food recommendations result:", foodData);
-
-      // 3. Generate nutritional advice
       const nutritionalAdvice = generateNutritionalAdvice(
-        moodData.mood,
+        recommendationData.predicted_mood,
         nutrientCategories,
         selectedHealthConditions
       );
 
-      // 4. Check if nutrition is balanced
+      // Check if nutrition is balanced
       const levels = Object.values(nutrientCategories).map((cat) =>
         parseInt(cat)
       );
       const isBalanced = levels.every((level) => level >= 1 && level <= 2);
 
-      // 5. Set hasil ke state dengan format yang sesuai backend API
+      // Get the highest confidence score
+      const maxConfidence = Math.max(
+        ...Object.values(recommendationData.mood_probabilities)
+      );
+
+      // Set hasil ke state dengan format yang sesuai backend API
       setResult({
         mood_analysis: {
-          predicted_mood: moodData.mood,
-          confidence: moodData.confidence,
-          confidence_percentage: (moodData.confidence * 100).toFixed(2),
-          all_probabilities: moodData.mood_probabilities || {},
-          rule_based_mood: moodData.mood,
+          predicted_mood: recommendationData.predicted_mood,
+          confidence: maxConfidence,
+          confidence_percentage: (maxConfidence * 100).toFixed(2),
+          all_probabilities: recommendationData.mood_probabilities,
+          rule_based_mood: recommendationData.predicted_mood,
           nutrient_categories: nutrientCategories,
           input_values: nutritionLevels,
         },
-        food_recommendations: Array.isArray(foodData)
-          ? foodData.map((food: Record<string, unknown>) => ({
-              food_name: food.name as string,
-              calories: food.calories as number,
-              proteins: food.proteins as number,
-              fat: food.fat as number,
-              carbohydrate: food.carbohydrate as number,
-              primary_mood: food.primary_mood as string,
-              similarity_score: food.similarity_score as number,
-            }))
-          : [],
+        food_recommendations: recommendationData.recommendations.map(
+          (food) => ({
+            food_name: food.name,
+            calories: food.calories,
+            proteins: food.proteins,
+            fat: food.fat,
+            carbohydrate: food.carbohydrate,
+            primary_mood: food.primary_mood,
+            similarity_score: food.similarity_score,
+          })
+        ),
         nutritional_advice: nutritionalAdvice,
-        mood_description: getMoodDescription(moodData.mood),
+        mood_description: getMoodDescription(recommendationData.predicted_mood),
         is_balanced: isBalanced,
       });
     } catch (err: unknown) {
@@ -544,7 +566,7 @@ export default function NutritionDemo() {
                     <div className="text-xs text-sage-600 mt-1">
                       {condition.description}
                     </div>
-                  </div>
+                  </div>{" "}
                   <div
                     className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
                       isSelected
@@ -552,19 +574,7 @@ export default function NutritionDemo() {
                         : "border-sage-300"
                     }`}
                   >
-                    {isSelected && (
-                      <svg
-                        className="w-3 h-3 text-white"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    )}
+                    {isSelected && <Check className="w-3 h-3 text-white" />}
                   </div>
                 </div>
               </button>
@@ -673,16 +683,17 @@ export default function NutritionDemo() {
         <div className="mt-8 space-y-6 animate-fade-in">
           <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200">
             <div className="text-center mb-6">
+              {" "}
               <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white">
-                <span className="text-2xl">
-                  {result.mood_analysis.predicted_mood === "energizing"
-                    ? "⚡"
-                    : result.mood_analysis.predicted_mood === "relaxing"
-                    ? "😌"
-                    : result.mood_analysis.predicted_mood === "focusing"
-                    ? "🎯"
-                    : "🤔"}
-                </span>
+                {result.mood_analysis.predicted_mood === "energizing" ? (
+                  <Zap className="w-8 h-8" />
+                ) : result.mood_analysis.predicted_mood === "relaxing" ? (
+                  <Smile className="w-8 h-8" />
+                ) : result.mood_analysis.predicted_mood === "focusing" ? (
+                  <Target className="w-8 h-8" />
+                ) : (
+                  <HelpCircle className="w-8 h-8" />
+                )}
               </div>
               <h4 className="text-2xl font-bold text-forest-900 mb-2">
                 Mood Anda:{" "}
@@ -818,9 +829,10 @@ export default function NutritionDemo() {
                           </div>
 
                           <div className="grid grid-cols-2 gap-3">
+                            {" "}
                             <div className="flex items-center justify-between bg-white rounded-lg p-3">
                               <span className="text-sage-600 flex items-center gap-2">
-                                🔥 Kalori
+                                <Flame className="w-4 h-4" /> Kalori
                               </span>
                               <span className="font-semibold text-forest-700">
                                 {food.calories.toFixed(0)}
@@ -828,7 +840,7 @@ export default function NutritionDemo() {
                             </div>
                             <div className="flex items-center justify-between bg-white rounded-lg p-3">
                               <span className="text-sage-600 flex items-center gap-2">
-                                🥩 Protein
+                                <Beef className="w-4 h-4" /> Protein
                               </span>
                               <span className="font-semibold text-forest-700">
                                 {food.proteins.toFixed(1)}g
@@ -836,7 +848,7 @@ export default function NutritionDemo() {
                             </div>
                             <div className="flex items-center justify-between bg-white rounded-lg p-3">
                               <span className="text-sage-600 flex items-center gap-2">
-                                🥑 Lemak
+                                <Droplets className="w-4 h-4" /> Lemak
                               </span>
                               <span className="font-semibold text-forest-700">
                                 {food.fat.toFixed(1)}g
@@ -844,7 +856,7 @@ export default function NutritionDemo() {
                             </div>
                             <div className="flex items-center justify-between bg-white rounded-lg p-3">
                               <span className="text-sage-600 flex items-center gap-2">
-                                🍞 Karbo
+                                <Wheat className="w-4 h-4" /> Karbo
                               </span>
                               <span className="font-semibold text-forest-700">
                                 {food.carbohydrate.toFixed(1)}g
