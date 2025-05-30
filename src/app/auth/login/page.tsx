@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Brain, Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ToastProvider";
 import { AuthSkeleton } from "@/components/Skeleton";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -125,8 +126,14 @@ export default function LoginPage() {
             href="/"
             className="inline-flex items-center space-x-3 group mb-6"
           >
-            <div className="w-12 h-12 bg-gradient-to-r from-forest-600 to-forest-700 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-              <Brain className="w-7 h-7 text-white" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-200">
+              <Image
+                src="/icons/icon-96x96.png"
+                alt="NutriMood Logo"
+                width={48}
+                height={48}
+                className="w-full h-full object-contain"
+              />
             </div>
             <span className="text-3xl font-bold text-forest-900 group-hover:text-forest-700 transition-colors">
               NutriMood
