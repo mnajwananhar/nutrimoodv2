@@ -9,7 +9,8 @@ Sarapan yang sehat sebaiknya mengandung karbohidrat kompleks, protein, serat, da
 Penelitian menunjukkan bahwa orang yang rutin sarapan cenderung memiliki berat badan yang lebih stabil, risiko diabetes tipe 2 yang lebih rendah, dan performa kognitif yang lebih baik. Selain itu, sarapan juga membantu mengatur nafsu makan sepanjang hari sehingga kita tidak mudah lapar dan makan berlebihan saat makan siang.
 
 Jika Anda tidak terbiasa sarapan, mulailah dengan porsi kecil seperti buah atau segelas susu, lalu tingkatkan secara bertahap. Ingat, sarapan bukan hanya soal mengisi perut, tapi juga investasi untuk kesehatan jangka panjang. Jadikan sarapan sehat sebagai bagian dari rutinitas harian Anda!`,
-    image: "/images/learn/sarapan.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/sarapan.jpg",
     tags: ["sarapan", "tips", "energi"],
   },
   {
@@ -22,7 +23,8 @@ Kebutuhan cairan setiap orang berbeda-beda, namun rata-rata orang dewasa dianjur
 Hindari minuman manis berlebihan seperti soda, teh manis, atau minuman energi, karena dapat meningkatkan risiko obesitas dan diabetes. Minuman berkafein seperti kopi dan teh boleh dikonsumsi, namun tetap utamakan air putih sebagai sumber utama cairan.
 
 Tips menjaga hidrasi: selalu bawa botol minum, minum sebelum merasa haus, dan perhatikan warna urin (semakin jernih, semakin baik hidrasi Anda). Dengan menjaga hidrasi, Anda akan merasa lebih segar, fokus, dan produktif sepanjang hari.`,
-    image: "/images/learn/airputih.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/airputih.jpg",
     tags: ["hidrasi", "air", "kesehatan"],
   },
   {
@@ -35,7 +37,8 @@ Organisasi Kesehatan Dunia (WHO) merekomendasikan konsumsi minimal 5 porsi (seki
 Serat dalam sayur dan buah membantu mengontrol kadar gula darah, menurunkan kolesterol, dan membuat Anda kenyang lebih lama. Selain itu, antioksidan dalam sayur dan buah berperan melawan radikal bebas yang dapat merusak sel tubuh.
 
 Agar tidak bosan, variasikan cara penyajian: bisa dimakan mentah, dikukus, ditumis, atau dijadikan smoothie. Jadikan sayur dan buah sebagai bagian utama setiap kali makan, bukan sekadar pelengkap.`,
-    image: "/images/learn/sayurbuah.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/sayurbuah.jpg",
     tags: ["sayur", "buah", "vitamin"],
   },
   {
@@ -48,7 +51,8 @@ WHO merekomendasikan konsumsi gula tambahan tidak lebih dari 10% total energi ha
 Kurangi konsumsi makanan manis seperti kue, permen, minuman bersoda, serta makanan asin seperti keripik, mie instan, dan makanan kaleng. Gantilah dengan makanan alami seperti buah segar, kacang-kacangan, dan masakan rumahan yang bisa Anda kontrol sendiri kadar gula-garamnya.
 
 Dengan membatasi gula dan garam, Anda membantu menjaga kesehatan jantung, ginjal, dan pembuluh darah, serta menurunkan risiko penyakit kronis di masa depan.`,
-    image: "/images/learn/gulagaram.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/gulagaram.jpg",
     tags: ["gula", "garam", "tips"],
   },
   {
@@ -61,7 +65,8 @@ WHO merekomendasikan orang dewasa melakukan aktivitas fisik intensitas sedang mi
 Aktivitas fisik juga terbukti membantu mengurangi stres, kecemasan, dan depresi. Saat berolahraga, tubuh melepaskan hormon endorfin yang membuat perasaan lebih bahagia dan rileks. Untuk hasil optimal, kombinasikan latihan kardio, kekuatan otot, dan fleksibilitas.
 
 Mulailah dari aktivitas ringan dan tingkatkan secara bertahap. Temukan jenis olahraga yang Anda sukai agar lebih konsisten. Ingat, tubuh yang aktif adalah kunci hidup sehat dan panjang umur.`,
-    image: "/images/learn/olahraga.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/olahraga.jpg",
     tags: ["olahraga", "aktivitas", "kesehatan"],
   },
   {
@@ -74,7 +79,8 @@ Orang dewasa dianjurkan tidur 7-8 jam per malam. Anak-anak dan remaja membutuhka
 Selama tidur, tubuh memperbaiki sel-sel yang rusak, memproses memori, dan mengatur hormon. Jika sering begadang atau tidur tidak nyenyak, sistem imun akan melemah dan tubuh lebih rentan terhadap infeksi.
 
 Jika Anda mengalami gangguan tidur, coba atur rutinitas relaksasi sebelum tidur seperti membaca buku, mandi air hangat, atau meditasi ringan. Prioritaskan tidur sebagai bagian penting dari gaya hidup sehat Anda.`,
-    image: "/images/learn/tidur.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/tidur.jpg",
     tags: ["tidur", "imunitas", "tips"],
   },
   {
@@ -87,7 +93,8 @@ Perhatikan porsi saji, total kalori, dan kandungan gula-garam-lemak. Pilih produ
 Jangan mudah tergiur klaim seperti "rendah lemak" atau "tanpa gula tambahan" tanpa membaca label secara menyeluruh. Bandingkan beberapa produk sebelum membeli, dan pilih yang paling sehat.
 
 Dengan membiasakan membaca label, Anda akan lebih sadar terhadap apa yang dikonsumsi dan dapat membuat keputusan yang lebih baik untuk kesehatan jangka panjang.`,
-    image: "/images/learn/label.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/label.jpg",
     tags: ["label", "nutrisi", "tips"],
   },
   {
@@ -100,7 +107,8 @@ Konsumsi makanan bergizi seperti ikan, kacang-kacangan, sayur, buah, dan biji-bi
 Selain itu, makan secara teratur dan tidak melewatkan waktu makan juga penting untuk menjaga kestabilan gula darah dan suasana hati. Jangan lupa untuk tetap terhubung dengan orang lain, berolahraga, dan melakukan aktivitas yang menyenangkan sebagai bagian dari gaya hidup sehat.
 
 Jika Anda merasa stres atau cemas berkepanjangan, jangan ragu untuk mencari bantuan profesional. Ingat, menjaga kesehatan mental sama pentingnya dengan menjaga kesehatan fisik.`,
-    image: "/images/learn/mental.jpg",
+    image:
+      "https://zcdkwrnxgsyzynkwiqzb.supabase.co/storage/v1/object/public/learn/mental.jpg",
     tags: ["mental", "seimbang", "mood"],
   },
 ];

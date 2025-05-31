@@ -1,19 +1,16 @@
 "use client";
 
-import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { FileText, ImageOff } from "lucide-react";
 import { articles } from "../data";
-import Image from "next/image";
 import { LearnSkeleton } from "@/components/Skeleton";
 
 export default function ArticleDetailPage() {
   const params = useParams();
   const { id } = params;
   const article = articles.find((a) => a.id === Number(id));
-  // Add state for image error tracking
-  const [imageError, setImageError] = useState(false);
 
   if (!article) {
     return (
@@ -36,21 +33,20 @@ export default function ArticleDetailPage() {
           </Link>
         </div>{" "}
         <div className="bg-white rounded-2xl shadow-md p-8 border border-sage-200">
-          <div className="relative w-full h-64 mb-6">
-            {!article.image || article.image.trim() === "" || imageError ? (
-              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-forest-400 to-sage-500 rounded-xl">
-                <ImageOff className="w-20 h-20 text-sage-200" />
-              </div>
-            ) : (
+          <div className="relative w-full aspect-video mb-6 overflow-hidden rounded-xl">
+            {article.image ? (
               <Image
                 src={article.image}
                 alt={article.title}
                 fill
-                className="object-cover rounded-xl"
+                className="object-cover w-full h-full transition-transform duration-300 hover:scale-105"
                 sizes="(max-width: 768px) 100vw, 700px"
-                style={{ objectFit: "cover" }}
-                onError={() => setImageError(true)}
+                priority
               />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-forest-400 to-sage-500">
+                <ImageOff className="w-20 h-20 text-sage-200" />
+              </div>
             )}
           </div>
           <div className="flex flex-wrap gap-2 mb-3">

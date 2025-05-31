@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Search, ImageOff } from "lucide-react";
 import Image from "next/image";
+import { BookOpen, Search, ImageOff } from "lucide-react";
 import { articles } from "./data";
 import { LearnSkeleton } from "@/components/Skeleton";
 
 export default function LearnPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  // Tambahkan state untuk error gambar
-  const [imageError, setImageError] = useState<{ [key: string]: boolean }>({});
 
   const filteredArticles = articles.filter((article) =>
     article.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -70,26 +68,19 @@ export default function LearnPage() {
             {filteredArticles.map((article) => (
               <Link key={article.id} href={`/learn/${article.id}`}>
                 <div className="group bg-white rounded-2xl overflow-hidden shadow-sm border border-sage-200 hover:shadow-earth hover:-translate-y-1 transition-all duration-300">
-                  <div className="h-48 bg-gradient-to-br from-forest-400 to-sage-500 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden">
-                    {!article.image ||
-                    article.image.trim() === "" ||
-                    imageError[article.id] ? (
-                      <ImageOff className="w-16 h-16 text-sage-200" />
-                    ) : (
+                  {" "}
+                  <div className="relative h-48 bg-gradient-to-br from-forest-400 to-sage-500 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 overflow-hidden">
+                    {article.image ? (
                       <Image
                         src={article.image}
                         alt={article.title}
                         fill
-                        className="object-cover w-full h-full"
+                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-110"
                         sizes="(max-width: 768px) 100vw, 33vw"
-                        style={{ objectFit: "cover" }}
-                        onError={() =>
-                          setImageError((prev) => ({
-                            ...prev,
-                            [article.id]: true,
-                          }))
-                        }
+                        priority={article.id <= 3}
                       />
+                    ) : (
+                      <ImageOff className="w-16 h-16 text-sage-200" />
                     )}
                   </div>
                   <div className="p-6">
