@@ -101,9 +101,11 @@ export default function RootLayout({
         <AuthErrorBoundary>
           <AuthProvider>
             <ToastProvider>
-              {" "}              <div className="min-h-screen ">
+              {" "}
+              <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
                 <Navbar />
-                <main>{children}</main> <PWAStatus />
+                <main className="relative">{children}</main>
+                <PWAStatus />
                 <PWAInstallBanner />
               </div>
             </ToastProvider>

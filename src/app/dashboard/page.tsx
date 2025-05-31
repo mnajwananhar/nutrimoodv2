@@ -286,34 +286,39 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center space-x-4 mb-4">
+        <div className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
             <Image
               src={userProfile?.avatar_url || "/api/placeholder/80/80"}
               alt="Profile"
               width={80}
               height={80}
-              className="w-20 h-20 rounded-full object-cover border-4 border-white shadow-lg"
+              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-lg mx-auto sm:mx-0"
             />
-            <div>
-              <h1 className="text-3xl font-bold text-forest-900">
+            <div className="text-center sm:text-left">
+              <h1 className="text-2xl sm:text-3xl font-bold text-forest-900 px-2">
                 Selamat datang,{" "}
-                {userProfile?.full_name || userProfile?.username || "Pengguna"}!
+                <span className="block sm:inline">
+                  {userProfile?.full_name ||
+                    userProfile?.username ||
+                    "Pengguna"}
+                  !
+                </span>
               </h1>
-              <p className="text-sage-600">
+              <p className="text-sage-600 px-4 sm:px-0">
                 Berikut adalah ringkasan aktivitas nutrisi dan kesehatan Anda
               </p>
             </div>
           </div>
         </div>
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
             {[...Array(4)].map((_, i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl shadow-sm p-6 animate-pulse"
+                className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 animate-pulse"
               >
                 <div className="h-12 w-12 bg-gray-200 rounded-lg mb-4"></div>
                 <div className="h-6 bg-gray-200 rounded w-3/4 mb-2"></div>
@@ -324,86 +329,86 @@ export default function DashboardPage() {
         ) : (
           <>
             {/* Kartu Statistik */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="bg-blue-100 p-3 rounded-lg">
-                    <Brain className="w-6 h-6 text-blue-600" />
+                  <div className="bg-blue-100 p-2 sm:p-3 rounded-lg">
+                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                   </div>
-                  <span className="text-2xl font-bold text-forest-900">
+                  <span className="text-xl sm:text-2xl font-bold text-forest-900">
                     {stats?.assessments_count || 0}
                   </span>
                 </div>
-                <h3 className="font-semibold text-forest-900 mb-1">
+                <h3 className="font-semibold text-forest-900 mb-1 text-sm sm:text-base">
                   Analisis Nutrisi
                 </h3>
-                <p className="text-sm text-sage-600">
+                <p className="text-xs sm:text-sm text-sage-600">
                   Total analisis yang dilakukan
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="bg-green-100 p-3 rounded-lg">
-                    <Target className="w-6 h-6 text-green-600" />
+                  <div className="bg-green-100 p-2 sm:p-3 rounded-lg">
+                    <Target className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                   </div>
-                  <span className="text-2xl font-bold text-forest-900">
+                  <span className="text-xl sm:text-2xl font-bold text-forest-900">
                     {stats?.recommendations_count || 0}
                   </span>
                 </div>
-                <h3 className="font-semibold text-forest-900 mb-1">
+                <h3 className="font-semibold text-forest-900 mb-1 text-sm sm:text-base">
                   Rekomendasi
                 </h3>
-                <p className="text-sm text-sage-600">
+                <p className="text-xs sm:text-sm text-sage-600">
                   Rekomendasi makanan diterima
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="bg-orange-100 p-3 rounded-lg">
-                    <ChefHat className="w-6 h-6 text-orange-600" />
+                  <div className="bg-orange-100 p-2 sm:p-3 rounded-lg">
+                    <ChefHat className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
                   </div>
-                  <span className="text-2xl font-bold text-forest-900">
+                  <span className="text-xl sm:text-2xl font-bold text-forest-900">
                     {stats?.posts_count || 0}
                   </span>
                 </div>
-                <h3 className="font-semibold text-forest-900 mb-1">
+                <h3 className="font-semibold text-forest-900 mb-1 text-sm sm:text-base">
                   Posting Komunitas
                 </h3>
-                <p className="text-sm text-sage-600">
+                <p className="text-xs sm:text-sm text-sage-600">
                   Total posting yang dibuat
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="bg-red-100 p-3 rounded-lg">
-                    <Heart className="w-6 h-6 text-red-600" />
+                  <div className="bg-red-100 p-2 sm:p-3 rounded-lg">
+                    <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                   </div>
-                  <span className="text-2xl font-bold text-forest-900">
+                  <span className="text-xl sm:text-2xl font-bold text-forest-900">
                     {stats?.likes_received || 0}
                   </span>
                 </div>
-                <h3 className="font-semibold text-forest-900 mb-1">
+                <h3 className="font-semibold text-forest-900 mb-1 text-sm sm:text-base">
                   Total Suka
                 </h3>
-                <p className="text-sm text-sage-600">
+                <p className="text-xs sm:text-sm text-sage-600">
                   Jumlah suka yang diterima
                 </p>
               </div>
             </div>
 
             {/* Mood & Progress Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8 mb-6 sm:mb-8">
               {/* Perkembangan Mood */}
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-forest-900">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 space-y-2 sm:space-y-0">
+                  <h2 className="text-lg sm:text-xl font-bold text-forest-900">
                     Perkembangan Mood
                   </h2>
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${getMoodColor(
+                    className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start sm:self-auto ${getMoodColor(
                       stats?.mood_trend || "no_data"
                     )}`}
                   >
@@ -417,10 +422,12 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sage-700">Skor Mood Rata-rata</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                    <span className="text-sage-700 text-sm sm:text-base">
+                      Skor Mood Rata-rata
+                    </span>
                     {stats?.mood_trend === "no_data" ? (
-                      <span className="text-gray-500 italic">
+                      <span className="text-gray-500 italic text-sm">
                         Belum ada penilaian
                       </span>
                     ) : (
@@ -429,7 +436,7 @@ export default function DashboardPage() {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-5 h-5 ${
+                              className={`w-4 h-4 sm:w-5 sm:h-5 ${
                                 star <= (stats?.avg_mood_score || 0)
                                   ? "text-yellow-500 fill-current"
                                   : "text-gray-300"
@@ -437,55 +444,57 @@ export default function DashboardPage() {
                             />
                           ))}
                         </div>
-                        <span className="font-semibold text-forest-900">
+                        <span className="font-semibold text-forest-900 text-sm sm:text-base">
                           {stats?.avg_mood_score || 0}/5
                         </span>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between">
-                    <span className="text-sage-700">Hari Aktif</span>
-                    <span className="font-semibold text-forest-900">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                    <span className="text-sage-700 text-sm sm:text-base">
+                      Hari Aktif
+                    </span>
+                    <span className="font-semibold text-forest-900 text-sm sm:text-base">
                       {stats?.days_active || 0} hari
                     </span>
                   </div>
                 </div>
                 <Link
                   href="/recommendations/assessment"
-                  className="mt-6 w-full inline-flex items-center justify-center px-4 py-2 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
+                  className="mt-4 sm:mt-6 w-full inline-flex items-center justify-center px-4 py-2 sm:py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all text-sm sm:text-base"
                 >
-                  <Brain className="w-5 h-5 mr-2" />
+                  <Brain className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Analisis Mood Baru
                 </Link>
               </div>
 
               {/* Makanan Favorit */}
-              <div className="bg-white rounded-2xl shadow-sm p-6 border border-sage-200">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold text-forest-900">
+              <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <h2 className="text-lg sm:text-xl font-bold text-forest-900">
                     Makanan Favorit
                   </h2>
-                  <Award className="w-6 h-6 text-orange-500" />
+                  <Award className="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" />
                 </div>
 
                 {stats?.favorite_foods && stats.favorite_foods.length > 0 ? (
                   <div className="space-y-3">
                     {stats.favorite_foods.map((food, index) => (
                       <div key={index} className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                        <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm">
                           {index + 1}
                         </div>
-                        <span className="text-forest-900 font-medium capitalize">
+                        <span className="text-forest-900 font-medium capitalize text-sm sm:text-base">
                           {food.replace(/_/g, " ")}
                         </span>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-8">
-                    <ChefHat className="w-12 h-12 text-sage-400 mx-auto mb-4" />
-                    <p className="text-sage-600">
+                  <div className="text-center py-6 sm:py-8">
+                    <ChefHat className="w-10 h-10 sm:w-12 sm:h-12 text-sage-400 mx-auto mb-4" />
+                    <p className="text-sage-600 text-sm sm:text-base px-2">
                       Belum ada data makanan favorit. Lakukan lebih banyak
                       analisis untuk melihat preferensi Anda!
                     </p>
@@ -494,9 +503,9 @@ export default function DashboardPage() {
 
                 <Link
                   href="/history"
-                  className="mt-6 w-full inline-flex items-center justify-center px-4 py-2 border border-forest-600 text-forest-600 rounded-lg font-medium hover:bg-forest-50 transition-all"
+                  className="mt-4 sm:mt-6 w-full inline-flex items-center justify-center px-4 py-2 border border-forest-600 text-forest-600 rounded-lg font-medium hover:bg-forest-50 transition-all text-sm sm:text-base"
                 >
-                  <BarChart3 className="w-5 h-5 mr-2" />
+                  <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                   Lihat Riwayat Lengkap
                 </Link>
               </div>
@@ -504,14 +513,14 @@ export default function DashboardPage() {
 
             {/* Aktivitas Terbaru */}
             <div className="bg-white rounded-2xl shadow-sm border border-sage-200">
-              <div className="p-6 border-b border-sage-200">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl font-bold text-forest-900">
+              <div className="p-4 sm:p-6 border-b border-sage-200">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
+                  <h2 className="text-lg sm:text-xl font-bold text-forest-900">
                     Aktivitas Terbaru
                   </h2>
                   <Link
                     href="/history"
-                    className="text-forest-600 hover:text-forest-700 font-medium flex items-center gap-1"
+                    className="text-forest-600 hover:text-forest-700 font-medium flex items-center gap-1 text-sm sm:text-base self-start sm:self-auto"
                   >
                     Lihat Semua
                     <TrendingUp className="w-4 h-4" />
@@ -519,24 +528,24 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4 sm:p-6">
                 {recentActivity.length > 0 ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {recentActivity.map((activity) => {
                       const Icon = getActivityIcon(activity.type);
                       return (
                         <div
                           key={`${activity.type}-${activity.id}`}
-                          className="flex items-start space-x-4 p-4 bg-sage-50 rounded-lg"
+                          className="flex items-start space-x-3 sm:space-x-4 p-3 sm:p-4 bg-sage-50 rounded-lg"
                         >
-                          <div className="bg-white p-2 rounded-lg shadow-sm">
-                            <Icon className="w-5 h-5 text-forest-600" />
+                          <div className="bg-white p-2 rounded-lg shadow-sm flex-shrink-0">
+                            <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-forest-600" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-forest-900">
+                            <p className="font-medium text-forest-900 text-sm sm:text-base break-words">
                               {activity.title}
                             </p>
-                            <p className="text-sm text-sage-600">
+                            <p className="text-xs sm:text-sm text-sage-600 break-words">
                               {activity.type === "assessment" &&
                               activity.metadata &&
                               activity.metadata.health_conditions
@@ -576,8 +585,10 @@ export default function DashboardPage() {
                                 : activity.description}
                             </p>
                             <div className="flex items-center mt-2 text-xs text-sage-500">
-                              <Clock className="w-3 h-3 mr-1" />
-                              {formatDate(activity.created_at)}
+                              <Clock className="w-3 h-3 mr-1 flex-shrink-0" />
+                              <span className="truncate">
+                                {formatDate(activity.created_at)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -585,20 +596,20 @@ export default function DashboardPage() {
                     })}
                   </div>
                 ) : (
-                  <div className="text-center py-12">
-                    <Activity className="w-16 h-16 text-sage-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold text-forest-900 mb-2">
+                  <div className="text-center py-8 sm:py-12">
+                    <Activity className="w-12 h-12 sm:w-16 sm:h-16 text-sage-400 mx-auto mb-4" />
+                    <h3 className="text-base sm:text-lg font-semibold text-forest-900 mb-2 px-4">
                       Belum Ada Aktivitas
                     </h3>
-                    <p className="text-sage-600 mb-6">
+                    <p className="text-sage-600 mb-4 sm:mb-6 text-sm sm:text-base px-4">
                       Mulai perjalanan kesehatan Anda dengan melakukan analisis
                       nutrisi pertama
                     </p>
                     <Link
                       href="/recommendations/assessment"
-                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
+                      className="inline-flex items-center px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 transition-all text-sm sm:text-base"
                     >
-                      <Brain className="w-5 h-5 mr-2" />
+                      <Brain className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                       Mulai Analisis
                     </Link>
                   </div>
@@ -607,36 +618,42 @@ export default function DashboardPage() {
             </div>
 
             {/* Aksi Cepat */}
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="mt-6 sm:mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               <Link
                 href="/recommendations/assessment"
-                className="group bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-6 text-white hover:from-blue-600 hover:to-blue-700 transition-all"
+                className="group bg-gradient-to-r from-blue-500 to-blue-600 rounded-2xl p-4 sm:p-6 text-white hover:from-blue-600 hover:to-blue-700 transition-all"
               >
-                <Brain className="w-8 h-8 mb-4 group-hover:scale-110 transition-transform" />
-                <h3 className="text-lg font-semibold mb-2">Analisis Baru</h3>
-                <p className="text-blue-100">
+                <Brain className="w-6 h-6 sm:w-8 sm:h-8 mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
+                <h3 className="text-base sm:text-lg font-semibold mb-2">
+                  Analisis Baru
+                </h3>
+                <p className="text-blue-100 text-sm sm:text-base">
                   Lakukan analisis nutrisi dan mood terbaru
                 </p>
               </Link>
 
               <Link
                 href="/community"
-                className="group bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 text-white hover:from-green-600 hover:to-green-700 transition-all"
+                className="group bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-4 sm:p-6 text-white hover:from-green-600 hover:to-green-700 transition-all"
               >
-                <ChefHat className="w-8 h-8 mb-4 group-hover:scale-110 transition-transform" />
-                <h3 className="text-lg font-semibold mb-2">Bagikan Resep</h3>
-                <p className="text-green-100">
+                <ChefHat className="w-6 h-6 sm:w-8 sm:h-8 mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
+                <h3 className="text-base sm:text-lg font-semibold mb-2">
+                  Bagikan Resep
+                </h3>
+                <p className="text-green-100 text-sm sm:text-base">
                   Berbagi resep favorit di komunitas
                 </p>
               </Link>
 
               <Link
                 href="/learn"
-                className="group bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-6 text-white hover:from-orange-600 hover:to-orange-700 transition-all"
+                className="group bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl p-4 sm:p-6 text-white hover:from-orange-600 hover:to-orange-700 transition-all sm:col-span-2 lg:col-span-1"
               >
-                <Target className="w-8 h-8 mb-4 group-hover:scale-110 transition-transform" />
-                <h3 className="text-lg font-semibold mb-2">Pelajari Nutrisi</h3>
-                <p className="text-orange-100">
+                <Target className="w-6 h-6 sm:w-8 sm:h-8 mb-3 sm:mb-4 group-hover:scale-110 transition-transform" />
+                <h3 className="text-base sm:text-lg font-semibold mb-2">
+                  Pelajari Nutrisi
+                </h3>
+                <p className="text-orange-100 text-sm sm:text-base">
                   Baca artikel dan tips kesehatan terbaru
                 </p>
               </Link>

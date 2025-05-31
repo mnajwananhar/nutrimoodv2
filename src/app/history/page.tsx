@@ -352,92 +352,112 @@ export default function HistoryPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-6 sm:py-8">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <History className="w-8 h-8 text-forest-600" />
-            <h1 className="text-4xl font-bold text-forest-900">
+        <div className="text-center mb-8 sm:mb-12">
+          <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 sm:mb-4">
+            <History className="w-6 h-6 sm:w-8 sm:h-8 text-forest-600" />
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-forest-900">
               Riwayat Analisis
             </h1>
           </div>
-          <p className="text-sage-600 text-lg">
+          <p className="text-sage-600 text-base sm:text-lg">
             Pantau perkembangan kesehatan nutrisi dan mood Anda dari waktu ke
             waktu
           </p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
-              <Brain className="w-8 h-8 text-forest-600" />
-              <Target className="w-6 h-6 text-sage-400" />
+              <Brain className="w-6 h-6 sm:w-8 sm:h-8 text-forest-600" />
+              <Target className="w-4 h-4 sm:w-6 sm:h-6 text-sage-400" />
             </div>
-            <div className="text-2xl font-bold text-forest-900">
+            <div className="text-xl sm:text-2xl font-bold text-forest-900">
               {stats.totalAssessments}
             </div>
-            <div className="text-sage-600 text-sm">Total Analisis</div>
+            <div className="text-sage-600 text-xs sm:text-sm">
+              Total Analisis
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="w-8 h-8 text-blue-600" />
-              <Activity className="w-6 h-6 text-sage-400" />
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
+              <Activity className="w-4 h-4 sm:w-6 sm:h-6 text-sage-400" />
             </div>
-            <div className="text-2xl font-bold text-forest-900">
+            <div className="text-xl sm:text-2xl font-bold text-forest-900">
               {formatConfidence(stats.averageConfidence)}
             </div>
-            <div className="text-sage-600 text-sm">Rata-rata Akurasi</div>
+            <div className="text-sage-600 text-xs sm:text-sm">
+              Rata-rata Akurasi
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
-              <Calendar className="w-8 h-8 text-green-600" />
-              <Zap className="w-6 h-6 text-sage-400" />
+              <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
+              <Zap className="w-4 h-4 sm:w-6 sm:h-6 text-sage-400" />
             </div>
-            <div className="text-2xl font-bold text-forest-900">
+            <div className="text-xl sm:text-2xl font-bold text-forest-900">
               {stats.streakDays}
             </div>
-            <div className="text-sage-600 text-sm">Hari Berturut</div>
+            <div className="text-sage-600 text-xs sm:text-sm">
+              Hari Berturut
+            </div>
           </div>
 
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200">
             <div className="flex items-center justify-between mb-2">
-              <Clock className="w-8 h-8 text-purple-600" />
-              <Award className="w-6 h-6 text-sage-400" />
+              <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
+              <Award className="w-4 h-4 sm:w-6 sm:h-6 text-sage-400" />
             </div>
-            <div className="text-2xl font-bold text-forest-900">
+            <div className="text-xl sm:text-2xl font-bold text-forest-900">
               {stats.favoriteTime || "-"}
             </div>
-            <div className="text-sage-600 text-sm">Waktu Favorit</div>
+            <div className="text-sage-600 text-xs sm:text-sm">
+              Waktu Favorit
+            </div>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center justify-center mb-8">
-          <div className="bg-white rounded-2xl p-2 shadow-sm border border-sage-200">
-            <div className="flex">
+        <div className="flex items-center justify-center mb-6 sm:mb-8">
+          <div className="bg-white rounded-2xl p-2 shadow-sm border border-sage-200 w-full max-w-none sm:max-w-max overflow-x-auto">
+            <div className="flex min-w-max sm:min-w-0">
               {[
                 {
                   key: "assessments",
                   label: "Riwayat Analisis",
+                  shortLabel: "Riwayat",
                   icon: History,
                 },
-                { key: "analytics", label: "Analytics", icon: BarChart3 },
-                { key: "foods", label: "Makanan Favorit", icon: Heart },
-              ].map(({ key, label, icon: Icon }) => (
+                {
+                  key: "analytics",
+                  label: "Analytics",
+                  shortLabel: "Analytics",
+                  icon: BarChart3,
+                },
+                {
+                  key: "foods",
+                  label: "Makanan Favorit",
+                  shortLabel: "Favorit",
+                  icon: Heart,
+                },
+              ].map(({ key, label, shortLabel, icon: Icon }) => (
                 <button
                   key={key}
                   onClick={() => setActiveTab(key as TabType)}
-                  className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all duration-200 ${
+                  className={`flex items-center gap-2 px-3 sm:px-6 py-3 rounded-xl font-medium transition-all duration-200 whitespace-nowrap ${
                     activeTab === key
                       ? "bg-forest-600 text-white shadow-md"
                       : "text-sage-700 hover:bg-sage-50"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
+                  <span className="sm:hidden text-sm">{shortLabel}</span>
                   <span className="hidden sm:inline">{label}</span>
                 </button>
               ))}
@@ -446,8 +466,8 @@ export default function HistoryPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200 mb-8">
-          <div className="flex flex-col md:flex-row gap-4">
+        <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200 mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <label className="block text-sm font-medium text-forest-900 mb-2">
                 Periode Waktu
@@ -457,7 +477,7 @@ export default function HistoryPage() {
                 onChange={(e) =>
                   setTimeFilter(e.target.value as TimeFilterType)
                 }
-                className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500"
+                className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500 text-sm sm:text-base"
               >
                 <option value="all">Semua Waktu</option>
                 <option value="week">7 Hari Terakhir</option>
@@ -473,7 +493,7 @@ export default function HistoryPage() {
               <select
                 value={moodFilter}
                 onChange={(e) => setMoodFilter(e.target.value)}
-                className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500"
+                className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500 text-sm sm:text-base"
               >
                 <option value="all">Semua Mood</option>
                 <option value="energizing">Energizing</option>
@@ -488,10 +508,11 @@ export default function HistoryPage() {
               <button
                 onClick={exportData}
                 disabled={assessments.length === 0}
-                className="flex items-center gap-2 bg-forest-600 text-white px-6 py-2 rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 bg-forest-600 text-white px-4 sm:px-6 py-2 rounded-lg hover:bg-forest-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto justify-center"
               >
                 <Download className="w-4 h-4" />
-                Export CSV
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">Export</span>
               </button>
             </div>
           </div>
@@ -530,30 +551,30 @@ export default function HistoryPage() {
                       key={assessment.id}
                       className="bg-white rounded-2xl shadow-sm border border-sage-200 overflow-hidden"
                     >
-                      <div className="p-6">
-                        <div className="flex items-center justify-between mb-4">
+                      <div className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 bg-forest-100 rounded-xl flex items-center justify-center">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-forest-100 rounded-xl flex items-center justify-center">
                               {(() => {
                                 const IconComponent = getMoodIcon(
                                   assessment.predicted_mood
                                 );
                                 return (
-                                  <IconComponent className="w-6 h-6 text-forest-600" />
+                                  <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 text-forest-600" />
                                 );
                               })()}
                             </div>
-                            <div>
-                              <h3 className="font-semibold text-forest-900 capitalize">
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-semibold text-forest-900 capitalize text-sm sm:text-base">
                                 {assessment.predicted_mood}
                               </h3>
-                              <p className="text-sm text-sage-600">
+                              <p className="text-xs sm:text-sm text-sage-600 truncate">
                                 {new Date(
                                   assessment.created_at
                                 ).toLocaleDateString("id-ID", {
-                                  weekday: "long",
+                                  weekday: "short",
                                   year: "numeric",
-                                  month: "long",
+                                  month: "short",
                                   day: "numeric",
                                   hour: "2-digit",
                                   minute: "2-digit",
@@ -561,12 +582,12 @@ export default function HistoryPage() {
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
+                          <div className="flex items-center justify-between sm:justify-end gap-3">
                             <div className="text-right">
-                              <div className="text-sm text-sage-600">
+                              <div className="text-xs sm:text-sm text-sage-600">
                                 Akurasi
                               </div>
-                              <div className="font-semibold text-forest-900">
+                              <div className="font-semibold text-forest-900 text-sm sm:text-base">
                                 {formatConfidence(assessment.confidence_score)}
                               </div>
                             </div>
@@ -583,20 +604,20 @@ export default function HistoryPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                          <div className="bg-red-50 rounded-lg p-3">
-                            <div className="text-sm text-red-600 mb-1">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
+                          <div className="bg-red-50 rounded-lg p-2 sm:p-3">
+                            <div className="text-xs sm:text-sm text-red-600 mb-1">
                               Kalori
                             </div>
-                            <div className="font-semibold text-red-800">
+                            <div className="font-semibold text-red-800 text-xs sm:text-sm">
                               {getLevelLabelIndonesia(assessment.calorie_level)}
                             </div>
                           </div>
-                          <div className="bg-blue-50 rounded-lg p-3">
-                            <div className="text-sm text-blue-600 mb-1">
+                          <div className="bg-blue-50 rounded-lg p-2 sm:p-3">
+                            <div className="text-xs sm:text-sm text-blue-600 mb-1">
                               Protein
                             </div>
-                            <div className="font-semibold text-blue-800">
+                            <div className="font-semibold text-blue-800 text-xs sm:text-sm">
                               {getLevelLabelIndonesia(assessment.protein_level)}
                             </div>
                           </div>
@@ -650,20 +671,20 @@ export default function HistoryPage() {
                         {expandedItems.has(assessment.id) &&
                           assessment.food_recommendations && (
                             <div className="border-t border-sage-200 pt-4">
-                              <h4 className="font-semibold text-forest-900 mb-3">
+                              <h4 className="font-semibold text-forest-900 mb-3 text-sm sm:text-base">
                                 Rekomendasi Makanan
                               </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                 {assessment.food_recommendations.map((food) => (
                                   <div
                                     key={food.id}
-                                    className="bg-sage-50 rounded-lg p-4"
+                                    className="bg-sage-50 rounded-lg p-3 sm:p-4"
                                   >
-                                    <div className="flex items-center justify-between mb-2">
-                                      <h5 className="font-medium text-forest-900">
+                                    <div className="flex items-start sm:items-center justify-between mb-2 gap-2">
+                                      <h5 className="font-medium text-forest-900 text-sm sm:text-base leading-tight flex-1 min-w-0">
                                         {food.food_name}
                                       </h5>
-                                      <div className="flex items-center gap-2">
+                                      <div className="flex items-center gap-2 shrink-0">
                                         <button
                                           onClick={async () => {
                                             try {
@@ -728,7 +749,7 @@ export default function HistoryPage() {
                                           }
                                         >
                                           <Heart
-                                            className={`w-4 h-4 ${
+                                            className={`w-3 h-3 sm:w-4 sm:h-4 ${
                                               food.is_liked
                                                 ? "fill-current"
                                                 : ""
@@ -736,19 +757,19 @@ export default function HistoryPage() {
                                           />
                                         </button>
                                         {food.is_consumed && (
-                                          <span className="text-green-600">
+                                          <span className="text-green-600 text-sm">
                                             ✓
                                           </span>
                                         )}
                                       </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-2 text-sm text-sage-600">
+                                    <div className="grid grid-cols-2 gap-1 sm:gap-2 text-xs sm:text-sm text-sage-600">
                                       <div>Kalori: {food.calories}</div>
                                       <div>Protein: {food.proteins}g</div>
                                       <div>Lemak: {food.fats}g</div>
                                       <div>Karbo: {food.carbohydrates}g</div>
                                     </div>
-                                    <div className="mt-2 text-sm text-sage-500">
+                                    <div className="mt-2 text-xs sm:text-sm text-sage-500">
                                       Kecocokan:{" "}
                                       {(food.similarity_score * 100).toFixed(1)}
                                       %
@@ -766,25 +787,30 @@ export default function HistoryPage() {
             )}
 
             {activeTab === "analytics" && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
-                <h3 className="text-xl font-semibold text-forest-900 mb-6">
+              <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200">
+                <h3 className="text-lg sm:text-xl font-semibold text-forest-900 mb-4 sm:mb-6">
                   Distribusi Mood
                 </h3>
-                <div className="space-y-4">
+                <div className="space-y-3 sm:space-y-4">
                   {Object.entries(stats.moodDistribution)
                     .sort(([, a], [, b]) => (b as number) - (a as number))
                     .map(([mood, count]) => (
-                      <div key={mood} className="flex items-center gap-4">
-                        <div className="w-20 text-sm font-medium text-forest-900 capitalize flex items-center gap-2">
+                      <div
+                        key={mood}
+                        className="flex items-center gap-2 sm:gap-4"
+                      >
+                        <div className="w-16 sm:w-20 text-xs sm:text-sm font-medium text-forest-900 capitalize flex items-center gap-1 sm:gap-2">
                           {(() => {
                             const IconComponent = getMoodIcon(mood);
-                            return <IconComponent className="w-4 h-4" />;
+                            return (
+                              <IconComponent className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
+                            );
                           })()}
-                          {mood}
+                          <span className="truncate">{mood}</span>
                         </div>
-                        <div className="flex-1 bg-sage-200 rounded-full h-3">
+                        <div className="flex-1 bg-sage-200 rounded-full h-2 sm:h-3">
                           <div
-                            className="bg-forest-600 h-3 rounded-full transition-all duration-300"
+                            className="bg-forest-600 h-2 sm:h-3 rounded-full transition-all duration-300"
                             style={{
                               width: `${
                                 ((count as number) / stats.totalAssessments) *
@@ -793,7 +819,7 @@ export default function HistoryPage() {
                             }}
                           ></div>
                         </div>
-                        <div className="w-12 text-sm text-sage-600 text-right">
+                        <div className="w-8 sm:w-12 text-xs sm:text-sm text-sage-600 text-right">
                           {count as number}x
                         </div>
                       </div>
@@ -803,7 +829,7 @@ export default function HistoryPage() {
             )}
 
             {activeTab === "foods" && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-sage-200">
+              <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm border border-sage-200">
                 {(() => {
                   // Ambil semua makanan favorit dari seluruh assessment
                   const favoriteFoods: string[] = [];
@@ -819,12 +845,12 @@ export default function HistoryPage() {
                   });
                   if (favoriteFoods.length === 0) {
                     return (
-                      <div className="flex flex-col items-center justify-center py-12">
-                        <User className="w-16 h-16 text-sage-400 mb-4" />
-                        <h3 className="text-xl font-semibold text-sage-600 mb-2">
+                      <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+                        <User className="w-12 h-12 sm:w-16 sm:h-16 text-sage-400 mb-3 sm:mb-4" />
+                        <h3 className="text-lg sm:text-xl font-semibold text-sage-600 mb-2 text-center">
                           Belum Ada Makanan Favorit
                         </h3>
-                        <p className="text-sage-500">
+                        <p className="text-sage-500 text-center text-sm sm:text-base px-4">
                           Tandai makanan favorit Anda di hasil analisis atau
                           riwayat!
                         </p>
@@ -833,17 +859,17 @@ export default function HistoryPage() {
                   }
                   return (
                     <div>
-                      <h3 className="text-xl font-semibold text-forest-900 mb-6 text-center">
+                      <h3 className="text-lg sm:text-xl font-semibold text-forest-900 mb-4 sm:mb-6 text-center">
                         Makanan Favorit Anda
                       </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                         {favoriteFoods.map((food, idx) => (
                           <div
                             key={idx}
-                            className="bg-sage-50 rounded-lg p-4 flex items-center gap-4"
+                            className="bg-sage-50 rounded-lg p-3 sm:p-4 flex items-center gap-3 sm:gap-4"
                           >
-                            <Heart className="w-6 h-6 text-red-500" />
-                            <span className="font-medium text-forest-900 text-lg">
+                            <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-red-500 shrink-0" />
+                            <span className="font-medium text-forest-900 text-sm sm:text-lg leading-tight">
                               {food}
                             </span>
                           </div>

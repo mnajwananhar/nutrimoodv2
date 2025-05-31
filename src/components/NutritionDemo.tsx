@@ -450,7 +450,6 @@ export default function NutritionDemo() {
       setIsLoading(false);
     }
   };
-
   const renderNutrientSelector = (
     nutrient: keyof NutritionLevels,
     label: string,
@@ -468,24 +467,28 @@ export default function NutritionDemo() {
         : 3;
 
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-sage-100">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-sage-100">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-600">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-600">
             {icon}
           </div>
-          <div>
-            <h3 className="font-semibold text-forest-900">{label}</h3>
-            <p className="text-sm text-sage-600">{description}</p>
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-forest-900 text-sm sm:text-base">
+              {label}
+            </h3>
+            <p className="text-xs sm:text-sm text-sage-600 truncate">
+              {description}
+            </p>
           </div>
         </div>
 
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[0, 1, 2, 3].map((level) => (
             <button
               key={level}
               onClick={() => handleLevelChange(nutrient, level)}
               className={`
-                p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200
+                p-2 sm:p-3 rounded-lg border-2 text-xs sm:text-sm font-medium transition-all duration-200 min-h-[2.5rem] sm:min-h-[3rem] flex items-center justify-center text-center leading-tight
                 ${
                   selectedLevel === level
                     ? levelColors[level] + " scale-105 shadow-md"
@@ -493,24 +496,25 @@ export default function NutritionDemo() {
                 }
               `}
             >
-              {levelLabels[level]}
+              <span className="break-words">{levelLabels[level]}</span>
             </button>
           ))}
         </div>
       </div>
     );
   };
-
   const renderHealthConditionSelector = () => {
     return (
-      <div className="bg-white rounded-xl p-6 shadow-sm border border-sage-100">
+      <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm border border-sage-100">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-600">
-            <User className="w-5 h-5" />
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-forest-100 rounded-lg flex items-center justify-center text-forest-600">
+            <User className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <div>
-            <h3 className="font-semibold text-forest-900">Kondisi Kesehatan</h3>
-            <p className="text-sm text-sage-600">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-semibold text-forest-900 text-sm sm:text-base">
+              Kondisi Kesehatan
+            </h3>
+            <p className="text-xs sm:text-sm text-sage-600">
               Pilih kondisi kesehatan yang Anda miliki (bisa lebih dari satu)
             </p>
           </div>
@@ -519,21 +523,23 @@ export default function NutritionDemo() {
         <div className="space-y-2">
           <button
             onClick={handleClearHealthConditions}
-            className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
+            className={`w-full p-3 sm:p-4 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
               selectedHealthConditions.length === 0
                 ? "bg-forest-100 text-forest-700 border-forest-300 scale-105 shadow-md"
                 : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
             }`}
           >
             <div className="flex items-center justify-between">
-              <div>
-                <div className="font-medium">Tidak Ada Kondisi Khusus</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-sm sm:text-base">
+                  Tidak Ada Kondisi Khusus
+                </div>
                 <div className="text-xs text-sage-600 mt-1">
                   Semua makanan akan direkomendasikan
                 </div>
               </div>
               <div
-                className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                   selectedHealthConditions.length === 0
                     ? "border-forest-600 bg-forest-600"
                     : "border-sage-300"
@@ -554,21 +560,23 @@ export default function NutritionDemo() {
               <button
                 key={condition.value}
                 onClick={() => handleHealthConditionChange(condition)}
-                className={`w-full p-3 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
+                className={`w-full p-3 sm:p-4 rounded-lg border-2 text-sm font-medium transition-all duration-200 text-left ${
                   isSelected
                     ? "bg-forest-100 text-forest-700 border-forest-300 scale-105 shadow-md"
                     : "bg-gray-50 text-sage-900 border-gray-200 hover:bg-gray-100"
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-medium">{condition.name}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm sm:text-base">
+                      {condition.name}
+                    </div>
                     <div className="text-xs text-sage-600 mt-1">
                       {condition.description}
                     </div>
                   </div>{" "}
                   <div
-                    className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                    className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${
                       isSelected
                         ? "border-forest-600 bg-forest-600"
                         : "border-sage-300"
@@ -584,73 +592,76 @@ export default function NutritionDemo() {
       </div>
     );
   };
-
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-earth border border-sage-200">
-        <div className="text-center mb-8">
-          <h3 className="text-3xl font-bold text-forest-900 mb-3">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-4 sm:p-6 lg:p-8 shadow-earth border border-sage-200">
+        <div className="text-center mb-6 sm:mb-8">
+          <h3 className="text-2xl sm:text-3xl font-bold text-forest-900 mb-3">
             Analisis Nutrisi
           </h3>
-          <p className="text-sage-700">
+          <p className="text-sm sm:text-base text-sage-700">
             Pilih tingkat konsumsi nutrisi dan kondisi kesehatan untuk
             mendapatkan prediksi mood dan rekomendasi makanan yang sesuai
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mb-6 sm:mb-8">
           {renderNutrientSelector(
             "calories",
             "Kalori",
-            <Zap className="w-5 h-5" />,
+            <Zap className="w-4 h-4 sm:w-5 sm:h-5" />,
             "Total energi yang dikonsumsi"
           )}
 
           {renderNutrientSelector(
             "proteins",
             "Protein",
-            <Target className="w-5 h-5" />,
+            <Target className="w-4 h-4 sm:w-5 sm:h-5" />,
             "Pembangun dan perbaikan otot"
           )}
 
           {renderNutrientSelector(
             "fat",
             "Lemak",
-            <Heart className="w-5 h-5" />,
+            <Heart className="w-4 h-4 sm:w-5 sm:h-5" />,
             "Sumber energi dan vitamin"
           )}
 
           {renderNutrientSelector(
             "carbohydrate",
             "Karbohidrat",
-            <Utensils className="w-5 h-5" />,
+            <Utensils className="w-4 h-4 sm:w-5 sm:h-5" />,
             "Sumber energi utama tubuh"
           )}
         </div>
 
-        <div className="mb-8">{renderHealthConditionSelector()}</div>
+        <div className="mb-6 sm:mb-8">{renderHealthConditionSelector()}</div>
 
         <div className="text-center">
           <button
             onClick={handlePredict}
             disabled={isLoading}
-            className="group bg-gradient-to-r from-forest-600 to-forest-700 text-white px-8 py-4 rounded-xl font-semibold text-lg shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center mx-auto"
+            className="group bg-gradient-to-r from-forest-600 to-forest-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center mx-auto"
           >
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                Menganalisis...
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 mr-2 animate-spin" />
+                <span className="hidden sm:inline">Menganalisis...</span>
+                <span className="sm:hidden">Analisis...</span>
               </>
             ) : (
               <>
-                <Brain className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform" />
-                Dapatkan Rekomendasi Makanan
+                <Brain className="w-4 h-4 sm:w-5 sm:h-5 mr-2 group-hover:rotate-12 transition-transform" />
+                <span className="hidden sm:inline">
+                  Dapatkan Rekomendasi Makanan
+                </span>
+                <span className="sm:hidden">Analisis Nutrisi</span>
               </>
             )}
           </button>
 
           {!isLoading && (
-            <div className="text-sm text-sage-600 mt-3 space-y-1">
+            <div className="text-xs sm:text-sm text-sage-600 mt-3 space-y-1">
               <p>
                 Pastikan memilih setidaknya satu tingkat nutrisi untuk analisis
               </p>
@@ -663,58 +674,60 @@ export default function NutritionDemo() {
             </div>
           )}
         </div>
-      </div>
-
+      </div>{" "}
       {error && (
-        <div className="mt-8 bg-red-50 border border-red-200 rounded-xl p-6">
+        <div className="mt-6 sm:mt-8 bg-red-50 border border-red-200 rounded-xl p-4 sm:p-6">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <span className="text-red-600">⚠️</span>
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-red-600 text-lg sm:text-xl">⚠️</span>
             </div>
-            <div>
-              <h4 className="font-semibold text-red-900">Terjadi Kesalahan</h4>
-              <p className="text-red-700">{error}</p>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-semibold text-red-900 text-sm sm:text-base">
+                Terjadi Kesalahan
+              </h4>
+              <p className="text-red-700 text-xs sm:text-sm mt-1 break-words">
+                {error}
+              </p>
             </div>
           </div>
         </div>
-      )}
-
+      )}{" "}
       {result && (
-        <div className="mt-8 space-y-6 animate-fade-in">
-          <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200">
-            <div className="text-center mb-6">
+        <div className="mt-6 sm:mt-8 space-y-4 sm:space-y-6 animate-fade-in">
+          <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-earth border border-sage-200">
+            <div className="text-center mb-4 sm:mb-6">
               {" "}
-              <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl flex items-center justify-center text-white">
                 {result.mood_analysis.predicted_mood === "energizing" ? (
-                  <Zap className="w-8 h-8" />
+                  <Zap className="w-6 h-6 sm:w-8 sm:h-8" />
                 ) : result.mood_analysis.predicted_mood === "relaxing" ? (
-                  <Smile className="w-8 h-8" />
+                  <Smile className="w-6 h-6 sm:w-8 sm:h-8" />
                 ) : result.mood_analysis.predicted_mood === "focusing" ? (
-                  <Target className="w-8 h-8" />
+                  <Target className="w-6 h-6 sm:w-8 sm:h-8" />
                 ) : (
-                  <HelpCircle className="w-8 h-8" />
+                  <HelpCircle className="w-6 h-6 sm:w-8 sm:h-8" />
                 )}
               </div>
-              <h4 className="text-2xl font-bold text-forest-900 mb-2">
+              <h4 className="text-lg sm:text-2xl font-bold text-forest-900 mb-2">
                 Mood Anda:{" "}
                 <span className="text-orange-600 capitalize">
                   {result.mood_analysis.predicted_mood}
                 </span>
               </h4>
-              <p className="text-sage-700">
+              <p className="text-sm sm:text-base text-sage-700">
                 Confidence: {result.mood_analysis.confidence_percentage}%
               </p>
             </div>
 
-            <div className="bg-orange-50 rounded-lg p-4 text-orange-800 mb-6">
+            <div className="bg-orange-50 rounded-lg p-3 sm:p-4 text-orange-800 mb-4 sm:mb-6 text-sm sm:text-base">
               {result.mood_description}
             </div>
 
             {selectedHealthConditions.length > 0 && (
-              <div className="bg-blue-50 rounded-lg p-4 text-blue-800 mb-6">
+              <div className="bg-blue-50 rounded-lg p-3 sm:p-4 text-blue-800 mb-4 sm:mb-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <User className="w-4 h-4" />
-                  <span className="font-medium">
+                  <User className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="font-medium text-sm sm:text-base">
                     Kondisi Kesehatan:{" "}
                     {selectedHealthConditions.map((hc) => hc.name).join(", ")}
                   </span>
@@ -722,7 +735,9 @@ export default function NutritionDemo() {
                 <div className="space-y-2">
                   {selectedHealthConditions.map((condition, index) => (
                     <div key={index}>
-                      <p className="text-sm">{condition.description}</p>
+                      <p className="text-xs sm:text-sm">
+                        {condition.description}
+                      </p>
                       <p className="text-xs mt-1 text-blue-600">
                         Filter: {condition.filter}
                       </p>
@@ -734,7 +749,7 @@ export default function NutritionDemo() {
 
             {Object.keys(result.mood_analysis.all_probabilities).length > 0 && (
               <div>
-                <h5 className="font-semibold text-forest-900 mb-3 text-center">
+                <h5 className="font-semibold text-forest-900 mb-3 text-center text-sm sm:text-base">
                   Detail Probabilitas Mood:
                 </h5>
                 <div className="space-y-2">
@@ -743,9 +758,9 @@ export default function NutritionDemo() {
                     .map(([mood, probability]) => (
                       <div
                         key={mood}
-                        className="flex items-center justify-between bg-sage-50 rounded-lg p-3"
+                        className="flex items-center justify-between bg-sage-50 rounded-lg p-2 sm:p-3"
                       >
-                        <span className="capitalize text-sage-700 font-medium">
+                        <span className="capitalize text-sage-700 font-medium text-sm sm:text-base flex-1 min-w-0">
                           {mood.replace("_", " ")}
                           {mood === result.mood_analysis.predicted_mood && (
                             <span className="ml-2 text-xs bg-orange-200 text-orange-800 px-2 py-1 rounded-full">
@@ -753,8 +768,8 @@ export default function NutritionDemo() {
                             </span>
                           )}
                         </span>
-                        <div className="flex items-center gap-3">
-                          <div className="w-24 bg-gray-200 rounded-full h-2">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                          <div className="w-16 sm:w-24 bg-gray-200 rounded-full h-2">
                             <div
                               className={`h-2 rounded-full ${
                                 mood === result.mood_analysis.predicted_mood
@@ -766,7 +781,7 @@ export default function NutritionDemo() {
                               }}
                             ></div>
                           </div>
-                          <span className="text-sm font-medium text-forest-700 min-w-[3rem]">
+                          <span className="text-xs sm:text-sm font-medium text-forest-700 min-w-[2.5rem] text-right">
                             {((probability as number) * 100).toFixed(1)}%
                           </span>
                         </div>
@@ -775,18 +790,17 @@ export default function NutritionDemo() {
                 </div>
               </div>
             )}
-          </div>
-
-          <div className="bg-white rounded-2xl p-8 shadow-earth border border-sage-200">
-            <h4 className="text-2xl font-bold text-forest-900 mb-6 text-center">
+          </div>{" "}
+          <div className="bg-white rounded-2xl p-4 sm:p-6 lg:p-8 shadow-earth border border-sage-200">
+            <h4 className="text-lg sm:text-2xl font-bold text-forest-900 mb-4 sm:mb-6 text-center">
               Rekomendasi Makanan
             </h4>
 
             {result.food_recommendations &&
             result.food_recommendations.length > 0 ? (
               <div className="space-y-4">
-                <div className="text-center mb-6">
-                  <p className="text-sage-600">
+                <div className="text-center mb-4 sm:mb-6">
+                  <p className="text-sm sm:text-base text-sage-600">
                     Makanan yang direkomendasikan untuk mood{" "}
                     <span className="font-semibold text-orange-600 capitalize">
                       {result.mood_analysis.predicted_mood}
@@ -805,60 +819,72 @@ export default function NutritionDemo() {
                   </p>
                 </div>
 
-                <div className="grid gap-4">
+                <div className="grid gap-3 sm:gap-4">
                   {result.food_recommendations.map((food, index) => (
                     <div
                       key={index}
-                      className="bg-sage-50 rounded-xl p-6 border border-sage-200 hover:shadow-md transition-all duration-200 hover:border-forest-200"
+                      className="bg-sage-50 rounded-xl p-4 sm:p-6 border border-sage-200 hover:shadow-md transition-all duration-200 hover:border-forest-200"
                     >
                       <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-3">
-                            <h5 className="font-semibold text-forest-900 text-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
+                            <h5 className="font-semibold text-forest-900 text-base sm:text-lg break-words">
                               {food.food_name}
                             </h5>
-                            <div className="bg-forest-100 text-forest-700 px-3 py-1 rounded-full text-sm font-medium capitalize">
-                              {food.primary_mood.replace("_", " ")}
-                            </div>
-                            {food.similarity_score && (
-                              <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
-                                Similarity:{" "}
-                                {(food.similarity_score * 100).toFixed(1)}%
+                            <div className="flex flex-wrap gap-2">
+                              <div className="bg-forest-100 text-forest-700 px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium capitalize">
+                                {food.primary_mood.replace("_", " ")}
                               </div>
-                            )}
+                              {food.similarity_score && (
+                                <div className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                                  Similarity:{" "}
+                                  {(food.similarity_score * 100).toFixed(1)}%
+                                </div>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-2 gap-3">
+                          <div className="grid grid-cols-2 gap-2 sm:gap-3">
                             {" "}
-                            <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                              <span className="text-sage-600 flex items-center gap-2">
-                                <Flame className="w-4 h-4" /> Kalori
+                            <div className="flex items-center justify-between bg-white rounded-lg p-2 sm:p-3">
+                              <span className="text-sage-600 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Flame className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Kalori</span>
+                                <span className="sm:hidden">Kal</span>
                               </span>
-                              <span className="font-semibold text-forest-700">
+                              <span className="font-semibold text-forest-700 text-xs sm:text-sm">
                                 {food.calories.toFixed(0)}
                               </span>
                             </div>
-                            <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                              <span className="text-sage-600 flex items-center gap-2">
-                                <Beef className="w-4 h-4" /> Protein
+                            <div className="flex items-center justify-between bg-white rounded-lg p-2 sm:p-3">
+                              <span className="text-sage-600 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Beef className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">
+                                  Protein
+                                </span>
+                                <span className="sm:hidden">Prot</span>
                               </span>
-                              <span className="font-semibold text-forest-700">
+                              <span className="font-semibold text-forest-700 text-xs sm:text-sm">
                                 {food.proteins.toFixed(1)}g
                               </span>
                             </div>
-                            <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                              <span className="text-sage-600 flex items-center gap-2">
-                                <Droplets className="w-4 h-4" /> Lemak
+                            <div className="flex items-center justify-between bg-white rounded-lg p-2 sm:p-3">
+                              <span className="text-sage-600 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Droplets className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Lemak</span>
+                                <span className="sm:hidden">Fat</span>
                               </span>
-                              <span className="font-semibold text-forest-700">
+                              <span className="font-semibold text-forest-700 text-xs sm:text-sm">
                                 {food.fat.toFixed(1)}g
                               </span>
                             </div>
-                            <div className="flex items-center justify-between bg-white rounded-lg p-3">
-                              <span className="text-sage-600 flex items-center gap-2">
-                                <Wheat className="w-4 h-4" /> Karbo
+                            <div className="flex items-center justify-between bg-white rounded-lg p-2 sm:p-3">
+                              <span className="text-sage-600 flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Wheat className="w-3 h-3 sm:w-4 sm:h-4" />
+                                <span className="hidden sm:inline">Karbo</span>
+                                <span className="sm:hidden">Carb</span>
                               </span>
-                              <span className="font-semibold text-forest-700">
+                              <span className="font-semibold text-forest-700 text-xs sm:text-sm">
                                 {food.carbohydrate.toFixed(1)}g
                               </span>
                             </div>
@@ -870,10 +896,12 @@ export default function NutritionDemo() {
                 </div>
               </div>
             ) : (
-              <div className="text-center text-sage-600 py-8">
-                <Utensils className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Tidak ada rekomendasi makanan tersedia</p>
-                <p className="text-sm mt-2">
+              <div className="text-center text-sage-600 py-6 sm:py-8">
+                <Utensils className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-50" />
+                <p className="text-sm sm:text-base">
+                  Tidak ada rekomendasi makanan tersedia
+                </p>
+                <p className="text-xs sm:text-sm mt-2">
                   {selectedHealthConditions.length > 0
                     ? "Mungkin tidak ada makanan yang sesuai dengan kondisi kesehatan yang dipilih"
                     : "Pastikan backend server berjalan dengan benar"}

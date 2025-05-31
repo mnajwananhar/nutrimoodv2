@@ -120,13 +120,14 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 flex items-center justify-center py-12 px-4">
       <div className="max-w-md w-full">
+        {" "}
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6 sm:mb-8">
           <Link
             href="/"
-            className="inline-flex items-center space-x-3 group mb-6"
+            className="inline-flex items-center space-x-2 sm:space-x-3 group mb-4 sm:mb-6"
           >
-            <div className="w-12 h-12 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-200">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl overflow-hidden group-hover:scale-110 transition-transform duration-200">
               <Image
                 src="/icons/icon-96x96.png"
                 alt="NutriMood Logo"
@@ -135,27 +136,26 @@ export default function LoginPage() {
                 className="w-full h-full object-contain"
               />
             </div>
-            <span className="text-3xl font-bold text-forest-900 group-hover:text-forest-700 transition-colors">
+            <span className="text-2xl sm:text-3xl font-bold text-forest-900 group-hover:text-forest-700 transition-colors">
               NutriMood
             </span>
           </Link>
 
-          <h1 className="text-3xl font-bold text-forest-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-forest-900 mb-2">
             Masuk ke Akun Anda
           </h1>
-          <p className="text-sage-700">
+          <p className="text-sage-700 text-sm sm:text-base">
             Selamat datang kembali! Masuk untuk mengakses dashboard pribadi
             Anda.
           </p>
-        </div>
-
+        </div>{" "}
         {/* Login Form */}
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-earth border border-sage-200 p-8">
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-earth border border-sage-200 p-6 sm:p-8">
           {/* Google Sign In */}
           <button
             onClick={handleGoogleSignIn}
             disabled={isGoogleLoading || isLoading}
-            className="w-full flex items-center justify-center gap-3 bg-white border-2 border-sage-300 text-sage-700 px-6 py-3 rounded-xl font-semibold hover:bg-sage-50 hover:border-sage-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
+            className="w-full flex items-center justify-center gap-2 sm:gap-3 bg-white border-2 border-sage-300 text-sage-700 px-4 sm:px-6 py-3 rounded-xl font-semibold hover:bg-sage-50 hover:border-sage-400 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed mb-6"
           >
             {isGoogleLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
@@ -181,9 +181,8 @@ export default function LoginPage() {
                 </svg>
               </div>
             )}
-            <span>Masuk dengan Google</span>
+            <span className="text-sm sm:text-base">Masuk dengan Google</span>
           </button>
-
           {/* Divider */}
           <div className="relative mb-6">
             <div className="absolute inset-0 flex items-center">
@@ -194,10 +193,9 @@ export default function LoginPage() {
                 atau masuk dengan email
               </span>
             </div>
-          </div>
-
+          </div>{" "}
           {/* Email/Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
             {/* Email Field */}
             <div>
               <label
@@ -215,7 +213,7 @@ export default function LoginPage() {
                   value={formData.email}
                   onChange={handleInputChange}
                   required
-                  className="w-full pl-10 pr-4 py-3 bg-white border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500 transition-colors text-sage-900 placeholder-sage-400"
+                  className="w-full pl-10 pr-4 py-3 bg-white border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500 transition-colors text-sage-900 placeholder-sage-400 text-sm sm:text-base"
                   placeholder="nama@email.com"
                 />
               </div>
@@ -238,7 +236,7 @@ export default function LoginPage() {
                   value={formData.password}
                   onChange={handleInputChange}
                   required
-                  className="w-full pl-10 pr-12 py-3 bg-white border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500 transition-colors text-sage-900 placeholder-sage-400"
+                  className="w-full pl-10 pr-12 py-3 bg-white border border-sage-300 rounded-xl focus:ring-2 focus:ring-forest-500 focus:border-forest-500 transition-colors text-sage-900 placeholder-sage-400 text-sm sm:text-base"
                   placeholder="Masukkan password Anda"
                 />
                 <button
@@ -269,23 +267,26 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading || isGoogleLoading}
-              className="w-full bg-gradient-to-r from-forest-600 to-forest-700 text-white px-6 py-3 rounded-xl font-semibold shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-forest-600 to-forest-700 text-white px-4 sm:px-6 py-3 rounded-xl font-semibold shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2 text-sm sm:text-base"
             >
               {isLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  Masuk...
+                  <span className="hidden sm:inline">Masuk...</span>
+                  <span className="sm:hidden">Loading...</span>
                 </>
               ) : (
-                "Masuk ke Dashboard"
+                <>
+                  <span className="hidden sm:inline">Masuk ke Dashboard</span>
+                  <span className="sm:hidden">Masuk</span>
+                </>
               )}
             </button>
           </form>
-        </div>
-
+        </div>{" "}
         {/* Sign Up Link */}
         <div className="text-center mt-6">
-          <p className="text-sage-700">
+          <p className="text-sage-700 text-sm sm:text-base">
             Belum punya akun?{" "}
             <Link
               href="/auth/signup"
@@ -295,7 +296,6 @@ export default function LoginPage() {
             </Link>
           </p>
         </div>
-
         {/* Back to Home */}
         <div className="text-center mt-4">
           <Link

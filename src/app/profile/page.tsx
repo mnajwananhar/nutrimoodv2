@@ -417,13 +417,13 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-sage-50">
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         {/* Header */}
-        <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-6 mb-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-full bg-sage-200 flex items-center justify-center overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-4 sm:p-6 mb-4 sm:mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 lg:space-x-6">
+              <div className="relative mx-auto sm:mx-0">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-sage-200 flex items-center justify-center overflow-hidden">
                   {profile?.avatar_url ? (
                     <Image
                       src={profile.avatar_url}
@@ -433,11 +433,11 @@ export default function ProfilePage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User className="w-12 h-12 text-sage-600" />
+                    <User className="w-10 h-10 sm:w-12 sm:h-12 text-sage-600" />
                   )}
                 </div>
-                <label className="absolute bottom-0 right-0 bg-sage-600 text-white p-2 rounded-full cursor-pointer hover:bg-sage-700 transition-colors">
-                  <Camera className="w-4 h-4" />
+                <label className="absolute bottom-0 right-0 bg-sage-600 text-white p-1.5 sm:p-2 rounded-full cursor-pointer hover:bg-sage-700 transition-colors">
+                  <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
                   <input
                     type="file"
                     accept="image/*"
@@ -448,43 +448,52 @@ export default function ProfilePage() {
                 </label>
                 {uploading && (
                   <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-white"></div>
                   </div>
                 )}
               </div>
-              <div>
-                <h1 className="text-3xl font-bold text-sage-900">
+              <div className="text-center sm:text-left flex-1 min-w-0">
+                <h1 className="text-2xl sm:text-3xl font-bold text-sage-900 break-words">
                   {profile?.full_name || "User"}
                 </h1>
-                <p className="text-sage-600">@{profile?.username}</p>
-                <div className="flex items-center space-x-4 mt-2 text-sm text-sage-500">
-                  <div className="flex items-center space-x-1">
-                    <Mail className="w-4 h-4" />
-                    <span>{profile?.email}</span>
+                <p className="text-sage-600 break-words">
+                  @{profile?.username}
+                </p>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-4 mt-2 text-xs sm:text-sm text-sage-500 space-y-1 sm:space-y-0">
+                  <div className="flex items-center justify-center sm:justify-start space-x-1">
+                    <Mail className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="break-all">{profile?.email}</span>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
-                    <span>
-                      Bergabung Sejak {formatDate(profile?.joined_at)}
+                  <div className="flex items-center justify-center sm:justify-start space-x-1">
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                    <span className="text-center sm:text-left">
+                      <span className="hidden sm:inline">
+                        Bergabung Sejak {formatDate(profile?.joined_at)}
+                      </span>
+                      <span className="sm:hidden">
+                        Sejak {formatDate(profile?.joined_at)}
+                      </span>
                     </span>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="flex space-x-3">
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
               <button
                 onClick={() => setEditing(!editing)}
-                className="flex items-center space-x-2 bg-sage-600 text-white px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors"
+                className="flex items-center justify-center space-x-2 bg-sage-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors text-sm sm:text-base"
               >
                 <Edit3 className="w-4 h-4" />
-                <span>Edit Profil</span>
+                <span className="hidden sm:inline">Edit Profil</span>
+                <span className="sm:hidden">Edit</span>
               </button>
               <button
                 onClick={handleSignOut}
-                className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+                className="flex items-center justify-center space-x-2 bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 transition-colors text-sm sm:text-base"
               >
                 <LogOut className="w-4 h-4" />
-                <span>Keluar</span>
+                <span className="hidden sm:inline">Keluar</span>
+                <span className="sm:hidden">Logout</span>
               </button>
             </div>
           </div>
@@ -494,57 +503,63 @@ export default function ProfilePage() {
         {userStats === null ? (
           <StatsSkeleton />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-4 sm:mb-6">
+            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-4 sm:p-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-blue-100 p-3 rounded-lg">
-                  <Activity className="w-6 h-6 text-blue-600" />
+                <div className="bg-blue-100 p-2 sm:p-3 rounded-lg">
+                  <Activity className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-sage-600">Total Analisis</p>
-                  <p className="text-2xl font-bold text-sage-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-sage-600">
+                    Total Analisis
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-sage-900">
                     {userStats.assessments_count}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-4 sm:p-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <MessageCircle className="w-6 h-6 text-green-600" />
+                <div className="bg-green-100 p-2 sm:p-3 rounded-lg">
+                  <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-sage-600">Posting Komunitas</p>
-                  <p className="text-2xl font-bold text-sage-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-sage-600">
+                    Posting Komunitas
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-sage-900">
                     {userStats.posts_count}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-4 sm:p-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-red-100 p-3 rounded-lg">
-                  <Heart className="w-6 h-6 text-red-600" />
+                <div className="bg-red-100 p-2 sm:p-3 rounded-lg">
+                  <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-sage-600">Like Diterima</p>
-                  <p className="text-2xl font-bold text-sage-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-sage-600">
+                    Like Diterima
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold text-sage-900">
                     {userStats.likes_count}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-sage-200 p-4 sm:p-6">
               <div className="flex items-center space-x-3">
-                <div className="bg-purple-100 p-3 rounded-lg">
-                  <Trophy className="w-6 h-6 text-purple-600" />
+                <div className="bg-purple-100 p-2 sm:p-3 rounded-lg">
+                  <Trophy className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                 </div>
-                <div>
-                  <p className="text-sm text-sage-600">Komentar</p>
-                  <p className="text-2xl font-bold text-sage-900">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs sm:text-sm text-sage-600">Komentar</p>
+                  <p className="text-xl sm:text-2xl font-bold text-sage-900">
                     {userStats.comments_count}
                   </p>
                 </div>
@@ -556,30 +571,32 @@ export default function ProfilePage() {
         {/* Tabs */}
         <div className="bg-white rounded-xl shadow-sm border border-sage-200">
           <div className="border-b border-sage-200">
-            <nav className="flex">
+            <nav className="flex overflow-x-auto">
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
                   activeTab === "profile"
                     ? "border-sage-600 text-sage-600"
                     : "border-transparent text-sage-500 hover:text-sage-700"
                 }`}
               >
-                Informasi Profil
+                <span className="hidden sm:inline">Informasi Profil</span>
+                <span className="sm:hidden">Profil</span>
               </button>
               <button
                 onClick={() => setActiveTab("settings")}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
                   activeTab === "settings"
                     ? "border-sage-600 text-sage-600"
                     : "border-transparent text-sage-500 hover:text-sage-700"
                 }`}
               >
-                Pengaturan Akun
+                <span className="hidden sm:inline">Pengaturan Akun</span>
+                <span className="sm:hidden">Pengaturan</span>
               </button>
               <button
                 onClick={() => setActiveTab("stats")}
-                className={`px-6 py-4 text-sm font-medium border-b-2 ${
+                className={`px-3 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 whitespace-nowrap ${
                   activeTab === "stats"
                     ? "border-sage-600 text-sage-600"
                     : "border-transparent text-sage-500 hover:text-sage-700"
@@ -590,14 +607,14 @@ export default function ProfilePage() {
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             {/* Profile Information Tab */}
             {activeTab === "profile" && (
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {editing ? (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-2">
                         Username
                       </label>
                       <input
@@ -606,11 +623,11 @@ export default function ProfilePage() {
                         onChange={(e) =>
                           setFormData({ ...formData, username: e.target.value })
                         }
-                        className="w-full px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent text-gray-900"
+                        className="w-full px-3 sm:px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent text-gray-900 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-2">
                         Nama Lengkap
                       </label>
                       <input
@@ -622,11 +639,11 @@ export default function ProfilePage() {
                             full_name: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent text-gray-900"
+                        className="w-full px-3 sm:px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent text-gray-900 text-sm sm:text-base"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-2">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-2">
                         Email
                       </label>
                       <input
@@ -635,23 +652,32 @@ export default function ProfilePage() {
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
-                        className="w-full px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent text-gray-900"
+                        className="w-full px-3 sm:px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-sage-500 focus:border-transparent text-gray-900 text-sm sm:text-base"
                       />
                     </div>
-                    <div className="flex space-x-3">
+                    <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-2">
                       <button
                         onClick={handleSaveProfile}
                         disabled={saving}
-                        className="flex items-center space-x-2 bg-sage-600 text-white px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors disabled:opacity-50"
+                        className="flex items-center justify-center space-x-2 bg-sage-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-sage-700 transition-colors disabled:opacity-50 text-sm sm:text-base"
                       >
                         <Save className="w-4 h-4" />
                         <span>
-                          {saving ? "Menyimpan..." : "Simpan Perubahan"}
+                          {saving ? (
+                            "Menyimpan..."
+                          ) : (
+                            <>
+                              <span className="hidden sm:inline">
+                                Simpan Perubahan
+                              </span>
+                              <span className="sm:hidden">Simpan</span>
+                            </>
+                          )}
                         </span>
                       </button>
                       <button
                         onClick={() => setEditing(false)}
-                        className="flex items-center space-x-2 bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+                        className="flex items-center justify-center space-x-2 bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm sm:text-base"
                       >
                         <X className="w-4 h-4" />
                         <span>Batal</span>
@@ -659,38 +685,44 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3 sm:space-y-4">
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-1">
                         Username
                       </label>
-                      <p className="text-sage-900">{profile?.username}</p>
+                      <p className="text-sage-900 break-words text-sm sm:text-base">
+                        {profile?.username}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-1">
                         Nama Lengkap
                       </label>
-                      <p className="text-sage-900">{profile?.full_name}</p>
+                      <p className="text-sage-900 break-words text-sm sm:text-base">
+                        {profile?.full_name}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-1">
                         Email
                       </label>
-                      <p className="text-sage-900">{profile?.email}</p>
+                      <p className="text-sage-900 break-all text-sm sm:text-base">
+                        {profile?.email}
+                      </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-1">
                         Bergabung Sejak
                       </label>
-                      <p className="text-sage-900">
+                      <p className="text-sage-900 text-sm sm:text-base">
                         {formatDate(profile?.joined_at)}
                       </p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-sage-700 mb-1">
+                      <label className="block text-xs sm:text-sm font-medium text-sage-700 mb-1">
                         Terakhir Aktif
                       </label>
-                      <p className="text-sage-900">
+                      <p className="text-sage-900 text-sm sm:text-base">
                         {formatDate(profile?.last_active)}
                       </p>
                     </div>

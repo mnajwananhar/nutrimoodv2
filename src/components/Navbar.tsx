@@ -366,12 +366,11 @@ export default function Navbar() {
             </button>
           </div>
         </div>
-      </div>
-
+      </div>{" "}
       {/* Mobile Navigation */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t border-sage-200 shadow-lg">
-          <div className="px-4 py-2 space-y-1">
+        <div className="md:hidden bg-white border-t border-sage-200 shadow-lg overflow-hidden">
+          <div className="px-3 py-3 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
             {(user ? navigation : guestNavigation).map((item) => {
               const Icon = item.icon;
               let isActiveGuest = false;
@@ -402,68 +401,72 @@ export default function Navbar() {
                       ? "bg-forest-100 text-forest-700"
                       : "text-sage-700 hover:text-forest-700 hover:bg-sage-50"
                   }`}
-                  scroll={item.href.startsWith("#") ? false : true}
                 >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.name}</span>
+                  <Icon className="w-5 h-5 flex-shrink-0" />
+                  <span className="truncate">{item.name}</span>
                 </Link>
               );
             })}
 
+            {/* Mobile User Section */}
             {user && (
-              <>
-                {" "}
-                <div className="border-t border-sage-200 mt-4 pt-4 flex items-center gap-3">
-                  {userProfile?.avatar_url ? (
-                    <Image
-                      src={userProfile.avatar_url}
-                      alt="User Avatar"
-                      width={32}
-                      height={32}
-                      className="w-8 h-8 rounded-full object-cover border border-sage-200"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
-                      {userProfile?.full_name?.[0]?.toUpperCase() ||
-                        userProfile?.username?.[0]?.toUpperCase() ||
-                        user?.email?.[0]?.toUpperCase() ||
-                        "U"}
+              <div className="border-t border-sage-200 pt-4 mt-4">
+                <div className="px-3 py-3 mb-2">
+                  <div className="flex items-center space-x-3">
+                    {userProfile?.avatar_url ? (
+                      <Image
+                        src={userProfile.avatar_url}
+                        alt="User Avatar"
+                        width={40}
+                        height={40}
+                        className="w-10 h-10 rounded-full object-cover border border-sage-200"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        {userProfile?.full_name?.[0]?.toUpperCase() ||
+                          user?.email?.[0]?.toUpperCase() ||
+                          "U"}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-forest-900 truncate">
+                        {userProfile?.full_name || "User"}
+                      </p>
+                      <p className="text-xs text-sage-600 truncate">
+                        {user?.email}
+                      </p>
                     </div>
-                  )}
-                  <span className="font-medium text-forest-900">
-                    {userProfile?.full_name || userProfile?.username || "User"}
-                  </span>
+                  </div>
                 </div>
-                <div className="border-t border-sage-200 mt-4 pt-4">
-                  {userNavigation.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.name}
-                        href={item.href}
-                        className="flex items-center space-x-3 px-3 py-3 rounded-lg text-base font-medium text-sage-700 hover:text-forest-700 hover:bg-sage-50 transition-colors"
-                      >
-                        <Icon className="w-5 h-5" />
-                        <span>{item.name}</span>
-                      </Link>
-                    );
-                  })}
-                </div>
-                <div className="border-t border-sage-200 mt-4 pt-4">
-                  <button
-                    onClick={handleSignOut}
-                    className="flex items-center space-x-3 w-full px-3 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    <LogOut className="w-5 h-5" />
-                    <span>Keluar</span>
-                  </button>
-                </div>
-              </>
+
+                {userNavigation.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.name}
+                      href={item.href}
+                      className="flex items-center space-x-3 px-3 py-3 text-base text-sage-700 hover:bg-sage-50 hover:text-forest-700 transition-colors rounded-lg"
+                    >
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="truncate">{item.name}</span>
+                    </Link>
+                  );
+                })}
+
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center space-x-3 w-full px-3 py-3 text-base text-red-600 hover:bg-red-50 transition-colors rounded-lg mt-2"
+                >
+                  <LogOut className="w-5 h-5 flex-shrink-0" />
+                  <span>Keluar</span>
+                </button>
+              </div>
             )}
 
+            {/* Mobile Auth Buttons */}
             {!user && !isAuthLoading && (
-              <div className="border-t border-sage-200 mt-4 pt-4">
-                <AuthButtons mobile={true} />
+              <div className="border-t border-sage-200 pt-4 mt-4">
+                <AuthButtons />
               </div>
             )}
           </div>

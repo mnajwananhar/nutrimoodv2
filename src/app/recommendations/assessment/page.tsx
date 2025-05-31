@@ -371,26 +371,25 @@ export default function AssessmentPage() {
 
   if (isAuthLoading) return <AssessmentSkeleton />;
   if (!user) return null;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-6 sm:py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center px-4 py-2 bg-forest-100 text-forest-700 rounded-full text-sm font-medium border border-forest-200 mb-4">
+        <div className="text-center mb-6 sm:mb-8">
+          <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-forest-100 text-forest-700 rounded-full text-sm font-medium border border-forest-200 mb-3 sm:mb-4">
             <Brain className="w-4 h-4 mr-2" />
             Analisis Nutrisi & Mood
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold text-forest-900 mb-4">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-forest-900 mb-3 sm:mb-4 px-4">
             Penilaian Nutrisi Harian
           </h1>
-          <p className="text-xl text-sage-700 max-w-2xl mx-auto">
+          <p className="text-base sm:text-lg lg:text-xl text-sage-700 max-w-2xl mx-auto px-4">
             Jawab beberapa pertanyaan tentang konsumsi nutrisi Anda hari ini
             untuk mendapatkan rekomendasi makanan yang tepat.
           </p>
         </div>
         {/* Progress Bar */}
-        <div className="mb-8">
+        <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between text-sm text-sage-600 mb-2">
             <span>
               Langkah {currentStep + 1} dari {allSteps.length}
@@ -403,38 +402,44 @@ export default function AssessmentPage() {
               style={{ width: `${progress}%` }}
             />
           </div>
-        </div>
+        </div>{" "}
         {/* Main Content */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-earth border border-sage-200 overflow-hidden">
           {/* Step Header */}
-          <div className="p-8 text-center border-b border-sage-200">
+          <div className="p-4 sm:p-6 lg:p-8 text-center border-b border-sage-200">
             <div
-              className={`w-20 h-20 bg-gradient-to-r ${currentStepData.color} text-white rounded-2xl flex items-center justify-center mx-auto mb-6`}
+              className={`w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r ${currentStepData.color} text-white rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6`}
             >
               {currentStepData.icon}
             </div>
-            <h2 className="text-3xl font-bold text-forest-900 mb-3">
+            <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-forest-900 mb-2 sm:mb-3 px-4">
               {currentStepData.title}
             </h2>
-            <p className="text-lg text-sage-700">
+            <p className="text-base sm:text-lg text-sage-700 px-4">
               {currentStepData.description}
             </p>
           </div>
 
           {/* Step Content */}
-          <div className="p-8">
+          <div className="p-4 sm:p-6 lg:p-8">
+            {" "}
             {/* Info Section */}
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 sm:p-6 mb-6 sm:mb-8">
               <div className="flex items-start gap-3">
                 <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-blue-900 mb-2">
+                  <h4 className="font-semibold text-blue-900 mb-2 text-sm sm:text-base">
                     Informasi:
                   </h4>
-                  <p className="text-blue-800 mb-3">{currentStepData.info}</p>
+                  <p className="text-blue-800 mb-3 text-sm sm:text-base">
+                    {currentStepData.info}
+                  </p>
                   <div className="space-y-1">
                     {currentStepData.examples.map((example, index) => (
-                      <p key={index} className="text-sm text-blue-700">
+                      <p
+                        key={index}
+                        className="text-xs sm:text-sm text-blue-700"
+                      >
                         • {example}
                       </p>
                     ))}
@@ -445,13 +450,12 @@ export default function AssessmentPage() {
             {/* Level Selection */}
             {currentStepData.key === "health_condition" ? (
               // Health Condition Selection
-              <div className="grid md:grid-cols-2 gap-4 mb-8">
-                {" "}
+              <div className="grid gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {/* "Tidak Ada" option */}
                 <button
                   onClick={() => handleLevelSelect(healthConditions.length)}
                   className={`
-                    p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105                    ${
+                    p-4 sm:p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105                    ${
                       selectedHealthConditions.length === 0
                         ? "bg-forest-100 text-forest-700 border-forest-300 hover:bg-forest-150 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
                         : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
@@ -459,9 +463,9 @@ export default function AssessmentPage() {
                   `}
                 >
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <h3
-                        className={`font-semibold text-lg mb-1 ${
+                        className={`font-semibold text-base sm:text-lg mb-1 ${
                           selectedHealthConditions.length === 0
                             ? ""
                             : "text-sage-900"
@@ -480,7 +484,7 @@ export default function AssessmentPage() {
                       </p>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
                         selectedHealthConditions.length === 0
                           ? "border-forest-600 bg-forest-600"
                           : "border-sage-300"
@@ -492,7 +496,7 @@ export default function AssessmentPage() {
                     </div>
                   </div>
                 </button>
-                {/* Health condition options */}
+                {/* Health condition options */}{" "}
                 {healthConditions.map((condition, index) => {
                   const isSelected = selectedHealthConditions.some(
                     (hc) => hc.value === condition.value
@@ -502,7 +506,8 @@ export default function AssessmentPage() {
                       key={condition.value}
                       onClick={() => handleLevelSelect(index)}
                       className={`
-                        p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105                        ${
+                        p-4 sm:p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
+                        ${
                           isSelected
                             ? "bg-forest-100 text-forest-700 border-forest-300 hover:bg-forest-150 scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
                             : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
@@ -510,33 +515,32 @@ export default function AssessmentPage() {
                       `}
                     >
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="min-w-0 flex-1">
                           <h3
-                            className={`font-semibold text-lg mb-1 ${
+                            className={`font-semibold text-base sm:text-lg mb-1 ${
                               isSelected ? "" : "text-sage-900"
                             }`}
                           >
                             {condition.name}
                           </h3>
                           <p
-                            className={`text-sm ${
+                            className={`text-sm break-words ${
                               isSelected ? "" : "text-sage-700"
                             }`}
                           >
                             {condition.description}
                           </p>
-                        </div>{" "}
+                        </div>
                         <div
-                          className={`w-6 h-6 rounded-md border-2 flex items-center justify-center ${
+                          className={`w-5 h-5 sm:w-6 sm:h-6 rounded-md border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
                             isSelected
                               ? "border-forest-600 bg-forest-600"
                               : "border-sage-300"
                           }`}
                         >
-                          {" "}
                           {isSelected && (
-                            <Check className="w-3 h-3 text-white" />
-                          )}
+                            <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                          )}{" "}
                         </div>
                       </div>
                     </button>
@@ -545,13 +549,13 @@ export default function AssessmentPage() {
               </div>
             ) : (
               // Nutrition Level Selection
-              <div className="grid md:grid-cols-2 gap-4 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
                 {levelLabels.map((label, index) => (
                   <button
                     key={index}
                     onClick={() => handleLevelSelect(index)}
                     className={`
-                      p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
+                      p-4 sm:p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
                       ${
                         currentValue === index
                           ? levelColors[index] +
@@ -561,16 +565,16 @@ export default function AssessmentPage() {
                     `}
                   >
                     <div className="flex items-center justify-between">
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <h3
-                          className={`font-semibold text-lg mb-1 ${
+                          className={`font-semibold text-base sm:text-lg mb-1 ${
                             currentValue === index ? "" : "text-sage-900"
                           }`}
                         >
                           {label}
                         </h3>
                         <p
-                          className={`text-sm ${
+                          className={`text-sm break-words ${
                             currentValue === index ? "" : "text-sage-700"
                           }`}
                         >
@@ -578,37 +582,38 @@ export default function AssessmentPage() {
                         </p>
                       </div>
                       <div
-                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
                           currentValue === index
                             ? "border-current bg-current"
                             : "border-sage-300"
                         }`}
                       >
                         {currentValue === index && (
-                          <div className="w-2 h-2 bg-white rounded-full" />
+                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full" />
                         )}
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
-            )}
+            )}{" "}
             {/* Navigation */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
               <button
                 onClick={handlePrev}
                 disabled={currentStep === 0}
-                className="flex items-center gap-2 px-6 py-3 text-sage-600 hover:text-forest-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 sm:px-6 py-3 text-sage-600 hover:text-forest-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
               >
-                <ArrowLeft className="w-5 h-5" />
-                Sebelumnya
+                <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Sebelumnya</span>
+                <span className="sm:hidden">Kembali</span>
               </button>
 
               <div className="flex gap-2">
                 {allSteps.map((_, index) => (
                   <div
                     key={index}
-                    className={`w-3 h-3 rounded-full transition-colors ${
+                    className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors ${
                       index === currentStep
                         ? "bg-forest-600"
                         : index < currentStep
@@ -622,22 +627,27 @@ export default function AssessmentPage() {
               <button
                 onClick={handleNext}
                 disabled={currentValue === undefined || isLoading}
-                className="flex items-center gap-2 bg-gradient-to-r from-forest-600 to-forest-700 text-white px-6 py-3 rounded-xl font-semibold shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="flex items-center gap-2 bg-gradient-to-r from-forest-600 to-forest-700 text-white px-4 sm:px-6 py-3 rounded-xl font-semibold shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm sm:text-base"
               >
                 {isLoading ? (
                   <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Menganalisis...
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span className="hidden sm:inline">Menganalisis...</span>
+                    <span className="sm:hidden">Loading...</span>
                   </>
                 ) : currentStep === allSteps.length - 1 ? (
                   <>
-                    Dapatkan Rekomendasi
-                    <Brain className="w-5 h-5" />
+                    <span className="hidden sm:inline">
+                      Dapatkan Rekomendasi
+                    </span>
+                    <span className="sm:hidden">Analisis</span>
+                    <Brain className="w-4 h-4 sm:w-5 sm:h-5" />
                   </>
                 ) : (
                   <>
-                    Selanjutnya
-                    <ArrowRight className="w-5 h-5" />
+                    <span className="hidden sm:inline">Selanjutnya</span>
+                    <span className="sm:hidden">Lanjut</span>
+                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                   </>
                 )}
               </button>
@@ -646,20 +656,20 @@ export default function AssessmentPage() {
         </div>{" "}
         {/* Summary Card */}
         {currentStep > 0 && (
-          <div className="mt-8 bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-sage-200">
-            <h3 className="font-semibold text-forest-900 mb-3">
+          <div className="mt-6 sm:mt-8 bg-white/60 backdrop-blur-sm rounded-xl p-4 sm:p-6 border border-sage-200">
+            <h3 className="font-semibold text-forest-900 mb-3 text-base sm:text-lg">
               Ringkasan Input Anda:
             </h3>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {steps
                 .slice(0, Math.min(currentStep + 1, steps.length))
                 .map((step) => (
                   <div key={step.key} className="text-center">
-                    <div className="text-sm text-sage-600 mb-1">
+                    <div className="text-xs sm:text-sm text-sage-600 mb-1">
                       {step.title.replace(" Hari Ini", "")}
                     </div>
                     <div
-                      className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
+                      className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
                         levelColors[nutritionInput[step.key]]
                       }`}
                     >
@@ -667,14 +677,13 @@ export default function AssessmentPage() {
                     </div>
                   </div>
                 ))}
-              {/* Show health condition if we're on or past that step */}{" "}
+              {/* Show health condition if we're on or past that step */}
               {currentStep >= steps.length && (
                 <div className="text-center">
-                  {" "}
-                  <div className="text-sm text-sage-600 mb-1">
+                  <div className="text-xs sm:text-sm text-sage-600 mb-1">
                     Kondisi Kesehatan
                   </div>
-                  <div className="inline-block px-3 py-1 rounded-full text-sm font-medium bg-forest-100 text-forest-700 border border-forest-200">
+                  <div className="inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-forest-100 text-forest-700 border border-forest-200 break-words">
                     {selectedHealthConditions.length > 0
                       ? selectedHealthConditions.map((hc) => hc.name).join(", ")
                       : "Tidak Ada"}

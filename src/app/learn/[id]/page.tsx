@@ -11,29 +11,28 @@ export default function ArticleDetailPage() {
   const params = useParams();
   const { id } = params;
   const article = articles.find((a) => a.id === Number(id));
-
   if (!article) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-6 sm:py-8">
         <LearnSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50 py-6 sm:py-8">
       <div className="max-w-2xl mx-auto px-4">
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link
             href="/learn"
-            className="text-forest-600 hover:text-forest-800 flex items-center gap-2 mb-4"
+            className="text-forest-600 hover:text-forest-800 flex items-center gap-2 mb-3 sm:mb-4 text-sm sm:text-base"
           >
             <FileText className="w-4 h-4" />
             Kembali ke Artikel
           </Link>
         </div>{" "}
-        <div className="bg-white rounded-2xl shadow-md p-8 border border-sage-200">
-          <div className="relative w-full aspect-video mb-6 overflow-hidden rounded-xl">
+        <div className="bg-white rounded-2xl shadow-md p-4 sm:p-6 lg:p-8 border border-sage-200">
+          <div className="relative w-full aspect-video mb-4 sm:mb-6 overflow-hidden rounded-xl">
             {article.image ? (
               <Image
                 src={article.image}
@@ -45,11 +44,11 @@ export default function ArticleDetailPage() {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-forest-400 to-sage-500">
-                <ImageOff className="w-20 h-20 text-sage-200" />
+                <ImageOff className="w-12 h-12 sm:w-16 sm:h-16 lg:w-20 lg:h-20 text-sage-200" />
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-3">
             {article.tags.map((tag) => (
               <span
                 key={tag}
@@ -59,10 +58,10 @@ export default function ArticleDetailPage() {
               </span>
             ))}
           </div>
-          <h1 className="text-3xl font-bold text-forest-900 mb-4">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-forest-900 mb-3 sm:mb-4 leading-tight">
             {article.title}
           </h1>
-          <div className="text-sage-700 whitespace-pre-line text-lg">
+          <div className="text-sage-700 whitespace-pre-line text-sm sm:text-base lg:text-lg leading-relaxed">
             {article.content}
           </div>
         </div>

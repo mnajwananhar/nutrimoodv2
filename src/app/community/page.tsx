@@ -477,55 +477,54 @@ export default function CommunityPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-forest-50 via-sage-50 to-beige-50">
+      {" "}
       {/* New Heading Section */}
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-        <div className="flex flex-col items-center text-center mb-8">
-          <span className="inline-flex items-center px-4 py-1 rounded-full bg-forest-100 text-forest-700 font-medium text-sm mb-4">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 sm:pt-8">
+        <div className="flex flex-col items-center text-center mb-6 sm:mb-8">
+          <span className="inline-flex items-center px-3 sm:px-4 py-1 rounded-full bg-forest-100 text-forest-700 font-medium text-sm mb-3 sm:mb-4">
             <Users className="w-4 h-4 mr-2" /> Komunitas
           </span>
-          <h1 className="text-4xl font-bold text-forest-900 mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-forest-900 mb-2 px-4">
             Komunitas NutriMood
           </h1>
-          <p className="text-lg text-sage-600 mb-6">
+          <p className="text-base sm:text-lg text-sage-600 mb-4 sm:mb-6 px-4">
             Berbagi pengalaman dan tips nutrisi dengan komunitas
           </p>
           <button
             onClick={() => setShowCreatePost(true)}
-            className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
+            className="inline-flex items-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all text-sm sm:text-base"
           >
-            <Plus className="w-5 h-5" />
+            <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
             <span>Buat Posting</span>
           </button>
         </div>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      </div>{" "}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
-          <div className="flex flex-col lg:flex-row gap-4">
+        <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
+          <div className="flex flex-col gap-4">
             {/* Search */}
-            <div className="flex-1">
+            <div className="w-full">
               <div className="relative">
-                <Search className="absolute left-3 top-3 w-5 h-5 text-sage-400" />
+                <Search className="absolute left-3 top-3 w-4 h-4 sm:w-5 sm:h-5 text-sage-400" />
                 <input
                   type="text"
                   placeholder="Cari posting..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                  className="w-full pl-9 sm:pl-10 pr-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sm sm:text-base"
                 />
               </div>
-            </div>
-
+            </div>{" "}
             {/* Type Filter */}
-            <div className="flex gap-2 overflow-x-auto">
+            <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
               {postTypes.map((type) => {
                 const Icon = type.icon;
                 return (
                   <button
                     key={type.value}
                     onClick={() => setSelectedType(type.value)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                    className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all text-sm sm:text-base ${
                       selectedType === type.value
                         ? `${type.color} text-forest-700`
                         : "text-sage-600 hover:bg-sage-100"
@@ -564,24 +563,24 @@ export default function CommunityPage() {
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-            <Users className="w-16 h-16 text-sage-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-forest-900 mb-2">
+          <div className="bg-white rounded-2xl shadow-sm p-8 sm:p-12 text-center">
+            <Users className="w-12 h-12 sm:w-16 sm:h-16 text-sage-400 mx-auto mb-4" />
+            <h3 className="text-lg sm:text-xl font-semibold text-forest-900 mb-2">
               Belum Ada Posting
             </h3>
-            <p className="text-sage-600 mb-6">
+            <p className="text-sage-600 mb-4 sm:mb-6 text-sm sm:text-base px-4">
               Jadilah yang pertama membagikan pengalaman Anda!
             </p>
             <button
               onClick={() => setShowCreatePost(true)}
-              className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all"
+              className="inline-flex items-center space-x-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-xl font-medium hover:from-forest-700 hover:to-forest-800 transition-all text-sm sm:text-base"
             >
-              <Plus className="w-5 h-5" />
+              <Plus className="w-4 h-4 sm:w-5 sm:h-5" />
               <span>Buat Posting Pertama</span>
             </button>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {posts.map((post) => {
               const typeConfig = getTypeConfig(post.type);
               const isLiked = post.post_likes.some(
@@ -591,11 +590,12 @@ export default function CommunityPage() {
               return (
                 <div
                   key={post.id}
-                  className="relative bg-white rounded-2xl shadow-sm p-6"
+                  className="relative bg-white rounded-2xl shadow-sm p-4 sm:p-6"
                 >
+                  {" "}
                   {/* Post Header */}{" "}
                   <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
                       <Image
                         src={
                           post.profiles.avatar_url || "/api/placeholder/48/48"
@@ -603,23 +603,27 @@ export default function CommunityPage() {
                         alt="Avatar"
                         width={48}
                         height={48}
-                        className="w-12 h-12 rounded-full object-cover"
+                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
                       />
-                      <div>
-                        <h4 className="font-semibold text-forest-900">
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-semibold text-forest-900 text-sm sm:text-base truncate">
                           {post.profiles.full_name ||
                             post.profiles.username ||
                             "Pengguna"}
                         </h4>
-                        <div className="flex items-center space-x-2 text-sm text-sage-600">
+                        <div className="flex items-center space-x-2 text-xs sm:text-sm text-sage-600">
                           <span
                             className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs ${typeConfig.color}`}
                           >
                             <typeConfig.icon className="w-3 h-3" />
-                            <span>{typeConfig.label}</span>
+                            <span className="hidden sm:inline">
+                              {typeConfig.label}
+                            </span>
                           </span>
-                          <Clock className="w-3 h-3" />
-                          <span>{formatDate(post.created_at)}</span>
+                          <Clock className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">
+                            {formatDate(post.created_at)}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -668,12 +672,12 @@ export default function CommunityPage() {
                         )}
                       </div>
                     )}
-                  </div>
+                  </div>{" "}
                   {/* Post Content */}
-                  <h3 className="text-xl font-semibold text-forest-900 mb-3">
+                  <h3 className="text-lg sm:text-xl font-semibold text-forest-900 mb-3 break-words">
                     {post.title}
                   </h3>
-                  <p className="text-sage-700 mb-4 leading-relaxed">
+                  <p className="text-sage-700 mb-4 leading-relaxed text-sm sm:text-base break-words">
                     {post.content}
                   </p>
                   {/* Post Images */}
@@ -686,7 +690,7 @@ export default function CommunityPage() {
                           alt={`post-img-${idx}`}
                           width={128}
                           height={128}
-                          className="w-32 h-32 object-cover rounded-lg cursor-pointer"
+                          className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg cursor-pointer flex-shrink-0"
                           onClick={() => {
                             setModalImageUrl(img);
                             setShowImageModal(true);
@@ -701,10 +705,10 @@ export default function CommunityPage() {
                   )}
                   {/* Food Name & Rating */}
                   {post.food_name && (
-                    <div className="flex items-center justify-between mb-4 p-3 bg-sage-50 rounded-lg">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 p-3 bg-sage-50 rounded-lg space-y-2 sm:space-y-0">
                       <div className="flex items-center space-x-2">
-                        <ChefHat className="w-4 h-4 text-forest-600" />
-                        <span className="font-medium text-forest-900">
+                        <ChefHat className="w-4 h-4 text-forest-600 flex-shrink-0" />
+                        <span className="font-medium text-forest-900 text-sm sm:text-base break-words">
                           {post.food_name}
                         </span>
                       </div>
@@ -733,46 +737,48 @@ export default function CommunityPage() {
                       {post.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm"
+                          className="px-2 sm:px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-xs sm:text-sm"
                         >
                           #{tag}
                         </span>
                       ))}
                     </div>
-                  )}
+                  )}{" "}
                   {/* Post Actions */}
                   <div className="flex items-center justify-between pt-4 border-t border-sage-200">
-                    <div className="flex items-center space-x-6">
+                    <div className="flex items-center space-x-4 sm:space-x-6">
                       <button
                         onClick={() => handleLikePost(post.id)}
-                        className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-all ${
+                        className={`flex items-center space-x-2 px-2 sm:px-3 py-2 rounded-lg transition-all text-sm sm:text-base ${
                           isLiked
                             ? "bg-red-50 text-red-600"
                             : "text-sage-600 hover:bg-sage-50"
                         }`}
                       >
                         <Heart
-                          className={`w-5 h-5 ${isLiked ? "fill-current" : ""}`}
+                          className={`w-4 h-4 sm:w-5 sm:h-5 ${
+                            isLiked ? "fill-current" : ""
+                          }`}
                         />
                         <span>{post.likes_count}</span>
                       </button>
 
-                      <div className="flex items-center space-x-2 text-sage-600">
-                        <MessageCircle className="w-5 h-5" />
+                      <div className="flex items-center space-x-2 text-sage-600 text-sm sm:text-base">
+                        <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5" />
                         <span>{post.comments_count}</span>
                       </div>
                     </div>
                   </div>{" "}
                   {/* Comments Section */}
                   {post.comments.length > 0 && (
-                    <div className="mt-4 pt-4 border-t border-sage-200 space-y-4">
+                    <div className="mt-4 pt-4 border-t border-sage-200 space-y-3 sm:space-y-4">
                       {(showAllComments[post.id]
                         ? post.comments
                         : post.comments.slice(0, 3)
                       ).map((comment) => (
                         <div key={comment.id} className="space-y-3">
                           {/* Main Comment */}
-                          <div className="relative flex space-x-3">
+                          <div className="relative flex space-x-2 sm:space-x-3">
                             <Image
                               src={
                                 comment.profiles.avatar_url ||
@@ -781,16 +787,16 @@ export default function CommunityPage() {
                               alt="Avatar"
                               width={32}
                               height={32}
-                              className="w-8 h-8 rounded-full object-cover"
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0"
                             />
-                            <div className="flex-1 bg-sage-50 rounded-lg p-3">
+                            <div className="flex-1 bg-sage-50 rounded-lg p-2 sm:p-3 min-w-0">
                               <div className="flex items-center justify-between mb-1">
-                                <span className="font-medium text-sm text-forest-900">
+                                <span className="font-medium text-xs sm:text-sm text-forest-900 truncate">
                                   {comment.profiles.full_name ||
                                     comment.profiles.username ||
                                     "Pengguna"}
                                 </span>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-shrink-0">
                                   <span className="text-xs text-sage-600">
                                     {formatDate(comment.created_at)}
                                   </span>
@@ -837,12 +843,12 @@ export default function CommunityPage() {
                                       )}
                                     </div>
                                   )}
-                                </div>
+                                </div>{" "}
                               </div>
-                              <p className="text-sage-700 text-sm mb-2">
+                              <p className="text-sage-700 text-xs sm:text-sm mb-2 break-words">
                                 {comment.content}
                               </p>
-                              <div className="flex items-center space-x-4">
+                              <div className="flex items-center space-x-3 sm:space-x-4">
                                 <button
                                   onClick={() =>
                                     handleReplyToComment(
@@ -877,11 +883,11 @@ export default function CommunityPage() {
                           {comment.replies &&
                             comment.replies.length > 0 &&
                             showReplies[comment.id] && (
-                              <div className="ml-11 space-y-3">
+                              <div className="ml-8 sm:ml-11 space-y-2 sm:space-y-3">
                                 {comment.replies.map((reply) => (
                                   <div
                                     key={reply.id}
-                                    className="relative flex space-x-3"
+                                    className="relative flex space-x-2 sm:space-x-3"
                                   >
                                     <Image
                                       src={
@@ -891,16 +897,16 @@ export default function CommunityPage() {
                                       alt="Avatar"
                                       width={28}
                                       height={28}
-                                      className="w-7 h-7 rounded-full object-cover"
+                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover flex-shrink-0"
                                     />
-                                    <div className="flex-1 bg-white border border-sage-200 rounded-lg p-3">
+                                    <div className="flex-1 bg-white border border-sage-200 rounded-lg p-2 sm:p-3 min-w-0">
                                       <div className="flex items-center justify-between mb-1">
-                                        <span className="font-medium text-sm text-forest-900">
+                                        <span className="font-medium text-xs sm:text-sm text-forest-900 truncate">
                                           {reply.profiles.full_name ||
                                             reply.profiles.username ||
                                             "Pengguna"}
                                         </span>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex items-center gap-2 flex-shrink-0">
                                           <span className="text-xs text-sage-600">
                                             {formatDate(reply.created_at)}
                                           </span>
@@ -954,12 +960,12 @@ export default function CommunityPage() {
                                               )}
                                             </div>
                                           )}
-                                        </div>
+                                        </div>{" "}
                                       </div>
-                                      <p className="text-sage-700 text-sm">
+                                      <p className="text-sage-700 text-xs sm:text-sm break-words">
                                         {reply.content}
                                       </p>
-                                      <div className="flex items-center space-x-4 mt-2">
+                                      <div className="flex items-center space-x-3 sm:space-x-4 mt-2">
                                         <button
                                           onClick={() =>
                                             handleReplyToComment(
@@ -983,7 +989,7 @@ export default function CommunityPage() {
 
                           {/* Reply Input */}
                           {replyingTo[post.id] === comment.id && (
-                            <div className="ml-11 flex space-x-3">
+                            <div className="ml-8 sm:ml-11 flex space-x-2 sm:space-x-3">
                               <Image
                                 src={
                                   userProfile?.avatar_url ||
@@ -992,7 +998,7 @@ export default function CommunityPage() {
                                 alt="Avatar"
                                 width={28}
                                 height={28}
-                                className="w-7 h-7 rounded-full object-cover"
+                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover flex-shrink-0"
                               />
                               <div className="flex-1 flex space-x-2">
                                 <input
