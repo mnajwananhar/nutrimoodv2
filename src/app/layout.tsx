@@ -6,7 +6,6 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { ToastProvider } from "@/components/ToastProvider";
 import { AuthErrorBoundary } from "@/components/AuthErrorBoundary";
 import PWAStatus from "@/components/PWAStatus";
-import OfflineIndicator from "@/components/OfflineIndicator";
 import PWAInstallBanner from "@/components/PWAInstallBanner";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -102,11 +101,10 @@ export default function RootLayout({
         <AuthErrorBoundary>
           <AuthProvider>
             <ToastProvider>
-              {" "}
-              <div className="min-h-screen ">
+              {" "}              <div className="min-h-screen ">
                 <Navbar />
                 <main>{children}</main> <PWAStatus />
-                <OfflineIndicator /> <PWAInstallBanner />
+                <PWAInstallBanner />
               </div>
             </ToastProvider>
           </AuthProvider>
