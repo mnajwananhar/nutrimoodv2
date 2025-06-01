@@ -9,11 +9,9 @@ import {
   RefreshCw,
   BookOpen,
   Star,
-  Clock,
   TrendingUp,
   Utensils,
   ArrowRight,
-  Share2,
   Zap,
   Smile,
   Target,
@@ -97,14 +95,12 @@ function formatConfidence(val: number): string {
 
 export default function ResultsPage() {
   const router = useRouter();
-  const { success, error } = useToast();
+  const { error } = useToast();
   const { user, isAuthLoading } = useAuth();
-
   const [assessmentData, setAssessmentData] = useState<AssessmentData | null>(
     null
   );
   const [likedFoods, setLikedFoods] = useState<Set<string>>(new Set());
-  const [consumedFoods, setConsumedFoods] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   useEffect(() => {
     const loadAssessmentData = async () => {
@@ -249,46 +245,9 @@ export default function ResultsPage() {
       }
     }
   };
-
-  const handleMarkConsumed = (foodName: string) => {
-    setConsumedFoods((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(foodName)) {
-        newSet.delete(foodName);
-      } else {
-        newSet.add(foodName);
-        success("Dicatat!", `${foodName} telah ditandai sudah dimakan.`);
-      }
-      return newSet;
-    });
-
-    // TODO: Save to database if user is logged in
-    if (user) {
-      // API call to save consumption status
-    }
-  };
-
   const handleNewAssessment = () => {
     sessionStorage.removeItem("nutrition_assessment");
     router.push("/recommendations/assessment");
-  };
-
-  const handleShareResults = async () => {
-    if (navigator.share && assessmentData) {
-      try {
-        await navigator.share({
-          title: "Hasil Analisis NutriMood Saya",
-          text: `Mood saya hari ini: ${assessmentData.result.mood_prediction.mood}. Coba analisis nutrisi di NutriMood!`,
-          url: window.location.origin,
-        });
-      } catch (err) {
-        console.log("Error sharing:", err);
-      }
-    } else {
-      // Fallback: copy link to clipboard
-      navigator.clipboard.writeText(window.location.origin);
-      success("Link Disalin!", "Link NutriMood telah disalin ke clipboard.");
-    }
   };
 
   if (isAuthLoading) return <ResultsSkeleton />;
@@ -480,15 +439,6 @@ export default function ResultsPage() {
                 <span className="hidden sm:inline">Analisis Ulang</span>
                 <span className="sm:hidden">Analisis Lagi</span>
               </button>
-
-              <button
-                onClick={handleShareResults}
-                className="w-full flex items-center justify-center gap-2 border-2 border-sage-300 text-sage-700 px-4 sm:px-6 py-3 rounded-xl font-semibold hover:bg-sage-50 transition-all duration-300 text-sm sm:text-base"
-              >
-                <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                <span className="hidden sm:inline">Bagikan Hasil</span>
-                <span className="sm:hidden">Bagikan</span>
-              </button>
             </div>
           </div>{" "}
           {/* Right Column - Food Recommendations */}
@@ -511,11 +461,7 @@ export default function ResultsPage() {
                     {result.food_recommendations.map((food, index) => (
                       <div
                         key={index}
-                        className={`bg-sage-50 rounded-xl p-4 sm:p-6 border transition-all duration-200 hover:shadow-md ${
-                          consumedFoods.has(food.food_name)
-                            ? "border-green-300 bg-green-50"
-                            : "border-sage-200 hover:border-sage-300"
-                        }`}
+                        className="bg-sage-50 rounded-xl p-4 sm:p-6 border border-sage-200 hover:border-sage-300 transition-all duration-200 hover:shadow-md"
                       >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-3 sm:mb-4 gap-3 sm:gap-4">
                           <div className="flex-1 min-w-0">
@@ -535,8 +481,7 @@ export default function ResultsPage() {
                                 {food.mood_category}
                               </div>
                             </div>
-                          </div>
-
+                          </div>{" "}
                           <div className="flex gap-2 self-start sm:self-auto">
                             <button
                               onClick={() => handleLikeFood(food.food_name)}
@@ -558,22 +503,6 @@ export default function ResultsPage() {
                                     : ""
                                 }`}
                               />
-                            </button>
-
-                            <button
-                              onClick={() => handleMarkConsumed(food.food_name)}
-                              className={`p-2 rounded-lg transition-colors ${
-                                consumedFoods.has(food.food_name)
-                                  ? "bg-green-100 text-green-600 hover:bg-green-200"
-                                  : "bg-sage-100 text-sage-600 hover:bg-sage-200"
-                              }`}
-                              title={
-                                consumedFoods.has(food.food_name)
-                                  ? "Sudah dimakan"
-                                  : "Tandai sudah dimakan"
-                              }
-                            >
-                              <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
                             </button>
                           </div>
                         </div>

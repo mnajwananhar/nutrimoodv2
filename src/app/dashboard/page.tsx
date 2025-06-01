@@ -12,10 +12,10 @@ import {
   Clock,
   ChefHat,
   Brain,
-  Star,
   Award,
   Activity,
   BarChart3,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import { DashboardSkeleton } from "@/components/Skeleton";
@@ -27,7 +27,7 @@ interface UserStats {
   posts_count: number;
   likes_received: number;
   days_active: number;
-  avg_mood_score: number;
+  avg_confidence_score: number;
   favorite_foods: string[];
   mood_trend: string;
 }
@@ -67,7 +67,7 @@ export default function DashboardPage() {
         await Promise.all([
           supabase
             .from("nutrition_assessments")
-            .select("*")
+            .select("*, confidence_score")
             .eq("user_id", user.id),
           supabase.from("community_posts").select("*").eq("user_id", user.id),
           supabase
@@ -86,13 +86,28 @@ export default function DashboardPage() {
       const likes = likesRes.data || [];
       const favFoods = favFoodsRes.data || [];
 
-      // Calculate mood trend
+      // Calculate mood trend and average confidence
       const recentAssessments = assessments
         .sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         )
         .slice(0, 5);
+
+      // Calculate average confidence score from recent assessments
+      const avgConfidenceScore =
+        recentAssessments.length > 0
+          ? recentAssessments.reduce((sum, assessment) => {
+              // Normalize confidence_score to 0-100 scale if needed
+              const normalizedConfidence =
+                assessment.confidence_score <= 1
+                  ? assessment.confidence_score * 100
+                  : assessment.confidence_score;
+              return sum + normalizedConfidence;
+            }, 0) / recentAssessments.length
+          : 0;
+
+      // Calculate mood trend based on recent assessments
       const avgMoodScore =
         recentAssessments.length > 0
           ? recentAssessments.reduce((sum, assessment) => {
@@ -144,7 +159,7 @@ export default function DashboardPage() {
         posts_count: posts.length,
         likes_received: likes.length,
         days_active: daysActive,
-        avg_mood_score: avgMoodScore ? Math.round(avgMoodScore * 10) / 10 : 0,
+        avg_confidence_score: Math.round(avgConfidenceScore * 10) / 10,
         favorite_foods: favoriteFoods,
         mood_trend: moodTrend,
       });
@@ -247,20 +262,6 @@ export default function DashboardPage() {
       year: "numeric",
     });
   };
-  const getMoodColor = (trend: string) => {
-    switch (trend) {
-      case "improving":
-        return "text-green-600 bg-green-100";
-      case "stable":
-        return "text-blue-600 bg-blue-100";
-      case "declining":
-        return "text-red-600 bg-red-100";
-      case "no_data":
-        return "text-gray-500 bg-gray-50";
-      default:
-        return "text-gray-600 bg-gray-100";
-    }
-  };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -290,13 +291,19 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4 mb-4">
-            <Image
-              src={userProfile?.avatar_url || "/api/placeholder/80/80"}
-              alt="Profile"
-              width={80}
-              height={80}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-lg mx-auto sm:mx-0"
-            />
+            {userProfile?.avatar_url ? (
+              <Image
+                src={userProfile.avatar_url}
+                alt="Profile"
+                width={80}
+                height={80}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover border-4 border-white shadow-lg mx-auto sm:mx-0"
+              />
+            ) : (
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gray-300 flex items-center justify-center border-4 border-white shadow-lg mx-auto sm:mx-0">
+                <User className="w-8 h-8 sm:w-10 sm:h-10 text-gray-500" />
+              </div>
+            )}
             <div className="text-center sm:text-left">
               <h1 className="text-2xl sm:text-3xl font-bold text-forest-900 px-2">
                 Selamat datang,{" "}
@@ -407,24 +414,11 @@ export default function DashboardPage() {
                   <h2 className="text-lg sm:text-xl font-bold text-forest-900">
                     Perkembangan Mood
                   </h2>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs sm:text-sm font-medium self-start sm:self-auto ${getMoodColor(
-                      stats?.mood_trend || "no_data"
-                    )}`}
-                  >
-                    {stats?.mood_trend === "improving"
-                      ? "Membaik"
-                      : stats?.mood_trend === "declining"
-                      ? "Menurun"
-                      : stats?.mood_trend === "stable"
-                      ? "Stabil"
-                      : "Belum Ada Data"}
-                  </span>
                 </div>
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between space-y-2 sm:space-y-0">
                     <span className="text-sage-700 text-sm sm:text-base">
-                      Skor Mood Rata-rata
+                      Rata-rata Confidence Score
                     </span>
                     {stats?.mood_trend === "no_data" ? (
                       <span className="text-gray-500 italic text-sm">
@@ -432,21 +426,9 @@ export default function DashboardPage() {
                       </span>
                     ) : (
                       <div className="flex items-center space-x-2">
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-4 h-4 sm:w-5 sm:h-5 ${
-                                star <= (stats?.avg_mood_score || 0)
-                                  ? "text-yellow-500 fill-current"
-                                  : "text-gray-300"
-                              }`}
-                            />
-                          ))}
+                        <div className="px-3 py-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-full text-sm font-medium">
+                          {stats?.avg_confidence_score || 0}%
                         </div>
-                        <span className="font-semibold text-forest-900 text-sm sm:text-base">
-                          {stats?.avg_mood_score || 0}/5
-                        </span>
                       </div>
                     )}
                   </div>

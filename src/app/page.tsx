@@ -26,9 +26,7 @@ export default function HomePage() {
             {/* Badge */}
             <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-forest-100 text-forest-700 rounded-full text-sm font-medium border border-forest-200">
               <Brain className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">
-                AI-Powered Nutrition & Mood Analysis
-              </span>
+              <span className="hidden sm:inline">AI Nutrisi & Mood</span>
               <span className="sm:hidden">AI Nutrisi & Mood</span>
             </div>
 

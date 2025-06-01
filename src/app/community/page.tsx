@@ -23,6 +23,7 @@ import {
   Trash2,
   MoreHorizontal,
   Upload,
+  User,
 } from "lucide-react";
 import { CommunitySkeleton } from "@/components/Skeleton";
 import { useRouter } from "next/navigation";
@@ -399,25 +400,40 @@ export default function CommunityPage() {
   const toggleReplies = (commentId: number) => {
     setShowReplies((prev) => ({ ...prev, [commentId]: !prev[commentId] }));
   };
+  const formatDate = (dateString: string): string => {
+    try {
+      // Simple fix: Database gives WIB time, just treat it as local time
+      const dbDate = new Date(dateString);
+      const now = new Date();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+      // Just subtract 7 hours from the difference to compensate for timezone
+      const diffMs = now.getTime() - dbDate.getTime() - 7 * 60 * 60 * 1000;
+      const diffMins = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const diffWeeks = Math.floor(diffDays / 7);
+      const diffMonths = Math.floor(diffDays / 30);
+      const diffYears = Math.floor(diffDays / 365);
 
-    if (diffMins < 1) return "baru saja";
-    if (diffMins < 60) return `${diffMins} menit lalu`;
-    if (diffHours < 24) return `${diffHours} jam lalu`;
-    if (diffDays < 7) return `${diffDays} hari lalu`;
-
-    return date.toLocaleDateString("id-ID", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+      if (diffYears > 0) {
+        return `${diffYears} tahun yang lalu`;
+      } else if (diffMonths > 0) {
+        return `${diffMonths} bulan yang lalu`;
+      } else if (diffWeeks > 0) {
+        return `${diffWeeks} minggu yang lalu`;
+      } else if (diffDays > 0) {
+        return `${diffDays} hari yang lalu`;
+      } else if (diffHours > 0) {
+        return `${diffHours} jam yang lalu`;
+      } else if (diffMins > 0) {
+        return `${diffMins} menit yang lalu`;
+      } else {
+        return "baru saja";
+      }
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return "tanggal tidak valid";
+    }
   };
 
   const getTypeConfig = (type: string) => {
@@ -538,7 +554,6 @@ export default function CommunityPage() {
             </div>
           </div>
         </div>
-
         {/* Posts */}
         {loading ? (
           <div className="space-y-6">
@@ -596,15 +611,20 @@ export default function CommunityPage() {
                   {/* Post Header */}{" "}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
-                      <Image
-                        src={
-                          post.profiles.avatar_url || "/api/placeholder/48/48"
-                        }
-                        alt="Avatar"
-                        width={48}
-                        height={48}
-                        className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
-                      />
+                      {" "}
+                      {post.profiles.avatar_url ? (
+                        <Image
+                          src={post.profiles.avatar_url}
+                          alt="Avatar"
+                          width={48}
+                          height={48}
+                          className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                          <User className="w-5 h-5 sm:w-6 sm:h-6 text-gray-500" />
+                        </div>
+                      )}
                       <div className="min-w-0 flex-1">
                         <h4 className="font-semibold text-forest-900 text-sm sm:text-base truncate">
                           {post.profiles.full_name ||
@@ -677,9 +697,9 @@ export default function CommunityPage() {
                   <h3 className="text-lg sm:text-xl font-semibold text-forest-900 mb-3 break-words">
                     {post.title}
                   </h3>
-                  <p className="text-sage-700 mb-4 leading-relaxed text-sm sm:text-base break-words">
+                  <div className="text-sage-700 mb-4 leading-relaxed text-sm sm:text-base break-words whitespace-pre-wrap">
                     {post.content}
-                  </p>
+                  </div>
                   {/* Post Images */}
                   {post.images && post.images.length > 0 && (
                     <div className="flex gap-2 overflow-x-auto py-2 mb-4">
@@ -696,7 +716,7 @@ export default function CommunityPage() {
                             setShowImageModal(true);
                           }}
                           onError={(e) => {
-                            e.currentTarget.src = "/api/placeholder/128/128";
+                            e.currentTarget.style.display = "none";
                           }}
                           style={{ objectFit: "cover" }}
                         />
@@ -779,16 +799,20 @@ export default function CommunityPage() {
                         <div key={comment.id} className="space-y-3">
                           {/* Main Comment */}
                           <div className="relative flex space-x-2 sm:space-x-3">
-                            <Image
-                              src={
-                                comment.profiles.avatar_url ||
-                                "/api/placeholder/32/32"
-                              }
-                              alt="Avatar"
-                              width={32}
-                              height={32}
-                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0"
-                            />
+                            {" "}
+                            {comment.profiles.avatar_url ? (
+                              <Image
+                                src={comment.profiles.avatar_url}
+                                alt="Avatar"
+                                width={32}
+                                height={32}
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0"
+                              />
+                            ) : (
+                              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                                <User className="w-3 h-3 sm:w-4 sm:h-4 text-gray-500" />
+                              </div>
+                            )}
                             <div className="flex-1 bg-sage-50 rounded-lg p-2 sm:p-3 min-w-0">
                               <div className="flex items-center justify-between mb-1">
                                 <span className="font-medium text-xs sm:text-sm text-forest-900 truncate">
@@ -845,9 +869,9 @@ export default function CommunityPage() {
                                   )}
                                 </div>{" "}
                               </div>
-                              <p className="text-sage-700 text-xs sm:text-sm mb-2 break-words">
+                              <div className="text-sage-700 text-xs sm:text-sm mb-2 break-words whitespace-pre-wrap">
                                 {comment.content}
-                              </p>
+                              </div>
                               <div className="flex items-center space-x-3 sm:space-x-4">
                                 <button
                                   onClick={() =>
@@ -878,7 +902,6 @@ export default function CommunityPage() {
                               </div>
                             </div>
                           </div>
-
                           {/* Replies */}
                           {comment.replies &&
                             comment.replies.length > 0 &&
@@ -889,16 +912,20 @@ export default function CommunityPage() {
                                     key={reply.id}
                                     className="relative flex space-x-2 sm:space-x-3"
                                   >
-                                    <Image
-                                      src={
-                                        reply.profiles.avatar_url ||
-                                        "/api/placeholder/28/28"
-                                      }
-                                      alt="Avatar"
-                                      width={28}
-                                      height={28}
-                                      className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover flex-shrink-0"
-                                    />
+                                    {" "}
+                                    {reply.profiles.avatar_url ? (
+                                      <Image
+                                        src={reply.profiles.avatar_url}
+                                        alt="Avatar"
+                                        width={28}
+                                        height={28}
+                                        className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover flex-shrink-0"
+                                      />
+                                    ) : (
+                                      <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                                        <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500" />
+                                      </div>
+                                    )}
                                     <div className="flex-1 bg-white border border-sage-200 rounded-lg p-2 sm:p-3 min-w-0">
                                       <div className="flex items-center justify-between mb-1">
                                         <span className="font-medium text-xs sm:text-sm text-forest-900 truncate">
@@ -962,9 +989,9 @@ export default function CommunityPage() {
                                           )}
                                         </div>{" "}
                                       </div>
-                                      <p className="text-sage-700 text-xs sm:text-sm break-words">
+                                      <div className="text-sage-700 text-xs sm:text-sm break-words whitespace-pre-wrap">
                                         {reply.content}
-                                      </p>
+                                      </div>
                                       <div className="flex items-center space-x-3 sm:space-x-4 mt-2">
                                         <button
                                           onClick={() =>
@@ -985,43 +1012,112 @@ export default function CommunityPage() {
                                   </div>
                                 ))}
                               </div>
-                            )}
-
+                            )}{" "}
                           {/* Reply Input */}
                           {replyingTo[post.id] === comment.id && (
-                            <div className="ml-8 sm:ml-11 flex space-x-2 sm:space-x-3">
-                              <Image
-                                src={
-                                  userProfile?.avatar_url ||
-                                  "/api/placeholder/28/28"
-                                }
-                                alt="Avatar"
-                                width={28}
-                                height={28}
-                                className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover flex-shrink-0"
-                              />
-                              <div className="flex-1 flex space-x-2">
-                                <input
-                                  type="text"
-                                  placeholder="Tulis balasan..."
-                                  value={
-                                    newComment[`${post.id}-${comment.id}`] || ""
-                                  }
-                                  onChange={(e) =>
-                                    setNewComment((prev) => ({
-                                      ...prev,
-                                      [`${post.id}-${comment.id}`]:
-                                        e.target.value,
-                                    }))
-                                  }
-                                  onKeyPress={(e) => {
-                                    if (e.key === "Enter") {
-                                      handleAddComment(post.id, comment.id);
-                                    }
-                                  }}
-                                  className="flex-1 px-3 py-2 text-sm border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
-                                  autoFocus
+                            <div className="ml-8 sm:ml-11 flex items-center space-x-2 sm:space-x-3">
+                              {" "}
+                              {userProfile?.avatar_url ? (
+                                <Image
+                                  src={userProfile.avatar_url}
+                                  alt="Avatar"
+                                  width={28}
+                                  height={28}
+                                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full object-cover flex-shrink-0"
                                 />
+                              ) : (
+                                <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-gray-500" />
+                                </div>
+                              )}{" "}
+                              <div className="flex-1 flex items-center space-x-2">
+                                <div className="flex-1 relative">
+                                  <textarea
+                                    placeholder="Tulis balasan..."
+                                    value={
+                                      newComment[`${post.id}-${comment.id}`] ||
+                                      ""
+                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (value.length <= 500) {
+                                        setNewComment((prev) => ({
+                                          ...prev,
+                                          [`${post.id}-${comment.id}`]: value,
+                                        }));
+                                      }
+                                    }}
+                                    onPaste={(e) => {
+                                      const pastedText =
+                                        e.clipboardData.getData("text");
+                                      const currentText =
+                                        newComment[
+                                          `${post.id}-${comment.id}`
+                                        ] || "";
+                                      const newText = currentText + pastedText;
+
+                                      if (newText.length > 500) {
+                                        e.preventDefault();
+                                        const remainingChars =
+                                          500 - currentText.length;
+                                        const truncatedText =
+                                          pastedText.substring(
+                                            0,
+                                            remainingChars
+                                          );
+                                        setNewComment((prev) => ({
+                                          ...prev,
+                                          [`${post.id}-${comment.id}`]:
+                                            currentText + truncatedText,
+                                        }));
+                                      }
+                                    }}
+                                    onKeyPress={(e) => {
+                                      if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleAddComment(post.id, comment.id);
+                                      }
+                                    }}
+                                    rows={1}
+                                    maxLength={500}
+                                    className={`w-full px-3 py-2 min-h-[40px] text-sm border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400 resize-none transition-colors ${
+                                      (
+                                        newComment[
+                                          `${post.id}-${comment.id}`
+                                        ] || ""
+                                      ).length > 450
+                                        ? "border-yellow-400 bg-yellow-50"
+                                        : (
+                                            newComment[
+                                              `${post.id}-${comment.id}`
+                                            ] || ""
+                                          ).length === 500
+                                        ? "border-red-400 bg-red-50"
+                                        : "border-sage-300"
+                                    }`}
+                                    style={{ lineHeight: "1.5" }}
+                                  />
+                                  {(
+                                    newComment[`${post.id}-${comment.id}`] || ""
+                                  ).length > 450 && (
+                                    <div className="absolute -bottom-5 right-0 text-xs text-yellow-600">
+                                      {(
+                                        newComment[
+                                          `${post.id}-${comment.id}`
+                                        ] || ""
+                                      ).length === 500
+                                        ? "Maksimal"
+                                        : `${
+                                            500 -
+                                            (
+                                              newComment[
+                                                `${post.id}-${comment.id}`
+                                              ] || ""
+                                            ).length
+                                          } sisa`}
+                                    </div>
+                                  )}
+                                </div>
                                 <button
                                   onClick={() =>
                                     handleAddComment(post.id, comment.id)
@@ -1029,22 +1125,35 @@ export default function CommunityPage() {
                                   disabled={
                                     !newComment[
                                       `${post.id}-${comment.id}`
-                                    ]?.trim()
+                                    ]?.trim() || loading
                                   }
-                                  className="px-3 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                                  className="flex items-center justify-center w-10 h-10 bg-forest-400 hover:bg-forest-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                                  title="Kirim"
                                 >
-                                  <Send className="w-3 h-3" />
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    setReplyingTo((prev) => ({
-                                      ...prev,
-                                      [post.id]: null,
-                                    }))
-                                  }
-                                  className="px-3 py-2 text-sage-600 hover:text-sage-700 transition-all"
-                                >
-                                  <X className="w-3 h-3" />
+                                  {loading ? (
+                                    <svg
+                                      className="animate-spin h-4 w-4"
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                      ></circle>
+                                      <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                      ></path>
+                                    </svg>
+                                  ) : (
+                                    <Send className="w-4 h-4" />
+                                  )}
                                 </button>
                               </div>
                             </div>
@@ -1082,42 +1191,109 @@ export default function CommunityPage() {
                   )}{" "}
                   {/* Add Comment */}
                   <div className="mt-4 pt-4 border-t border-sage-200">
-                    <div className="flex space-x-3">
-                      <Image
-                        src={
-                          userProfile?.avatar_url || "/api/placeholder/32/32"
-                        }
-                        alt="Avatar"
-                        width={32}
-                        height={32}
-                        className="w-8 h-8 rounded-full object-cover"
-                      />
-                      <div className="flex-1 flex space-x-2">
-                        <input
-                          type="text"
+                    <div className="flex items-center space-x-2">
+                      {userProfile?.avatar_url ? (
+                        <Image
+                          src={userProfile.avatar_url}
+                          alt="Avatar"
+                          width={32}
+                          height={32}
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-gray-500" />
+                        </div>
+                      )}
+                      <div className="flex-1 relative">
+                        <textarea
                           placeholder="Tulis komentar..."
                           value={newComment[post.id] || ""}
-                          onChange={(e) =>
-                            setNewComment((prev) => ({
-                              ...prev,
-                              [post.id]: e.target.value,
-                            }))
-                          }
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value.length <= 500) {
+                              setNewComment((prev) => ({
+                                ...prev,
+                                [post.id]: value,
+                              }));
+                            }
+                          }}
+                          onPaste={(e) => {
+                            const pastedText = e.clipboardData.getData("text");
+                            const currentText = newComment[post.id] || "";
+                            const newText = currentText + pastedText;
+
+                            if (newText.length > 500) {
+                              e.preventDefault();
+                              const remainingChars = 500 - currentText.length;
+                              const truncatedText = pastedText.substring(
+                                0,
+                                remainingChars
+                              );
+                              setNewComment((prev) => ({
+                                ...prev,
+                                [post.id]: currentText + truncatedText,
+                              }));
+                            }
+                          }}
                           onKeyPress={(e) => {
-                            if (e.key === "Enter") {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                              e.preventDefault();
                               handleAddComment(post.id);
                             }
                           }}
-                          className="flex-1 px-4 py-2 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
+                          rows={1}
+                          maxLength={500}
+                          className={`w-full px-3 py-2 min-h-[40px] text-sm border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400 resize-none transition-colors ${
+                            (newComment[post.id] || "").length > 450
+                              ? "border-yellow-400 bg-yellow-50"
+                              : (newComment[post.id] || "").length === 500
+                              ? "border-red-400 bg-red-50"
+                              : "border-sage-300"
+                          }`}
+                          style={{ lineHeight: "1.5" }}
                         />
-                        <button
-                          onClick={() => handleAddComment(post.id)}
-                          disabled={!newComment[post.id]?.trim()}
-                          className="px-4 py-2 bg-forest-600 text-white rounded-lg hover:bg-forest-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                        >
+                        {(newComment[post.id] || "").length > 450 && (
+                          <div className="absolute -bottom-5 right-0 text-xs text-yellow-600">
+                            {(newComment[post.id] || "").length === 500
+                              ? "Maksimal"
+                              : `${
+                                  500 - (newComment[post.id] || "").length
+                                } sisa`}
+                          </div>
+                        )}
+                      </div>{" "}
+                      <button
+                        onClick={() => handleAddComment(post.id)}
+                        disabled={!newComment[post.id]?.trim() || loading}
+                        className="flex items-center justify-center w-10 h-10 bg-forest-400 hover:bg-forest-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex-shrink-0"
+                        title="Kirim"
+                      >
+                        {loading ? (
+                          <svg
+                            className="animate-spin h-4 w-4"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
+                          </svg>
+                        ) : (
                           <Send className="w-4 h-4" />
-                        </button>
-                      </div>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -1125,7 +1301,6 @@ export default function CommunityPage() {
             })}
           </div>
         )}
-
         {/* Create Post Modal */}
         {showCreatePost && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -1141,7 +1316,6 @@ export default function CommunityPage() {
                   <X className="w-6 h-6" />
                 </button>
               </div>
-
               <div className="p-6 space-y-6">
                 {/* Post Type */}
                 <div>
@@ -1189,64 +1363,146 @@ export default function CommunityPage() {
                       );
                     })}
                   </div>
-                </div>
-
+                </div>{" "}
                 {/* Title */}
                 <div>
                   <label className="block text-sm font-medium text-sage-700 mb-2">
-                    Judul
+                    Judul <span className="text-red-500">*</span>
+                    <span className="text-xs text-sage-500 ml-2">
+                      ({newPost.title.length}/100 karakter)
+                    </span>
                   </label>
                   <input
                     type="text"
                     value={newPost.title}
-                    onChange={(e) =>
-                      setNewPost((prev) => ({ ...prev, title: e.target.value }))
-                    }
-                    className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 100) {
+                        setNewPost((prev) => ({ ...prev, title: value }));
+                      }
+                    }}
+                    maxLength={100}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent transition-colors ${
+                      newPost.title.length > 90
+                        ? "border-yellow-400 bg-yellow-50"
+                        : newPost.title.length === 100
+                        ? "border-red-400 bg-red-50"
+                        : "border-sage-300"
+                    }`}
                     placeholder="Masukkan judul posting..."
                   />
-                </div>
-
+                  {newPost.title.length > 90 && (
+                    <p className="text-xs text-yellow-600 mt-1">
+                      {newPost.title.length === 100
+                        ? "Batas maksimal tercapai"
+                        : `Sisa ${100 - newPost.title.length} karakter`}
+                    </p>
+                  )}
+                </div>{" "}
                 {/* Content */}
                 <div>
                   <label className="block text-sm font-medium text-sage-700 mb-2">
-                    Konten
-                  </label>{" "}
+                    Konten <span className="text-red-500">*</span>
+                    <span className="text-xs text-sage-500 ml-2">
+                      ({newPost.content.length}/2000 karakter)
+                    </span>
+                  </label>
                   <textarea
                     value={newPost.content}
-                    onChange={(e) =>
-                      setNewPost((prev) => ({
-                        ...prev,
-                        content: e.target.value,
-                      }))
-                    }
-                    rows={6}
-                    className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
-                    placeholder="Tulis konten posting Anda..."
-                  />
-                </div>
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value.length <= 2000) {
+                        setNewPost((prev) => ({
+                          ...prev,
+                          content: value,
+                        }));
+                      }
+                    }}
+                    onPaste={(e) => {
+                      // Handle paste event untuk memastikan tidak melebihi limit
+                      const pastedText = e.clipboardData.getData("text");
+                      const currentText = newPost.content;
+                      const newText = currentText + pastedText;
 
+                      if (newText.length > 2000) {
+                        e.preventDefault();
+                        const remainingChars = 2000 - currentText.length;
+                        const truncatedText = pastedText.substring(
+                          0,
+                          remainingChars
+                        );
+                        setNewPost((prev) => ({
+                          ...prev,
+                          content: currentText + truncatedText,
+                        }));
+                        error(
+                          "Peringatan",
+                          `Teks yang di-paste terlalu panjang. Hanya ${remainingChars} karakter pertama yang ditambahkan.`
+                        );
+                      }
+                    }}
+                    rows={8}
+                    maxLength={2000}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400 resize-y min-h-[8rem] max-h-[20rem] transition-colors ${
+                      newPost.content.length > 1800
+                        ? "border-yellow-400 bg-yellow-50"
+                        : newPost.content.length === 2000
+                        ? "border-red-400 bg-red-50"
+                        : "border-sage-300"
+                    }`}
+                    placeholder="Tulis konten posting Anda... &#10;&#10;Tips: &#10;• Gunakan Enter untuk baris baru &#10;• Maksimal 2000 karakter &#10;• Ceritakan pengalaman dengan detail"
+                    style={{ whiteSpace: "pre-wrap" }}
+                  />
+                  <div className="flex justify-between items-center mt-2">
+                    {newPost.content.length > 1800 && (
+                      <p className="text-xs text-yellow-600">
+                        {newPost.content.length === 2000
+                          ? "Batas maksimal tercapai"
+                          : `Sisa ${2000 - newPost.content.length} karakter`}
+                      </p>
+                    )}
+                  </div>
+                </div>{" "}
                 {/* Food Name (if recipe or review) */}
                 {(newPost.type === "recipe" || newPost.type === "review") && (
                   <div>
                     <label className="block text-sm font-medium text-sage-700 mb-2">
-                      Nama Makanan
+                      Nama Makanan <span className="text-red-500">*</span>
+                      <span className="text-xs text-sage-500 ml-2">
+                        ({newPost.food_name.length}/50 karakter)
+                      </span>
                     </label>
                     <input
                       type="text"
                       value={newPost.food_name}
-                      onChange={(e) =>
-                        setNewPost((prev) => ({
-                          ...prev,
-                          food_name: e.target.value,
-                        }))
-                      }
-                      className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
-                      placeholder="Nama makanan..."
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.length <= 50) {
+                          setNewPost((prev) => ({
+                            ...prev,
+                            food_name: value,
+                          }));
+                        }
+                      }}
+                      maxLength={50}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400 transition-colors ${
+                        newPost.food_name.length > 40
+                          ? "border-yellow-400 bg-yellow-50"
+                          : newPost.food_name.length === 50
+                          ? "border-red-400 bg-red-50"
+                          : "border-sage-300"
+                      }`}
+                      placeholder="Contoh: Nasi Gudeg Yogyakarta"
                     />
+                    {newPost.food_name.length > 40 && (
+                      <p className="text-xs text-yellow-600 mt-1">
+                        {newPost.food_name.length === 50
+                          ? "Batas maksimal tercapai"
+                          : `Sisa ${50 - newPost.food_name.length} karakter`}
+                      </p>
+                    )}
                   </div>
-                )}
-
+                )}{" "}
                 {/* Rating (if review) */}
                 {newPost.type === "review" && (
                   <div>
@@ -1273,39 +1529,65 @@ export default function CommunityPage() {
                       ))}
                     </div>
                   </div>
-                )}
-
+                )}{" "}
                 {/* Tags */}
                 <div>
                   <label className="block text-sm font-medium text-sage-700 mb-2">
                     Tags (opsional)
-                  </label>{" "}
+                    <span className="text-xs text-sage-500 ml-2">
+                      (Maksimal 5 tags, 20 karakter per tag)
+                    </span>
+                  </label>
                   <input
                     type="text"
                     placeholder="Pisahkan dengan koma (contoh: sehat, enak, mudah)"
                     onChange={(e) => {
-                      const tags = e.target.value
+                      const inputValue = e.target.value;
+                      const tags = inputValue
                         .split(",")
                         .map((tag) => tag.trim())
-                        .filter(Boolean);
+                        .filter(Boolean)
+                        .slice(0, 5) // Maksimal 5 tags
+                        .map((tag) => tag.substring(0, 20)); // Maksimal 20 karakter per tag
+
                       setNewPost((prev) => ({ ...prev, tags }));
                     }}
                     className="w-full px-4 py-3 border border-sage-300 rounded-lg focus:ring-2 focus:ring-forest-500 focus:border-transparent text-sage-900 placeholder-sage-400"
                   />
                   {newPost.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {newPost.tags.map((tag, index) => (
-                        <span
-                          key={index}
-                          className="px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
+                    <div className="mt-3">
+                      <div className="flex flex-wrap gap-2">
+                        {newPost.tags.map((tag, index) => (
+                          <span
+                            key={index}
+                            className="inline-flex items-center px-3 py-1 bg-forest-100 text-forest-700 rounded-full text-sm"
+                          >
+                            #{tag}
+                            <button
+                              onClick={() => {
+                                const newTags = newPost.tags.filter(
+                                  (_, i) => i !== index
+                                );
+                                setNewPost((prev) => ({
+                                  ...prev,
+                                  tags: newTags,
+                                }));
+                              }}
+                              className="ml-2 text-forest-500 hover:text-forest-700"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                      {newPost.tags.length >= 5 && (
+                        <p className="text-xs text-yellow-600 mt-2">
+                          Maksimal 5 tags tercapai
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
-
                 {/* Upload Gambar */}
                 <div>
                   <label className="block text-sm font-medium text-sage-700 mb-2">
@@ -1349,47 +1631,98 @@ export default function CommunityPage() {
                     </div>
                   )}
                 </div>
-              </div>
-
+              </div>{" "}
               <div className="flex justify-end space-x-4 p-6 border-t border-sage-200">
                 <button
-                  onClick={() => setShowCreatePost(false)}
-                  className="px-6 py-3 text-sage-600 hover:text-sage-700 font-medium"
+                  onClick={() => {
+                    setShowCreatePost(false);
+                    // Reset form
+                    setNewPost({
+                      type: "story",
+                      title: "",
+                      content: "",
+                      food_name: "",
+                      rating: null,
+                      tags: [],
+                    });
+                    setSelectedImages([]);
+                    setImagePreviews([]);
+                  }}
+                  className="px-6 py-3 text-sage-600 hover:text-sage-700 font-medium transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleCreatePost}
-                  disabled={!newPost.title.trim() || !newPost.content.trim()}
-                  className="px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  disabled={
+                    loading ||
+                    !newPost.title.trim() ||
+                    !newPost.content.trim() ||
+                    ((newPost.type === "recipe" || newPost.type === "review") &&
+                      !newPost.food_name.trim()) ||
+                    (newPost.type === "review" && !newPost.rating)
+                  }
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-forest-600 to-forest-700 text-white rounded-lg font-medium hover:from-forest-700 hover:to-forest-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
                 >
-                  Posting
+                  {loading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Memposting...
+                    </>
+                  ) : (
+                    "Posting"
+                  )}
                 </button>
               </div>
             </div>
           </div>
-        )}
-
+        )}{" "}
         {/* Modal preview gambar ukuran asli */}
         {showImageModal && modalImageUrl && (
-          <div
-            className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
-            onClick={() => setShowImageModal(false)}
-          >
-            <Image
-              src={modalImageUrl}
-              alt="modal-img"
-              width={512}
-              height={512}
-              className="max-w-full max-h-full rounded-lg shadow-lg"
-              onError={(e) => {
-                e.currentTarget.src = "/api/placeholder/512/512";
-              }}
-              style={{ objectFit: "contain" }}
-            />
+          <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+            <div className="relative max-w-full max-h-full">
+              {/* Tombol Close (X) */}
+              <button
+                onClick={() => setShowImageModal(false)}
+                className="absolute -top-12 right-0 z-10 bg-black bg-opacity-50 hover:bg-opacity-70 text-white rounded-full p-2 transition-all duration-200 backdrop-blur-sm"
+                title="Tutup gambar"
+              >
+                <X className="w-6 h-6" />
+              </button>
+
+              <Image
+                src={modalImageUrl}
+                alt="modal-img"
+                width={512}
+                height={512}
+                className="max-w-full max-h-full rounded-lg shadow-lg"
+                onError={() => {
+                  setShowImageModal(false);
+                }}
+                style={{ objectFit: "contain" }}
+              />
+            </div>
           </div>
         )}
-
         {showDeleteModal && (
           <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50">
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-xs w-full text-center">

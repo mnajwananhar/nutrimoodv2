@@ -61,7 +61,6 @@ export const metadata: Metadata = {
       { url: "/icons/icon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],
-    shortcut: "/favicon.ico",
     apple: [
       { url: "/icons/icon-152x152.png", sizes: "152x152", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
@@ -96,6 +95,7 @@ export default function RootLayout({
           sizes="16x16"
           href="/icons/icon-16x16.png"
         />
+        <link rel="icon" href="/icons/icon-32x32.png" type="image/png" />
       </head>
       <body className={inter.className}>
         <AuthErrorBoundary>

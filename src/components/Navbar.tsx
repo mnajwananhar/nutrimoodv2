@@ -272,6 +272,7 @@ export default function Navbar() {
                     }}
                     className="flex items-center space-x-2 p-2 rounded-lg hover:bg-sage-50 transition-colors"
                   >
+                    {" "}
                     {userProfile?.avatar_url ? (
                       <Image
                         src={userProfile.avatar_url}
@@ -281,10 +282,8 @@ export default function Navbar() {
                         className="w-8 h-8 rounded-full object-cover border border-sage-200"
                       />
                     ) : (
-                      <div className="w-8 h-8 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                        {userProfile?.full_name?.[0]?.toUpperCase() ||
-                          user?.email?.[0]?.toUpperCase() ||
-                          "U"}
+                      <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-500" />
                       </div>
                     )}
                     <span className="text-sage-700 font-medium">
@@ -306,11 +305,8 @@ export default function Navbar() {
                             className="w-8 h-8 rounded-full object-cover border border-sage-200"
                           />
                         ) : (
-                          <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white font-bold">
-                            {userProfile?.full_name?.[0]?.toUpperCase() ||
-                              userProfile?.username?.[0]?.toUpperCase() ||
-                              user?.email?.[0]?.toUpperCase() ||
-                              "U"}
+                          <div className="w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-500" />
                           </div>
                         )}
                         <div className="min-w-0">
@@ -422,10 +418,8 @@ export default function Navbar() {
                         className="w-10 h-10 rounded-full object-cover border border-sage-200"
                       />
                     ) : (
-                      <div className="w-10 h-10 bg-gradient-to-r from-forest-500 to-forest-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                        {userProfile?.full_name?.[0]?.toUpperCase() ||
-                          user?.email?.[0]?.toUpperCase() ||
-                          "U"}
+                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                        <User className="w-5 h-5 text-gray-500" />
                       </div>
                     )}
                     <div className="flex-1 min-w-0">

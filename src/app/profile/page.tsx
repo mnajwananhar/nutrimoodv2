@@ -204,7 +204,12 @@ export default function ProfilePage() {
               (moodCounts[assessment.predicted_mood] || 0) + 1;
           }
           if (assessment.confidence_score) {
-            totalConfidence += assessment.confidence_score;
+            // Normalize confidence_score to 0-100 scale like dashboard
+            const normalizedConfidence =
+              assessment.confidence_score <= 1
+                ? assessment.confidence_score * 100
+                : assessment.confidence_score;
+            totalConfidence += normalizedConfidence;
           }
         });
 
@@ -971,7 +976,7 @@ export default function ProfilePage() {
                           Rata-rata Keyakinan:
                         </span>
                         <span className="font-medium text-sage-900">
-                          {(userStats.avg_confidence * 100).toFixed(1)}%
+                          {userStats.avg_confidence.toFixed(1)}%
                         </span>
                       </div>
                     </div>
