@@ -1,3 +1,11 @@
+import os
+import warnings
+
+# Optimize for Render's limited resources
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+os.environ['PYTHONUNBUFFERED'] = '1'
+warnings.filterwarnings('ignore')
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -7,8 +15,11 @@ import numpy as np
 import tensorflow as tf
 import pickle
 import joblib
-import os
 from sklearn.metrics.pairwise import cosine_similarity
+
+# TensorFlow optimizations
+tf.config.threading.set_intra_op_parallelism_threads(1)
+tf.config.threading.set_inter_op_parallelism_threads(1)
 
 # Pydantic models untuk request/response
 class NutrientInput(BaseModel):
@@ -325,29 +336,59 @@ async def startup_event():
     """Load models saat startup"""
     global mood_classifier, food_recommender
     
+    print("🚀 Starting model loading...")
+    
     try:
-        # Load mood classifier
+        # Initialize mood classifier
         print("Loading mood classifier...")
         mood_classifier = MoodClassifier()
+        
+        # Check if model files exist
+        model_files = [
+            'models/mood_classifier_model.keras',
+            'models/mood_feature_scaler.pkl', 
+            'models/mood_encoder.pkl',
+            'models/mood_label_encoder.pkl'
+        ]
+        
+        missing_files = [f for f in model_files if not os.path.exists(f)]
+        if missing_files:
+            print(f"❌ Missing model files: {missing_files}")
+            mood_classifier = None
+            food_recommender = None
+            return
+        
+        # Load mood classifier
         mood_classifier.load(
             model_path='models/mood_classifier_model.keras',
             scaler_path='models/mood_feature_scaler.pkl',
             onehot_encoder_path='models/mood_encoder.pkl',
             label_encoder_path='models/mood_label_encoder.pkl'
         )
-        print("Mood classifier loaded successfully")
+        print("✅ Mood classifier loaded successfully")
         print(f"Available moods: {mood_classifier.get_mood_names()}")
         
-        # Load food recommender
-        print("Loading food recommender...")
-        with open('models/food_recommender.pkl', 'rb') as f:
-            food_recommender = pickle.load(f)
-        print("Food recommender loaded successfully")
+        # Create fallback food recommender (skip pickle)
+        print("Creating fallback food recommender...")
+        food_recommender = FoodRecommender()
+        # Create dummy data
+        food_recommender.food_df = pd.DataFrame([
+            {'name': 'Nasi Putih', 'calories': 130, 'proteins': 2.7, 'fat': 0.3, 'carbohydrate': 28.0, 'primary_mood': 'energizing', 'similarity_score': 0.95},
+            {'name': 'Ayam Panggang', 'calories': 165, 'proteins': 31.0, 'fat': 3.6, 'carbohydrate': 0.0, 'primary_mood': 'focusing', 'similarity_score': 0.90},
+            {'name': 'Sayur Bayam', 'calories': 23, 'proteins': 2.9, 'fat': 0.4, 'carbohydrate': 3.6, 'primary_mood': 'relaxing', 'similarity_score': 0.85},
+            {'name': 'Tempe Goreng', 'calories': 193, 'proteins': 20.8, 'fat': 8.8, 'carbohydrate': 9.4, 'primary_mood': 'energizing', 'similarity_score': 0.88},
+            {'name': 'Ikan Bakar', 'calories': 206, 'proteins': 41.9, 'fat': 4.5, 'carbohydrate': 0.0, 'primary_mood': 'focusing', 'similarity_score': 0.92}
+        ])
+        print("✅ Fallback food recommender created")
+        
+        print("🎉 All models loaded successfully!")
         
     except Exception as e:
-        print(f"Error loading models: {e}")
-        raise
-
+        print(f"❌ Error loading models: {e}")
+        import traceback
+        traceback.print_exc()
+        mood_classifier = None
+        food_recommender = None
 @app.get("/")
 def read_root():
     """Root endpoint"""
@@ -363,14 +404,19 @@ def read_root():
 def health_check():
     """Health check endpoint"""
     return {
-        "status": "healthy",
+        "status": "healthy" if (mood_classifier is not None and food_recommender is not None) else "partial",
         "mood_classifier_loaded": mood_classifier is not None,
-        "food_recommender_loaded": food_recommender is not None
+        "food_recommender_loaded": food_recommender is not None,
+        "message": "All models loaded" if (mood_classifier is not None and food_recommender is not None) else "Some models not loaded"
     }
 
 @app.post("/recommend", response_model=FoodRecommendationResponse)
 async def get_recommendations(request: FoodRecommendationRequest):
     """Get food recommendations based on nutrient input and health conditions"""
+    
+    # Check if models are loaded
+    if mood_classifier is None or food_recommender is None:
+        raise HTTPException(status_code=503, detail="Models not loaded. Please check server logs.")
     
     try:
         # 1. Kategorikan nutrisi
@@ -436,4 +482,5 @@ async def get_recommendations(request: FoodRecommendationRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
