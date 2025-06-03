@@ -36,6 +36,7 @@ interface NutritionAssessment {
   fat_level: number;
   carb_level: number;
   predicted_mood: string;
+  selected_mood: string;
   confidence_score: number;
   notes?: string;
   created_at: string;
@@ -161,11 +162,11 @@ export default function HistoryPage() {
         }
 
         query = query.gte("created_at", startDate.toISOString());
-      }
-
-      // Apply mood filter
+      } // Apply mood filter
       if (moodFilter !== "all") {
-        query = query.eq("predicted_mood", moodFilter);
+        query = query.or(
+          `predicted_mood.eq.${moodFilter},selected_mood.eq.${moodFilter}`
+        );
       }
 
       const { data, error: fetchError } = await query;
@@ -198,13 +199,11 @@ export default function HistoryPage() {
                 ? item.confidence_score * 100
                 : item.confidence_score),
             0
-          ) / totalAssessments;
-
-        // Calculate mood distribution
+          ) / totalAssessments; // Calculate mood distribution
         const moodDistribution: { [key: string]: number } = {};
         transformedData.forEach((item: NutritionAssessment) => {
-          moodDistribution[item.predicted_mood] =
-            (moodDistribution[item.predicted_mood] || 0) + 1;
+          const mood = item.selected_mood || item.predicted_mood;
+          moodDistribution[mood] = (moodDistribution[mood] || 0) + 1;
         });
 
         // Calculate streak (simplified)
@@ -298,7 +297,7 @@ export default function HistoryPage() {
         protein: assessment.protein_level,
         lemak: assessment.fat_level,
         karbohidrat: assessment.carb_level,
-        mood_prediksi: assessment.predicted_mood,
+        mood_prediksi: assessment.selected_mood || assessment.predicted_mood,
         akurasi: formatConfidence(assessment.confidence_score),
         catatan: assessment.notes || "",
       }));
@@ -563,10 +562,11 @@ export default function HistoryPage() {
                                   <IconComponent className="w-5 h-5 sm:w-6 sm:h-6 text-forest-600" />
                                 );
                               })()}
-                            </div>
+                            </div>{" "}
                             <div className="min-w-0 flex-1">
                               <h3 className="font-semibold text-forest-900 capitalize text-sm sm:text-base">
-                                {assessment.predicted_mood}
+                                {assessment.selected_mood ||
+                                  assessment.predicted_mood}
                               </h3>
                               <p className="text-xs sm:text-sm text-sage-600 truncate">
                                 {new Date(

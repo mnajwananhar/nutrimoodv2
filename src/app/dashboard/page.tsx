@@ -188,7 +188,9 @@ export default function DashboardPage() {
           id: assessment.id,
           type: "assessment",
           title: "Analisis Nutrisi",
-          description: `Mood: ${assessment.predicted_mood}`,
+          description: `Mood: ${
+            assessment.selected_mood || assessment.predicted_mood
+          }`,
           created_at: assessment.created_at,
           metadata: assessment,
         });
@@ -530,40 +532,20 @@ export default function DashboardPage() {
                             <p className="text-xs sm:text-sm text-sage-600 break-words">
                               {activity.type === "assessment" &&
                               activity.metadata &&
-                              activity.metadata.health_conditions
-                                ? `Kondisi: ${
-                                    Array.isArray(
-                                      activity.metadata.health_conditions
+                              activity.metadata.health_conditions &&
+                              Array.isArray(
+                                activity.metadata.health_conditions
+                              ) &&
+                              activity.metadata.health_conditions.length > 0
+                                ? `Kondisi: ${activity.metadata.health_conditions
+                                    .map(
+                                      (condition) =>
+                                        healthConditionLabels[condition] ||
+                                        condition
                                     )
-                                      ? activity.metadata.health_conditions
-                                          .filter(
-                                            (condition) =>
-                                              condition !== "tidak_ada"
-                                          )
-                                          .map(
-                                            (condition) =>
-                                              healthConditionLabels[
-                                                condition
-                                              ] || condition
-                                          )
-                                          .join(", ") || "Tidak Ada"
-                                      : typeof activity.metadata
-                                          .health_conditions === "string"
-                                      ? activity.metadata.health_conditions
-                                          .split(",")
-                                          .filter(
-                                            (condition) =>
-                                              condition.trim() !== "tidak_ada"
-                                          )
-                                          .map(
-                                            (condition) =>
-                                              healthConditionLabels[
-                                                condition.trim()
-                                              ] || condition.trim()
-                                          )
-                                          .join(", ") || "Tidak Ada"
-                                      : "Tidak Ada"
-                                  }`
+                                    .join(", ")}`
+                                : activity.type === "assessment"
+                                ? `Kondisi: Tidak Ada`
                                 : activity.description}
                             </p>
                             <div className="flex items-center mt-2 text-xs text-sage-500">

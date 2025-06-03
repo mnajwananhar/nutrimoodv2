@@ -1,40 +1,33 @@
-import os
-import warnings
-
-# Optimize for Render's limited resources
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-os.environ['PYTHONUNBUFFERED'] = '1'
-warnings.filterwarnings('ignore')
-
+# app.py
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 import pandas as pd
 import numpy as np
-import tensorflow as tf
 import pickle
-import joblib
+import os
 from sklearn.metrics.pairwise import cosine_similarity
 
-# TensorFlow optimizations
-tf.config.threading.set_intra_op_parallelism_threads(1)
-tf.config.threading.set_inter_op_parallelism_threads(1)
+app = FastAPI(
+    title="NutriMood API",
+    description="API rekomendasi makanan berdasarkan mood dan kondisi kesehatan",
+    version="1.0.0"
+)
 
-# Pydantic models untuk request/response
-class NutrientInput(BaseModel):
-    calories: float
-    proteins: float
-    fat: float
-    carbohydrate: float
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-class HealthCondition(BaseModel):
-    conditions: Optional[List[str]] = []  # diabetes, hipertensi, kolesterol, obesitas, alergi_gluten, vegetarian
-
-class FoodRecommendationRequest(BaseModel):
-    nutrients: NutrientInput
-    health_conditions: Optional[List[str]] = []
-    top_n: Optional[int] = 5
+# Pydantic models
+class RecommendationRequest(BaseModel):
+    mood: str  # energizing, relaxing, focusing, neutral
+    health_conditions: Optional[List[str]] = None  # diabetes, hipertensi, kolesterol, etc.
+    top_n: int = 5
 
 class FoodItem(BaseModel):
     name: str
@@ -45,110 +38,59 @@ class FoodItem(BaseModel):
     primary_mood: str
     similarity_score: float
 
-class FoodRecommendationResponse(BaseModel):
-    predicted_mood: str
-    mood_probabilities: Dict[str, float]
+class RecommendationResponse(BaseModel):
+    mood: str
+    health_conditions: Optional[List[str]]
     recommendations: List[FoodItem]
-    total_recommendations: int
+    message: str
 
-# Replika class MoodClassifier dari model
-class MoodClassifier:
-    def __init__(self):
-        self.model = None
-        self.onehot_encoder = None  # OneHotEncoder
-        self.label_encoder = None   # LabelEncoder
-        self.feature_scaler = None
-
-    def preprocess_features(self, X):
-        """Preprocess fitur input untuk klasifikasi mood"""
-        if self.feature_scaler is None:
-            raise ValueError("Feature scaler not loaded")
-        X_scaled = self.feature_scaler.transform(X)
-        return X_scaled
-
-    def predict(self, X):
-        """Prediksi kelas mood dari fitur input"""
-        # Preprocess data
-        X_scaled = self.preprocess_features(X)
-
-        # Prediksi probabilitas untuk setiap kelas
-        y_pred_proba = self.model.predict(X_scaled)
-
-        # Ambil kelas dengan probabilitas tertinggi
-        y_pred = np.argmax(y_pred_proba, axis=1)
-
-        # Konversi index ke label mood menggunakan label_encoder
-        mood_labels = self.label_encoder.inverse_transform(y_pred)
-
-        return mood_labels
-
-    def predict_proba(self, X):
-        """Prediksi probabilitas untuk setiap kelas mood"""
-        # Preprocess data
-        X_scaled = self.preprocess_features(X)
-
-        # Prediksi probabilitas untuk setiap kelas
-        y_pred_proba = self.model.predict(X_scaled)
-
-        return y_pred_proba
-
-    def get_mood_names(self):
-        """Get ordered mood names from label encoder"""
-        if self.label_encoder is None:
-            return []
-        return list(self.label_encoder.classes_)
-
-    def load(self, model_path='models/mood_classifier_model.keras', 
-             scaler_path='models/mood_feature_scaler.pkl', 
-             onehot_encoder_path='models/mood_encoder.pkl',
-             label_encoder_path='models/mood_label_encoder.pkl'):
-        """Memuat model dan transformer dari file"""
-        # Muat model TensorFlow
-        self.model = tf.keras.models.load_model(model_path)
-        
-        # Muat scaler dan encoders
-        self.feature_scaler = joblib.load(scaler_path)
-        self.onehot_encoder = joblib.load(onehot_encoder_path)
-        self.label_encoder = joblib.load(label_encoder_path)
-
-# Replika class FoodRecommender dari model
+# FoodRecommender class
 class FoodRecommender:
     def __init__(self):
         self.food_df = None
-        # Mapping mood ke nilai numerik (hanya 4 mood yang valid dalam dataset)
         self.mood_mapping = {
             'energizing': 0,
             'relaxing': 1,
             'focusing': 2,
-            'neutral': 3
+            'multi_category': 3,
+            'neutral': 4
         }
+        # Sesuaikan health mapping dengan kode asli di Colab
+        # Health mapping yang lebih spesifik dan akurat
         self.health_mapping = {
-            'diabetes': {'calorie_category': 'low', 'carb_category': 'low'},
-            'hipertensi': {'calorie_category': 'low', 'fat_category': 'low'},
-            'kolesterol': {'fat_category': 'low'},
-            'obesitas': {'calorie_category': 'low', 'fat_category': 'low'},
-            'alergi_gluten': {'nutrient_balance': 'balanced'},
-            'vegetarian': {'primary_mood': 'relaxing'}  # Prioritas ke relaxing untuk vegetarian
-        }
-        self.feature_weights = {
-            'calories': 1.0,
-            'proteins': 1.0,
-            'fat': 1.0,
-            'carbohydrate': 1.0,
-            'calorie_category': 2.0,
-            'protein_category': 1.5,
-            'fat_category': 1.5,
-            'carb_category': 1.5,
-            'nutrient_balance': 2.0,
-            'primary_mood': 3.0,
-            'mood_energizing': 2.0,
-            'mood_relaxing': 2.0,
-            'mood_focusing': 2.0,
-            'vitamin_a': 0.5,
-            'vitamin_c': 0.5,
-            'vitamin_b': 0.5,
-            'iron': 0.5,
-            'calcium': 0.5
+            'diabetes': {
+                'calorie_category_num': 1,      # Kalori rendah
+                'carb_category_num': 0,         # Karbohidrat sangat rendah
+                'priority_nutrients': ['carbohydrate', 'calories']
+            },
+            'hipertensi': {
+                'calorie_category_num': 1,      # Kalori rendah
+                'fat_category_num': 0,          # Lemak sangat rendah
+                'protein_category_num': 2,      # Protein sedang (untuk jantung)
+                'priority_nutrients': ['fat', 'calories']
+            },
+            'kolesterol': {
+                'fat_category_num': 0,          # Lemak sangat rendah
+                'protein_category_num': 2,      # Protein sedang
+                'priority_nutrients': ['fat']
+            },
+            'obesitas': {
+                'calorie_category_num': 0,      # Kalori sangat rendah
+                'fat_category_num': 1,          # Lemak rendah
+                'carb_category_num': 1,         # Karbohidrat rendah
+                'priority_nutrients': ['calories', 'fat', 'carbohydrate']
+            },
+            'alergi_gluten': {
+                'nutrient_balance_num': 1.0,    # Balanced nutrition
+                'protein_category_num': 2,      # Protein sedang untuk kompensasi
+                'priority_nutrients': ['proteins']
+            },
+            'vegetarian': {
+                'protein_category_num': 2,      # Protein sedang (penting untuk vegetarian)
+                'nutrient_balance_num': 1.0,    # Nutrisi seimbang
+                'priority_nutrients': ['proteins']
+                # TIDAK mengubah primary_mood!
+            }
         }
         self.category_mapping = {
             'very_low': 0,
@@ -160,327 +102,704 @@ class FoodRecommender:
             'unbalanced': 0
         }
 
+    def load_data(self, food_data_path):
+        """Memuat dataset makanan"""
+        self.food_df = pd.read_csv(food_data_path)
+        print(f"Data makanan dimuat: {self.food_df.shape[0]} item")
+        return self.food_df
+
     def encode_mood(self, mood):
-        """Encode mood string into a numeric value"""
-        return self.mood_mapping.get(mood, 3)  # Default to 'neutral' if not found
+        """Encode mood string ke numeric"""
+        return self.mood_mapping.get(mood, 4)
 
     def encode_category(self, category_value):
-        """Encode category string into a numeric value"""
+        """Encode category string ke numeric"""
         if isinstance(category_value, str):
             return self.category_mapping.get(category_value.lower(), 0)
         return category_value
 
     def get_food_similarity(self, user_profile):
-        """Menghitung kesamaan antara profil pengguna dan makanan dalam dataset"""
+        """Hitung kesamaan antara profil pengguna dan makanan - VERSI SEMPURNA"""
+        import pandas as pd
+        import numpy as np
+        from sklearn.metrics.pairwise import cosine_similarity
+        from sklearn.preprocessing import MinMaxScaler
+
         if self.food_df is None:
-            raise ValueError("Dataset makanan belum dimuat")
+            raise ValueError("Dataset makanan belum dimuat. Panggil load_data() terlebih dahulu.")
 
-        # Konversi nilai non-numerik ke numerik dalam profil pengguna
+        print(f"=== PERFECT SIMILARITY CALCULATION ===")
+        print(f"User profile input: {user_profile}")
+
+        # Step 1: Filter makanan berdasarkan mood TERLEBIH DAHULU
+        target_mood = user_profile.get('target_mood', 'energizing')  # Mood asli yang diminta
+        
+        if target_mood == 'energizing':
+            filtered_foods = self.food_df[self.food_df['is_energizing'] == 1].copy()
+        elif target_mood == 'relaxing':
+            filtered_foods = self.food_df[self.food_df['is_relaxing'] == 1].copy()
+        elif target_mood == 'focusing':
+            filtered_foods = self.food_df[self.food_df['is_focusing'] == 1].copy()
+        else:
+            filtered_foods = self.food_df[self.food_df['primary_mood'] == 'neutral'].copy()
+
+        print(f"Filtered foods by mood '{target_mood}': {len(filtered_foods)} items")
+
+        if len(filtered_foods) == 0:
+            print("No foods found for this mood, using all foods")
+            filtered_foods = self.food_df.copy()
+
+        # Step 2: Konversi dan normalisasi user profile - FIX FEATURE MAPPING
         processed_user_profile = {}
-
         for key, value in user_profile.items():
-            if key == 'primary_mood':
-                processed_user_profile[key] = self.encode_mood(value)
+            if key in ['target_mood', 'health_conditions']:  # Skip metadata
+                continue
+            elif key == 'primary_mood':
+                processed_user_profile['primary_mood_num'] = self.encode_mood(value)
             elif isinstance(value, str):
-                processed_user_profile[key] = self.encode_category(value)
+                # FIX: Map string categories ke numeric columns yang ada di dataset
+                if key == 'calorie_category':
+                    processed_user_profile['calorie_category_num'] = self.encode_category(value)
+                elif key == 'carb_category':
+                    processed_user_profile['carb_category_num'] = self.encode_category(value)
+                elif key == 'fat_category':
+                    processed_user_profile['fat_category_num'] = self.encode_category(value)
+                elif key == 'protein_category':
+                    processed_user_profile['protein_category_num'] = self.encode_category(value)
+                elif key == 'nutrient_balance':
+                    processed_user_profile['nutrient_balance_num'] = self.encode_category(value)
+                else:
+                    processed_user_profile[key] = self.encode_category(value)
             else:
                 processed_user_profile[key] = value
 
-        # Pastikan fitur yang digunakan ada di dalam dataset
-        feature_cols = [col for col in self.food_df.columns
-                       if col in processed_user_profile and pd.api.types.is_numeric_dtype(self.food_df[col])]
+        print(f"Processed user profile: {processed_user_profile}")
+
+        # Step 3: Select features yang ada di dataset dan user profile - IMPROVED
+        available_features = [
+            'primary_mood_num', 'mood_energizing', 'mood_relaxing', 'mood_focusing',
+            'calorie_category_num', 'protein_category_num', 'fat_category_num', 
+            'carb_category_num', 'nutrient_balance_num'
+        ]
+        
+        feature_cols = []
+        for feature in available_features:
+            if feature in filtered_foods.columns and feature in processed_user_profile:
+                feature_cols.append(feature)
+
+        print(f"Selected features: {feature_cols}")
+        print(f"User profile values for selected features:")
+        for feature in feature_cols:
+            print(f"  {feature}: {processed_user_profile[feature]}")
 
         if len(feature_cols) == 0:
-            raise ValueError("Tidak ada fitur numerik yang cocok antara profil pengguna dan dataset")
+            print("No matching features, using basic sorting")
+            return self._fallback_sorting(filtered_foods, target_mood)
 
-        # Ekstrak fitur dari dataset
-        food_features = self.food_df[feature_cols].values
+        # Step 4: Ekstrak dan PROPER NORMALIZATION - FINAL FIX
+        food_features_raw = filtered_foods[feature_cols].fillna(0)
+        user_features_raw = np.array([[processed_user_profile[col] for col in feature_cols]])
 
-        # Buat array untuk fitur pengguna
-        user_features = np.array([[processed_user_profile[col] for col in feature_cols]])
+        print(f"Before normalization:")
+        print(f"User features: {user_features_raw[0]}")
+        print(f"Food features sample (first 3 rows):")
+        print(food_features_raw.head(3).values)
 
-        # Hitung kesamaan kosinus
-        similarities = cosine_similarity(user_features, food_features)[0]
+        # CONVERT BOOLEAN TO NUMERIC PROPERLY
+        food_features_numeric = food_features_raw.copy()
+        user_features_numeric = user_features_raw.copy()
 
-        # Tambahkan skor kesamaan ke dataframe
-        self.food_df['similarity_score'] = similarities
+        for i, col in enumerate(feature_cols):
+            if food_features_raw[col].dtype == 'bool':
+                # Convert boolean to 0/1
+                food_features_numeric[col] = food_features_raw[col].astype(int)
+                user_features_numeric[0, i] = int(user_features_numeric[0, i])
 
-        # Urutkan berdasarkan skor kesamaan
-        recommendations = self.food_df.sort_values('similarity_score', ascending=False).head(5)
+        # NOW NORMALIZE CORRECTLY - Handle edge cases
+        food_features = food_features_numeric.values
+        user_features = user_features_numeric
 
-        return recommendations[['name', 'calories', 'proteins', 'fat', 'carbohydrate', 'primary_mood', 'similarity_score']]
+        # Manual normalization untuk handle edge cases
+        normalized_user = []
+        normalized_food = []
 
-    def recommend_for_mood(self, mood, top_n=5, health_conditions=None):
-        """Merekomendasikan makanan berdasarkan mood dan kondisi kesehatan"""
-        if self.food_df is None:
-            raise ValueError("Dataset makanan belum dimuat")
+        for i, col in enumerate(feature_cols):
+            food_col = food_features[:, i]
+            user_val = user_features[0, i]
+            
+            col_min = food_col.min()
+            col_max = food_col.max()
+            
+            if col_max == col_min:
+                # Tidak ada variasi - set semua ke 0.5
+                normalized_food_col = np.full_like(food_col, 0.5)
+                normalized_user_val = 0.5
+            else:
+                # Normal MinMax scaling tapi clamp user value ke range [min, max]
+                user_val_clamped = np.clip(user_val, col_min, col_max)
+                
+                normalized_food_col = (food_col - col_min) / (col_max - col_min)
+                normalized_user_val = (user_val_clamped - col_min) / (col_max - col_min)
+            
+            normalized_food.append(normalized_food_col)
+            normalized_user.append(normalized_user_val)
+            
+            print(f"Feature {col}: range [{col_min}, {col_max}], user: {user_val} -> {normalized_user_val}")
 
-        # Pastikan mood valid - dapatkan dari mood_mapping yang sudah ada di pickle
-        valid_moods = list(self.mood_mapping.keys())
-        if mood not in valid_moods:
-            mood = 'neutral'  # atau mood default lainnya dari mapping
+        food_features_scaled = np.column_stack(normalized_food)
+        user_features_scaled = np.array([normalized_user])
 
-        # Buat profil pengguna berdasarkan mood
-        user_profile = {
-            'primary_mood': mood
-        }
+        print(f"After proper normalization:")
+        print(f"User features: {user_features_scaled[0]}")
+        print(f"Food features range: min={food_features_scaled.min(axis=0)}, max={food_features_scaled.max(axis=0)}")
 
-        # Tambahkan feature mood khusus jika tersedia di dataset
-        mood_col = f'mood_{mood}'
-        if mood_col in self.food_df.columns:
-            user_profile[mood_col] = 1.0
+        # Step 5: Hitung weighted cosine similarity - FINAL FIX
+        health_conditions = user_profile.get('health_conditions', [])
+        feature_weights = self._calculate_feature_weights(feature_cols, health_conditions)
+        
+        print(f"Feature weights: {feature_weights[0]}")
 
-        # Tambahkan kondisi kesehatan ke profil pengguna
+        # Apply weights
+        user_weighted = user_features_scaled * feature_weights
+        food_weighted = food_features_scaled * feature_weights
+
+        print(f"User weighted features: {user_weighted[0]}")
+
+        # Hitung similarity - FIX untuk handle zero vectors
+        similarities = []
+        for i in range(len(food_weighted)):
+            food_vec = food_weighted[i:i+1]
+            
+            # Check for zero vectors
+            user_norm = np.linalg.norm(user_weighted)
+            food_norm = np.linalg.norm(food_vec)
+            
+            if user_norm == 0 or food_norm == 0:
+                # Fallback: use euclidean distance inverse
+                distance = np.linalg.norm(user_features_scaled - food_features_scaled[i:i+1])
+                similarity = 1.0 / (1.0 + distance)  # Convert distance to similarity
+            else:
+                # Normal cosine similarity
+                similarity = cosine_similarity(user_weighted, food_vec)[0][0]
+            
+            similarities.append(similarity)
+        
+        similarities = np.array(similarities)
+        print(f"Similarity range: {similarities.min():.4f} to {similarities.max():.4f}")
+        print(f"Similarity mean: {similarities.mean():.4f}")
+
+        # Step 6: Add penalty untuk makanan yang tidak sesuai kondisi kesehatan
         if health_conditions:
+            similarities = self._apply_health_penalties(filtered_foods, similarities, health_conditions)
+
+        # Step 7: Create result
+        result_df = filtered_foods.copy()
+        result_df['similarity_score'] = similarities
+
+        # Sort berdasarkan similarity, kemudian criteria sekunder
+        result_df = result_df.sort_values(['similarity_score', 'calories'], ascending=[False, target_mood != 'relaxing'])
+
+        print(f"Top 3 final recommendations:")
+        for i in range(min(3, len(result_df))):
+            print(f"{i+1}. {result_df.iloc[i]['name']}: {result_df.iloc[i]['similarity_score']:.4f}")
+
+        return result_df.head(10)[['name', 'calories', 'proteins', 'fat', 'carbohydrate', 'primary_mood', 'similarity_score']]
+
+    def _calculate_feature_weights(self, feature_cols, health_conditions):
+        """Calculate dynamic feature weights based on health conditions"""
+        weights = np.ones(len(feature_cols))
+        
+        for i, feature in enumerate(feature_cols):
+            base_weight = 1.0
+            
+            # Mood features always important
+            if 'mood_' in feature:
+                base_weight = 2.0
+            
+            # Health condition specific weights
             for condition in health_conditions:
                 if condition in self.health_mapping:
-                    for feature, value in self.health_mapping[condition].items():
-                        user_profile[feature] = value
+                    priority_nutrients = self.health_mapping[condition].get('priority_nutrients', [])
+                    
+                    if feature == 'calorie_category_num' and 'calories' in priority_nutrients:
+                        base_weight *= 2.0
+                    elif feature == 'carb_category_num' and 'carbohydrate' in priority_nutrients:
+                        base_weight *= 2.0
+                    elif feature == 'fat_category_num' and 'fat' in priority_nutrients:
+                        base_weight *= 2.0
+                    elif feature == 'protein_category_num' and 'proteins' in priority_nutrients:
+                        base_weight *= 1.5
+            
+            weights[i] = base_weight
+        
+        # Normalize weights
+        weights = weights / np.sum(weights) * len(weights)
+        return weights.reshape(1, -1)
 
-        # Hitung kesamaan dan dapatkan rekomendasi
+    def _apply_health_penalties(self, foods_df, similarities, health_conditions):
+        """Apply penalties untuk makanan yang tidak sesuai kondisi kesehatan"""
+        penalties = np.zeros(len(similarities))
+        
+        for condition in health_conditions:
+            if condition == 'diabetes':
+                # Penalty untuk karbohidrat tinggi
+                high_carb_mask = foods_df['carb_category_num'] >= 3
+                penalties[high_carb_mask] += 0.1
+                
+            elif condition == 'hipertensi':
+                # Penalty untuk lemak tinggi
+                high_fat_mask = foods_df['fat_category_num'] >= 3
+                penalties[high_fat_mask] += 0.1
+                
+            elif condition == 'kolesterol':
+                # Penalty untuk lemak tinggi
+                high_fat_mask = foods_df['fat_category_num'] >= 3
+                penalties[high_fat_mask] += 0.15
+                
+            elif condition == 'obesitas':
+                # Penalty untuk kalori tinggi
+                high_cal_mask = foods_df['calorie_category_num'] >= 3
+                penalties[high_cal_mask] += 0.1
+        
+        return similarities - penalties
+
+    def _fallback_sorting(self, foods_df, mood):
+        """Fallback sorting ketika tidak ada features yang cocok"""
+        if mood == 'energizing':
+            sorted_df = foods_df.sort_values('calories', ascending=False)
+        elif mood == 'focusing':
+            sorted_df = foods_df.sort_values('proteins', ascending=False)
+        elif mood == 'relaxing':
+            sorted_df = foods_df.sort_values('calories', ascending=True)
+        else:
+            sorted_df = foods_df.sort_values('calories', ascending=False)
+        
+        sorted_df = sorted_df.copy()
+        sorted_df['similarity_score'] = 0.8  # Fixed score untuk fallback
+        
+        return sorted_df.head(10)[['name', 'calories', 'proteins', 'fat', 'carbohydrate', 'primary_mood', 'similarity_score']]
+
+    def recommend_for_mood(self, mood, top_n=5, health_conditions=None):
+        """PERFECT RECOMMENDATION SYSTEM - Versi Sempurna"""
+        if self.food_df is None:
+            raise ValueError("Dataset makanan belum dimuat. Panggil load_data() terlebih dahulu.")
+
+        print(f"\n=== PERFECT RECOMMENDATION SYSTEM ===")
+        print(f"Input -> Mood: {mood}, Health: {health_conditions}, Top N: {top_n}")
+
+        # Validasi mood
+        valid_moods = ['energizing', 'relaxing', 'focusing', 'neutral']
+        if mood not in valid_moods:
+            print(f"Invalid mood '{mood}', using 'neutral'")
+            mood = 'neutral'
+
+        # Step 1: Buat user profile yang comprehensive - FIX TARGET MOOD
+        user_profile = {
+            'target_mood': mood,  # Mood asli yang diminta - SELALU KONSISTEN
+            'primary_mood_num': self.encode_mood(mood),  # Encode mood yang diminta
+            'health_conditions': health_conditions or []
+        }
+
+        # Add mood boolean features berdasarkan mood yang diminta
+        for m in ['energizing', 'relaxing', 'focusing']:
+            user_profile[f'mood_{m}'] = 1.0 if m == mood else 0.0
+
+        # Step 2: Add health condition constraints - FIX VEGETARIAN BUG
+        if health_conditions:
+            print(f"Processing health conditions: {health_conditions}")
+            
+            # Aggregate constraints from multiple conditions
+            aggregated_constraints = {}
+            
+            for condition in health_conditions:
+                if condition in self.health_mapping:
+                    condition_constraints = self.health_mapping[condition].copy()
+                    
+                    # Remove priority_nutrients metadata
+                    if 'priority_nutrients' in condition_constraints:
+                        del condition_constraints['priority_nutrients']
+                    
+                    for feature, value in condition_constraints.items():
+                        if feature in aggregated_constraints:
+                            # Take the more restrictive constraint (lower value)
+                            aggregated_constraints[feature] = min(aggregated_constraints[feature], value)
+                        else:
+                            aggregated_constraints[feature] = value
+            
+            # Add aggregated constraints to user profile
+            user_profile.update(aggregated_constraints)
+            print(f"Applied health constraints: {aggregated_constraints}")
+
+        # Step 3: Get recommendations using perfect similarity calculation
         try:
             recommendations = self.get_food_similarity(user_profile)
-
-            # Filter hasil berdasarkan mood
-            if mood in valid_moods and len(recommendations) > 0:
-                mood_filtered = recommendations[recommendations['primary_mood'] == mood]
-                if len(mood_filtered) > 0:
-                    recommendations = mood_filtered
-
+            
+            print(f"Successfully generated {len(recommendations)} recommendations")
             return recommendations.head(top_n)
 
         except Exception as e:
-            # Fallback: kembalikan makanan berdasarkan mood saja
-            if mood in valid_moods:
-                mood_filtered = self.food_df[self.food_df['primary_mood'] == mood]
-                if len(mood_filtered) > 0:
-                    return mood_filtered.head(top_n)
+            print(f"Error in perfect recommendation: {str(e)}")
+            # Ultimate fallback
+            return self._ultimate_fallback(mood, top_n, health_conditions)
 
-            return self.food_df.head(top_n)
+    def _ultimate_fallback(self, mood, top_n, health_conditions):
+        """Ultimate fallback ketika semua gagal"""
+        print("Using ultimate fallback recommendation")
+        
+        # Filter berdasarkan mood
+        if mood == 'energizing' and 'is_energizing' in self.food_df.columns:
+            filtered_df = self.food_df[self.food_df['is_energizing'] == 1]
+        elif mood == 'relaxing' and 'is_relaxing' in self.food_df.columns:
+            filtered_df = self.food_df[self.food_df['is_relaxing'] == 1]
+        elif mood == 'focusing' and 'is_focusing' in self.food_df.columns:
+            filtered_df = self.food_df[self.food_df['is_focusing'] == 1]
+        else:
+            filtered_df = self.food_df
+        
+        # Simple health filtering
+        if health_conditions:
+            if 'diabetes' in health_conditions:
+                # Prioritas karbohidrat rendah
+                filtered_df = filtered_df.sort_values(['carb_category_num', 'calories'])
+            elif 'kolesterol' in health_conditions:
+                # Prioritas lemak rendah
+                filtered_df = filtered_df.sort_values(['fat_category_num', 'calories'])
+            else:
+                # Default sorting berdasarkan mood
+                if mood == 'energizing':
+                    filtered_df = filtered_df.sort_values('calories', ascending=False)
+                elif mood == 'focusing':
+                    filtered_df = filtered_df.sort_values('proteins', ascending=False)
+                elif mood == 'relaxing':
+                    filtered_df = filtered_df.sort_values('calories', ascending=True)
+        else:
+            # No health conditions - sort by mood preference
+            if mood == 'energizing':
+                filtered_df = filtered_df.sort_values('calories', ascending=False)
+            elif mood == 'focusing':
+                filtered_df = filtered_df.sort_values('proteins', ascending=False)
+            elif mood == 'relaxing':
+                filtered_df = filtered_df.sort_values('calories', ascending=True)
+        
+        result_df = filtered_df.copy()
+        result_df['similarity_score'] = 0.5  # Fallback score
+        
+        return result_df.head(top_n)[['name', 'calories', 'proteins', 'fat', 'carbohydrate', 'primary_mood', 'similarity_score']]
 
-# Inisialisasi FastAPI
-app = FastAPI(
-    title="NutriMood API",
-    description="API untuk rekomendasi makanan berdasarkan mood dan kondisi kesehatan",
-    version="1.0.0"
-)
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Global variables untuk model
-mood_classifier = None
-food_recommender = None
-
-# Fungsi untuk mengkategorikan nutrisi
-def categorize_nutrients(calories, proteins, fat, carbohydrate):
-    """Konversi nilai nutrisi ke kategori"""
-    # Kategori berdasarkan nilai nutrisi
-    # Anda bisa menyesuaikan threshold ini sesuai dataset
-    
-    # Calorie category
-    if calories < 100:
-        calorie_category = 'very_low'
-    elif calories < 200:
-        calorie_category = 'low'
-    elif calories < 400:
-        calorie_category = 'medium'
-    else:
-        calorie_category = 'high'
-    
-    # Protein category
-    if proteins < 5:
-        protein_category = 'very_low'
-    elif proteins < 15:
-        protein_category = 'low'
-    elif proteins < 30:
-        protein_category = 'medium'
-    else:
-        protein_category = 'high'
-    
-    # Fat category
-    if fat < 5:
-        fat_category = 'very_low'
-    elif fat < 15:
-        fat_category = 'low'
-    elif fat < 30:
-        fat_category = 'medium'
-    else:
-        fat_category = 'high'
-    
-    # Carb category
-    if carbohydrate < 15:
-        carb_category = 'very_low'
-    elif carbohydrate < 30:
-        carb_category = 'low' 
-    elif carbohydrate < 50:
-        carb_category = 'medium'
-    else:
-        carb_category = 'high'
-    
-    return {
-        'calorie_category': calorie_category,
-        'protein_category': protein_category,
-        'fat_category': fat_category,
-        'carb_category': carb_category
-    }
+# Inisialisasi FoodRecommender
+food_recommender = FoodRecommender()
 
 @app.on_event("startup")
 async def startup_event():
-    """Load models saat startup"""
-    global mood_classifier, food_recommender
-    
-    print("🚀 Starting model loading...")
-    
+    """Load data dan model saat startup"""
     try:
-        # Initialize mood classifier
-        print("Loading mood classifier...")
-        mood_classifier = MoodClassifier()
-        
-        # Check if model files exist
-        model_files = [
-            'models/mood_classifier_model.keras',
-            'models/mood_feature_scaler.pkl', 
-            'models/mood_encoder.pkl',
-            'models/mood_label_encoder.pkl'
-        ]
-        
-        missing_files = [f for f in model_files if not os.path.exists(f)]
-        if missing_files:
-            print(f"❌ Missing model files: {missing_files}")
-            mood_classifier = None
-            food_recommender = None
-            return
-        
-        # Load mood classifier
-        mood_classifier.load(
-            model_path='models/mood_classifier_model.keras',
-            scaler_path='models/mood_feature_scaler.pkl',
-            onehot_encoder_path='models/mood_encoder.pkl',
-            label_encoder_path='models/mood_label_encoder.pkl'
-        )
-        print("✅ Mood classifier loaded successfully")
-        print(f"Available moods: {mood_classifier.get_mood_names()}")
-        
-        # Create fallback food recommender (skip pickle)
-        print("Creating fallback food recommender...")
-        food_recommender = FoodRecommender()
-        # Create dummy data
-        food_recommender.food_df = pd.DataFrame([
-            {'name': 'Nasi Putih', 'calories': 130, 'proteins': 2.7, 'fat': 0.3, 'carbohydrate': 28.0, 'primary_mood': 'energizing', 'similarity_score': 0.95},
-            {'name': 'Ayam Panggang', 'calories': 165, 'proteins': 31.0, 'fat': 3.6, 'carbohydrate': 0.0, 'primary_mood': 'focusing', 'similarity_score': 0.90},
-            {'name': 'Sayur Bayam', 'calories': 23, 'proteins': 2.9, 'fat': 0.4, 'carbohydrate': 3.6, 'primary_mood': 'relaxing', 'similarity_score': 0.85},
-            {'name': 'Tempe Goreng', 'calories': 193, 'proteins': 20.8, 'fat': 8.8, 'carbohydrate': 9.4, 'primary_mood': 'energizing', 'similarity_score': 0.88},
-            {'name': 'Ikan Bakar', 'calories': 206, 'proteins': 41.9, 'fat': 4.5, 'carbohydrate': 0.0, 'primary_mood': 'focusing', 'similarity_score': 0.92}
-        ])
-        print("✅ Fallback food recommender created")
-        
-        print("🎉 All models loaded successfully!")
-        
+        # Load food recommender dari pickle
+        if os.path.exists('food_recommender.pkl'):
+            with open('food_recommender.pkl', 'rb') as f:
+                global food_recommender
+                food_recommender = pickle.load(f)
+            print("Food recommender loaded dari pickle file")
+        else:
+            # Jika file pickle tidak ada, load dari CSV
+            if os.path.exists('nutrimood_preprocessed.csv'):
+                food_recommender.load_data('nutrimood_preprocessed.csv')
+                print("Food recommender loaded dari CSV file")
+            else:
+                print("Warning: File dataset tidak ditemukan")
     except Exception as e:
-        print(f"❌ Error loading models: {e}")
-        import traceback
-        traceback.print_exc()
-        mood_classifier = None
-        food_recommender = None
+        print(f"Error loading data: {str(e)}")
+
 @app.get("/")
-def read_root():
+async def root():
     """Root endpoint"""
-    return {
-        "message": "Welcome to NutriMood API",
-        "endpoints": {
-            "/recommend": "POST - Get food recommendations based on nutrients and health conditions",
-            "/health": "GET - Check API health status"
-        }
-    }
+    return {"message": "NutriMood API is running"}
 
 @app.get("/health")
-def health_check():
-    """Health check endpoint"""
+async def health_check():
+    """Health check"""
+    data_loaded = food_recommender.food_df is not None if food_recommender else False
     return {
-        "status": "healthy" if (mood_classifier is not None and food_recommender is not None) else "partial",
-        "mood_classifier_loaded": mood_classifier is not None,
-        "food_recommender_loaded": food_recommender is not None,
-        "message": "All models loaded" if (mood_classifier is not None and food_recommender is not None) else "Some models not loaded"
+        "status": "healthy" if data_loaded else "degraded",
+        "data_loaded": data_loaded
     }
 
-@app.post("/recommend", response_model=FoodRecommendationResponse)
-async def get_recommendations(request: FoodRecommendationRequest):
-    """Get food recommendations based on nutrient input and health conditions"""
+@app.get("/debug/food-details")
+async def get_food_details(food_name: str):
+    """Get details of a specific food"""
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(status_code=503, detail="Dataset belum dimuat")
     
-    # Check if models are loaded
-    if mood_classifier is None or food_recommender is None:
-        raise HTTPException(status_code=503, detail="Models not loaded. Please check server logs.")
+    df = food_recommender.food_df
+    
+    # Find exact match first, then partial match
+    exact_match = df[df['name'] == food_name]
+    if exact_match.empty:
+        partial_match = df[df['name'].str.contains(food_name, case=False, na=False)]
+        food_data = partial_match
+    else:
+        food_data = exact_match
+    
+    features = ['name', 'calories', 'proteins', 'fat', 'carbohydrate', 'primary_mood', 'is_energizing', 
+               'calorie_category_num', 'carb_category_num', 'mood_energizing', 'primary_mood_num']
+    
+    return {
+        "search_term": food_name,
+        "matches_found": len(food_data),
+        "food_details": food_data[features].to_dict('records') if not food_data.empty else [],
+        "user_profile_diabetes_energizing": {
+            'calorie_category_num': 1,
+            'carb_category_num': 1, 
+            'mood_energizing': 1.0,
+            'primary_mood_num': 0
+        }
+    }
+async def compare_foods(food1: str, food2: str):
+    """Compare features between two foods"""
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(status_code=503, detail="Dataset belum dimuat")
+    
+    df = food_recommender.food_df
+    
+    # Find foods
+    food1_data = df[df['name'].str.contains(food1, case=False, na=False)]
+    food2_data = df[df['name'].str.contains(food2, case=False, na=False)]
+    
+    features = ['calories', 'proteins', 'fat', 'carbohydrate', 'primary_mood', 'is_energizing', 
+               'calorie_category_num', 'carb_category_num', 'mood_energizing', 'primary_mood_num']
+    
+    result = {
+        "food1_matches": food1_data[features].to_dict('records') if not food1_data.empty else [],
+        "food2_matches": food2_data[features].to_dict('records') if not food2_data.empty else [],
+        "user_profile_for_diabetes_energizing": {
+            'calorie_category_num': 1,
+            'carb_category_num': 1, 
+            'mood_energizing': 1.0,
+            'primary_mood_num': 0
+        }
+    }
+    
+    return result
+async def debug_full_process(request: RecommendationRequest):
+    """Debug lengkap untuk melihat seluruh proses"""
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(status_code=503, detail="Dataset belum dimuat")
     
     try:
-        # 1. Kategorikan nutrisi
-        nutrient_categories = categorize_nutrients(
-            request.nutrients.calories,
-            request.nutrients.proteins,
-            request.nutrients.fat,
-            request.nutrients.carbohydrate
-        )
+        print(f"\n=== FULL DEBUG PROCESS ===")
+        print(f"Request: {request}")
         
-        # 2. Konversi kategori ke numerik untuk mood classifier
-        category_mapping = {'very_low': 0, 'low': 1, 'medium': 2, 'high': 3}
+        # Step 1: Lihat makanan energizing dengan nama kacang
+        df = food_recommender.food_df
+        energizing_foods = df[df['is_energizing'] == 1]
+        kacang_energizing = energizing_foods[energizing_foods['name'].str.contains('kacang', case=False, na=False)]
         
-        input_features = np.array([[
-            category_mapping[nutrient_categories['calorie_category']],
-            category_mapping[nutrient_categories['protein_category']],
-            category_mapping[nutrient_categories['fat_category']],
-            category_mapping[nutrient_categories['carb_category']]
-        ]])
+        print(f"Kacang energizing foods:")
+        for _, row in kacang_energizing.iterrows():
+            print(f"- {row['name']}: calories={row['calories']:.4f}")
         
-        # 3. Prediksi mood menggunakan mood classifier
-        # Classifier menggunakan label encoder untuk mendapatkan nama mood yang benar
-        predicted_mood = mood_classifier.predict(input_features)[0]
-        mood_probabilities = mood_classifier.predict_proba(input_features)[0]
+        # Step 2: Build user profile seperti di Colab
+        user_profile = {
+            'primary_mood': request.mood,
+            'primary_mood_num': food_recommender.encode_mood(request.mood)
+        }
         
-        # 4. Buat dictionary probabilitas mood
-        # Dapatkan urutan mood dari label encoder
-        mood_names = mood_classifier.get_mood_names()
-        mood_probs = {}
-        for i, mood in enumerate(mood_names):
-            if i < len(mood_probabilities):
-                mood_probs[mood] = float(mood_probabilities[i])
+        # Add mood feature
+        mood_col = f'mood_{request.mood}'
+        if mood_col in df.columns:
+            user_profile[mood_col] = 1.0
+            
+        # Add health conditions with correct column names
+        if request.health_conditions:
+            for condition in request.health_conditions:
+                if condition == 'diabetes':
+                    user_profile['calorie_category_num'] = 1  # low = 1
+                    user_profile['carb_category_num'] = 1     # low = 1
+                    
+        print(f"User profile before processing: {user_profile}")
         
-        # 5. Dapatkan rekomendasi makanan berdasarkan mood dan health conditions
+        # Step 3: Process user profile
+        processed_profile = {}
+        for key, value in user_profile.items():
+            if key == 'primary_mood':
+                processed_profile[key] = food_recommender.encode_mood(value)
+            elif isinstance(value, str):
+                processed_profile[key] = food_recommender.encode_category(value)
+            else:
+                processed_profile[key] = value
+                
+        print(f"Processed user profile: {processed_profile}")
+        
+        # Step 4: Find matching features
+        feature_cols = [col for col in df.columns 
+                       if col in processed_profile and pd.api.types.is_numeric_dtype(df[col])]
+        print(f"Matching features: {feature_cols}")
+        
+        # Step 5: Check specific foods
+        test_foods = ["Kacang merah /banda kering", "Jampang huma mentah", "Beef burger"]
+        print(f"\nChecking specific foods:")
+        for food_name in test_foods:
+            food_row = df[df['name'] == food_name]
+            if not food_row.empty:
+                food_features = food_row[feature_cols].values[0] if feature_cols else []
+                print(f"{food_name}:")
+                print(f"  Features: {dict(zip(feature_cols, food_features))}")
+                print(f"  is_energizing: {food_row['is_energizing'].values[0]}")
+                print(f"  primary_mood: {food_row['primary_mood'].values[0]}")
+        
+        return {
+            "user_profile": user_profile,
+            "processed_profile": processed_profile,
+            "matching_features": feature_cols,
+            "kacang_energizing_count": len(kacang_energizing),
+            "kacang_energizing_foods": kacang_energizing[['name', 'calories']].to_dict('records')[:3]
+        }
+        
+    except Exception as e:
+        print(f"Error in full debug: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+async def debug_energizing_foods():
+    """Debug endpoint untuk melihat makanan energizing"""
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(status_code=503, detail="Dataset belum dimuat")
+    
+    df = food_recommender.food_df
+    
+    # Filter energizing foods
+    energizing_foods = df[df['is_energizing'] == 1] if 'is_energizing' in df.columns else df[df['primary_mood'] == 'energizing']
+    
+    # Sort by calories descending
+    top_energizing = energizing_foods.sort_values('calories', ascending=False).head(10)
+    
+    return {
+        "total_energizing_foods": len(energizing_foods),
+        "top_10_by_calories": top_energizing[['name', 'calories', 'proteins', 'fat', 'carbohydrate']].to_dict('records'),
+        "search_kacang": df[df['name'].str.contains('kacang', case=False, na=False)][['name', 'calories', 'primary_mood', 'is_energizing']].to_dict('records') if 'is_energizing' in df.columns else []
+    }
+async def get_dataset_info():
+    """Debug endpoint untuk melihat info dataset"""
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(status_code=503, detail="Dataset belum dimuat")
+    
+    df = food_recommender.food_df
+    return {
+        "total_foods": len(df),
+        "columns": df.columns.tolist(),
+        "mood_distribution": df['primary_mood'].value_counts().to_dict() if 'primary_mood' in df.columns else {},
+        "sample_data": df.head(3).to_dict('records'),
+        "data_types": df.dtypes.astype(str).to_dict()
+    }
+
+@app.post("/debug/recommend")
+async def debug_recommend(request: RecommendationRequest):
+    """Debug version of recommend endpoint with detailed logging"""
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(status_code=503, detail="Dataset belum dimuat")
+    
+    try:
+        print(f"\n=== DEBUG RECOMMEND ===")
+        print(f"Request: {request}")
+        
+        # Dapatkan rekomendasi dengan debug output
         recommendations_df = food_recommender.recommend_for_mood(
-            mood=predicted_mood,
+            mood=request.mood,
             top_n=request.top_n,
             health_conditions=request.health_conditions
         )
         
-        # 6. Konversi DataFrame ke list of FoodItem
-        recommendations = []
-        for _, row in recommendations_df.iterrows():
-            recommendations.append(FoodItem(
-                name=row['name'],
-                calories=float(row['calories']),
-                proteins=float(row['proteins']),
-                fat=float(row['fat']),
-                carbohydrate=float(row['carbohydrate']),
-                primary_mood=row['primary_mood'],
-                similarity_score=float(row['similarity_score'])
-            ))
+        return {
+            "request": request.dict(),
+            "recommendations": recommendations_df.to_dict('records'),
+            "debug_info": "Check server console for detailed logs"
+        }
         
-        return FoodRecommendationResponse(
-            predicted_mood=predicted_mood,
-            mood_probabilities=mood_probs,
-            recommendations=recommendations,
-            total_recommendations=len(recommendations)
+    except Exception as e:
+        print(f"Error in debug recommend: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/recommend", response_model=RecommendationResponse)
+async def get_recommendations(request: RecommendationRequest):
+    """Endpoint utama untuk mendapatkan rekomendasi makanan"""
+    
+    # Validasi food_recommender
+    if food_recommender is None or food_recommender.food_df is None:
+        raise HTTPException(
+            status_code=503,
+            detail="Food recommender belum dimuat. Cek status server."
+        )
+    
+    # Validasi mood
+    valid_moods = ['energizing', 'relaxing', 'focusing', 'neutral', 'multi_category']
+    if request.mood not in valid_moods:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Mood tidak valid. Pilih salah satu: {valid_moods}"
+        )
+    
+    try:
+        # Dapatkan rekomendasi
+        recommendations_df = food_recommender.recommend_for_mood(
+            mood=request.mood,
+            top_n=request.top_n,
+            health_conditions=request.health_conditions
+        )
+        
+        # Convert ke FoodItem objects
+        food_items = []
+        for _, row in recommendations_df.iterrows():
+            food_item = FoodItem(
+                name=row.get('name', 'Unknown'),
+                calories=float(row.get('calories', 0)),
+                proteins=float(row.get('proteins', 0)),
+                fat=float(row.get('fat', 0)),
+                carbohydrate=float(row.get('carbohydrate', 0)),
+                primary_mood=row.get('primary_mood', 'unknown'),
+                similarity_score=float(row.get('similarity_score', 0))
+            )
+            food_items.append(food_item)
+        
+        # Buat response message
+        message = f"Ditemukan {len(food_items)} rekomendasi makanan untuk mood '{request.mood}'"
+        if request.health_conditions:
+            message += f" dengan kondisi kesehatan: {', '.join(request.health_conditions)}"
+        
+        return RecommendationResponse(
+            mood=request.mood,
+            health_conditions=request.health_conditions,
+            recommendations=food_items,
+            message=message
         )
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@app.get("/moods")
+async def get_available_moods():
+    """Daftar mood yang tersedia"""
+    return {
+        "moods": ["energizing", "relaxing", "focusing", "neutral"],
+        "description": {
+            "energizing": "Makanan untuk meningkatkan energi",
+            "relaxing": "Makanan untuk relaksasi", 
+            "focusing": "Makanan untuk meningkatkan fokus",
+            "neutral": "Makanan netral"
+        }
+    }
+
+@app.get("/health-conditions")
+async def get_available_health_conditions():
+    """Daftar kondisi kesehatan yang tersedia"""
+    return {
+        "health_conditions": ["diabetes", "hipertensi", "kolesterol", "obesitas", "alergi_gluten", "vegetarian"],
+        "description": {
+            "diabetes": "Kondisi diabetes mellitus",
+            "hipertensi": "Tekanan darah tinggi", 
+            "kolesterol": "Kolesterol tinggi",
+            "obesitas": "Kelebihan berat badan",
+            "alergi_gluten": "Alergi terhadap gluten",
+            "vegetarian": "Diet vegetarian"
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)

@@ -7,24 +7,17 @@ import {
   Zap,
   Target,
   Heart,
-  Utensils,
   ArrowRight,
   ArrowLeft,
   Info,
   Check,
+  Smile,
 } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/hooks/useAuth";
 import { AssessmentSkeleton } from "@/components/Skeleton";
 import { api } from "@/lib/api";
-
-interface NutritionInput {
-  calorie_level: number;
-  protein_level: number;
-  fat_level: number;
-  carb_level: number;
-}
 
 interface HealthCondition {
   value: string;
@@ -39,12 +32,7 @@ export default function AssessmentPage() {
   const { user, isAuthLoading } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [nutritionInput, setNutritionInput] = useState<NutritionInput>({
-    calorie_level: 2, // Default ke medium
-    protein_level: 2,
-    fat_level: 1, // Default ke low
-    carb_level: 2,
-  });
+  const [selectedMood, setSelectedMood] = useState<string>("");
   const [selectedHealthConditions, setSelectedHealthConditions] = useState<
     HealthCondition[]
   >([]);
@@ -52,76 +40,63 @@ export default function AssessmentPage() {
     []
   );
   const [isLoading, setIsLoading] = useState(false);
-
-  const steps = [
+  // Define available moods
+  const moods = [
     {
-      key: "calorie_level" as keyof NutritionInput,
-      title: "Tingkat Kalori Hari Ini",
-      description: "Seberapa banyak kalori yang sudah Anda konsumsi hari ini?",
+      value: "energizing",
+      name: "Energizing",
+      description: "Saya ingin merasa berenergi dan bersemangat",
       icon: <Zap className="w-8 h-8" />,
       color: "from-orange-500 to-orange-600",
-      info: "Kalori adalah unit energi yang dibutuhkan tubuh untuk beraktivitas. Konsumsi kalori yang tepat mempengaruhi mood dan energi Anda.",
-      examples: [
-        "Sangat Rendah: < 800 kalori (puasa/diet ketat)",
-        "Rendah: 800-1200 kalori (diet ringan)",
-        "Sedang: 1200-1800 kalori (normal)",
-        "Tinggi: > 1800 kalori (banyak makan)",
-      ],
+      info: "Mood energizing cocok untuk aktivitas fisik, olahraga, atau ketika Anda butuh dorongan semangat ekstra.",
     },
     {
-      key: "protein_level" as keyof NutritionInput,
-      title: "Tingkat Protein Hari Ini",
-      description: "Seberapa banyak protein yang sudah Anda konsumsi hari ini?",
+      value: "relaxing",
+      name: "Relaxing",
+      description: "Saya ingin merasa tenang dan rileks",
+      icon: <Smile className="w-8 h-8" />,
+      color: "from-blue-500 to-blue-600",
+      info: "Mood relaxing membantu menenangkan pikiran, mengurangi stres, dan memberikan rasa damai.",
+    },
+    {
+      value: "focusing",
+      name: "Focusing",
+      description: "Saya ingin meningkatkan konsentrasi dan fokus",
       icon: <Target className="w-8 h-8" />,
-      color: "from-forest-500 to-forest-600",
-      info: "Protein adalah pembangun otot dan membantu menjaga mood stabil. Kekurangan protein dapat menyebabkan lelah dan mood menurun.",
-      examples: [
-        "Sangat Rendah: < 20g (hampir tidak ada protein)",
-        "Rendah: 20-40g (sedikit daging/ikan)",
-        "Sedang: 40-70g (porsi normal)",
-        "Tinggi: > 70g (banyak daging/telur/kacang)",
-      ],
+      color: "from-green-500 to-green-600",
+      info: "Mood focusing membantu meningkatkan konsentrasi untuk bekerja, belajar, atau aktivitas yang membutuhkan fokus tinggi.",
     },
     {
-      key: "fat_level" as keyof NutritionInput,
-      title: "Tingkat Lemak Hari Ini",
-      description: "Seberapa banyak lemak yang sudah Anda konsumsi hari ini?",
+      value: "neutral",
+      name: "Neutral",
+      description: "Saya ingin menjaga keseimbangan mood",
       icon: <Heart className="w-8 h-8" />,
       color: "from-sage-500 to-sage-600",
-      info: "Lemak sehat diperlukan untuk fungsi otak dan penyerapan vitamin. Terlalu sedikit lemak dapat mempengaruhi mood dan konsentrasi.",
-      examples: [
-        "Sangat Rendah: < 20g (hampir bebas lemak)",
-        "Rendah: 20-40g (sedikit minyak)",
-        "Sedang: 40-70g (normal)",
-        "Tinggi: > 70g (gorengan/santan/kacang)",
-      ],
-    },
-    {
-      key: "carb_level" as keyof NutritionInput,
-      title: "Tingkat Karbohidrat Hari Ini",
-      description:
-        "Seberapa banyak karbohidrat yang sudah Anda konsumsi hari ini?",
-      icon: <Utensils className="w-8 h-8" />,
-      color: "from-beige-500 to-beige-600",
-      info: "Karbohidrat adalah sumber energi utama otak. Konsumsi yang tepat membantu menjaga mood dan fokus sepanjang hari.",
-      examples: [
-        "Sangat Rendah: < 50g (keto/low-carb)",
-        "Rendah: 50-100g (sedikit nasi/roti)",
-        "Sedang: 100-200g (normal)",
-        "Tinggi: > 200g (banyak nasi/pasta/gula)",
-      ],
+      info: "Mood neutral membantu menjaga keseimbangan emosi dan cocok untuk aktivitas sehari-hari.",
     },
   ];
 
-  // Add health condition step
-  const allSteps = [
-    ...steps,
+  const steps = [
     {
-      key: "health_condition" as const,
+      key: "mood_selection",
+      title: "Pilih Mood yang Diinginkan",
+      description: "Bagaimana mood yang ingin Anda rasakan hari ini?",
+      icon: <Brain className="w-8 h-8" />,
+      color: "from-forest-500 to-forest-600",
+      info: "Pilih mood yang sesuai dengan aktivitas atau perasaan yang ingin Anda capai. Setiap mood akan memberikan rekomendasi makanan yang berbeda.",
+      examples: [
+        "Energizing: Untuk aktivitas fisik dan produktivitas",
+        "Relaxing: Untuk ketenangan dan relaksasi",
+        "Focusing: Untuk konsentrasi dan fokus",
+        "Neutral: Untuk keseimbangan mood harian",
+      ],
+    },
+    {
+      key: "health_condition",
       title: "Kondisi Kesehatan",
       description:
         "Pilih kondisi kesehatan yang Anda miliki (bisa lebih dari satu)",
-      icon: <Brain className="w-8 h-8" />,
+      icon: <Heart className="w-8 h-8" />,
       color: "from-forest-500 to-forest-600",
       info: "Kondisi kesehatan tertentu memerlukan perhatian khusus dalam pemilihan makanan. Anda dapat memilih lebih dari satu kondisi untuk mendapatkan rekomendasi yang lebih tepat.",
       examples: [
@@ -133,15 +108,8 @@ export default function AssessmentPage() {
     },
   ];
 
-  const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
-  const levelColors = [
-    "bg-red-100 text-red-700 border-red-200 hover:bg-red-200",
-    "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200",
-    "bg-green-100 text-green-700 border-green-200 hover:bg-green-200",
-    "bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-200",
-  ];
   const handleLevelSelect = (level: number) => {
-    const currentStepKey = allSteps[currentStep].key;
+    const currentStepKey = steps[currentStep].key;
     if (currentStepKey === "health_condition") {
       // For health condition step, level represents the index in healthConditions array
       if (level < healthConditions.length) {
@@ -164,17 +132,16 @@ export default function AssessmentPage() {
         // "Tidak Ada" option - clear all selections
         setSelectedHealthConditions([]);
       }
-    } else {
-      // For nutrition steps
-      setNutritionInput((prev) => ({
-        ...prev,
-        [currentStepKey]: level,
-      }));
+    } else if (currentStepKey === "mood_selection") {
+      // For mood selection step, level represents the index in moods array
+      if (level < moods.length) {
+        setSelectedMood(moods[level].value);
+      }
     }
   };
 
   const handleNext = () => {
-    if (currentStep < allSteps.length - 1) {
+    if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       handleSubmit();
@@ -189,62 +156,59 @@ export default function AssessmentPage() {
   const handleSubmit = async () => {
     setIsLoading(true);
     try {
-      // Convert nutrition levels to actual values
-      const nutrients = api.convertNutritionLevels(nutritionInput);
-
-      // Call the unified recommend API
+      if (!selectedMood) {
+        throw new Error("Silakan pilih mood terlebih dahulu");
+      } // Call the API with selected mood
       const recommendationData = await api.recommend({
-        nutrients,
+        mood: selectedMood,
         health_conditions: selectedHealthConditions.map((hc) => hc.value),
         top_n: 5,
-      });
-
-      // 3. Simpan ke Supabase jika user login
-      let assessmentId = null;
+      }); // Simpan ke Supabase jika user login
       if (user) {
-        // Prepare health conditions array
-        const healthConditionsArray =
-          selectedHealthConditions.length > 0
-            ? selectedHealthConditions.map((condition) => condition.value)
-            : ["tidak_ada"];
+        // Insert assessment dengan mood sebagai input utama (NEW FLOW)
+        const healthConditionsArray = selectedHealthConditions.map(
+          (hc) => hc.value
+        );
 
-        // Insert assessment ke database with health conditions as TEXT[] array
         const { data: assessment, error: err1 } = await supabase
           .from("nutrition_assessments")
           .insert([
             {
-              user_id: user.id,
-              calorie_level: nutritionInput.calorie_level,
-              protein_level: nutritionInput.protein_level,
-              fat_level: nutritionInput.fat_level,
-              carb_level: nutritionInput.carb_level,
+              user_id: user.id, // NEW FLOW: User selects mood directly
+              selected_mood: selectedMood, // User-selected mood (primary input)
+              predicted_mood: recommendationData.mood, // Same as selected for consistency
+              confidence_score: 95, // High confidence since user directly chose mood
               health_conditions: healthConditionsArray,
-              predicted_mood: recommendationData.predicted_mood,
-              confidence_score:
-                Math.max(
-                  ...Object.values(recommendationData.mood_probabilities)
-                ) * 100,
+              // Calculate nutrition levels from food recommendations
+              ...(() => {
+                const levels = calculateNutritionLevels(
+                  recommendationData.recommendations
+                );
+                return {
+                  calorie_level: levels.calorie,
+                  protein_level: levels.protein,
+                  fat_level: levels.fat,
+                  carb_level: levels.carb,
+                };
+              })(),
               created_at: new Date().toISOString(),
             },
           ])
           .select()
           .single();
-        if (err1) throw err1;
-        assessmentId = assessment.id;
-
-        // Insert food recommendations
+        if (err1) throw err1; // Insert food recommendations
         for (const food of recommendationData.recommendations) {
           const { error: err2 } = await supabase
             .from("food_recommendations")
             .insert([
               {
-                assessment_id: assessmentId,
+                assessment_id: assessment.id,
                 user_id: user.id,
                 food_name: food.name,
                 calories: food.calories,
                 proteins: food.proteins,
-                fats: food.fat,
-                carbohydrates: food.carbohydrate,
+                fats: food.fat, // Backend returns 'fat', database expects 'fats'
+                carbohydrates: food.carbohydrate, // Backend returns 'carbohydrate', database expects 'carbohydrates'
                 mood_category: food.primary_mood,
                 similarity_score: food.similarity_score || 0,
                 is_liked: false,
@@ -254,34 +218,36 @@ export default function AssessmentPage() {
             ]);
           if (err2) {
             console.error("Insert food_recommendations error:", err2);
+            // Don't throw here, just log the error and continue with other foods
           }
         }
       }
 
-      // 4. Simpan hasil ke sessionStorage untuk halaman results
+      // Simpan hasil ke sessionStorage
       sessionStorage.setItem(
         "nutrition_assessment",
         JSON.stringify({
           input: {
-            ...nutritionInput,
+            selected_mood: selectedMood,
             health_condition: selectedHealthConditions,
+            // Set default nutrition levels
+            calorie_level: 2,
+            protein_level: 2,
+            fat_level: 2,
+            carb_level: 2,
           },
           result: {
             mood_prediction: {
-              mood: recommendationData.predicted_mood,
-              confidence:
-                Math.max(
-                  ...Object.values(recommendationData.mood_probabilities)
-                ) * 100,
-              mood_probabilities: recommendationData.mood_probabilities,
+              mood: recommendationData.mood, // Fixed: use mood instead of predicted_mood
+              confidence: 95, // Fixed: set default confidence since backend doesn't return probabilities
             },
             food_recommendations: recommendationData.recommendations.map(
               (food) => ({
                 food_name: food.name,
                 calories: food.calories,
                 proteins: food.proteins,
-                fat: food.fat, // fix: gunakan 'fat' bukan 'fats'
-                carbohydrate: food.carbohydrate, // fix: gunakan 'carbohydrate' bukan 'carbohydrates'
+                fats: food.fat, // Keep consistent with database field naming
+                carbohydrates: food.carbohydrate, // Keep consistent with database field naming
                 similarity_score: food.similarity_score || 0,
                 mood_category: food.primary_mood,
               })
@@ -307,14 +273,18 @@ export default function AssessmentPage() {
       setIsLoading(false);
     }
   };
-  const currentStepData = allSteps[currentStep];
+  const currentStepData = steps[currentStep];
   const currentValue =
     currentStepData.key === "health_condition"
       ? selectedHealthConditions.length === 0
         ? healthConditions.length // "Tidak Ada" option
         : -1 // Multiple selections, no single value
-      : nutritionInput[currentStepData.key as keyof NutritionInput];
-  const progress = ((currentStep + 1) / allSteps.length) * 100;
+      : currentStepData.key === "mood_selection"
+      ? selectedMood
+        ? moods.findIndex((m) => m.value === selectedMood)
+        : undefined
+      : undefined;
+  const progress = ((currentStep + 1) / steps.length) * 100;
   // Load health conditions
   useEffect(() => {
     const loadHealthConditions = () => {
@@ -391,8 +361,9 @@ export default function AssessmentPage() {
         {/* Progress Bar */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center justify-between text-sm text-sage-600 mb-2">
+            {" "}
             <span>
-              Langkah {currentStep + 1} dari {allSteps.length}
+              Langkah {currentStep + 1} dari {steps.length}
             </span>
             <span>{Math.round(progress)}% selesai</span>
           </div>
@@ -548,48 +519,62 @@ export default function AssessmentPage() {
                 })}
               </div>
             ) : (
-              // Nutrition Level Selection
+              // Mood Selection
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-6 sm:mb-8">
-                {levelLabels.map((label, index) => (
+                {moods.map((mood, index) => (
                   <button
-                    key={index}
+                    key={mood.value}
                     onClick={() => handleLevelSelect(index)}
                     className={`
                       p-4 sm:p-6 rounded-xl border-2 text-left transition-all duration-200 transform hover:scale-105
                       ${
                         currentValue === index
-                          ? levelColors[index] +
-                            " scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500"
+                          ? `bg-gradient-to-r ${mood.color} text-white border-transparent scale-105 shadow-lg ring-2 ring-offset-2 ring-forest-500`
                           : "border-sage-200 hover:border-sage-300 bg-white hover:bg-sage-50 text-sage-900"
                       }
                     `}
                   >
                     <div className="flex items-center justify-between">
                       <div className="min-w-0 flex-1">
-                        <h3
-                          className={`font-semibold text-base sm:text-lg mb-1 ${
-                            currentValue === index ? "" : "text-sage-900"
-                          }`}
-                        >
-                          {label}
-                        </h3>
+                        <div className="flex items-center gap-3 mb-2">
+                          <div
+                            className={
+                              currentValue === index
+                                ? "text-white"
+                                : "text-sage-600"
+                            }
+                          >
+                            {mood.icon}
+                          </div>
+                          <h3
+                            className={`font-semibold text-base sm:text-lg ${
+                              currentValue === index
+                                ? "text-white"
+                                : "text-sage-900"
+                            }`}
+                          >
+                            {mood.name}
+                          </h3>
+                        </div>
                         <p
                           className={`text-sm break-words ${
-                            currentValue === index ? "" : "text-sage-700"
+                            currentValue === index
+                              ? "text-white/90"
+                              : "text-sage-700"
                           }`}
                         >
-                          {currentStepData.examples[index].split(": ")[1]}
+                          {mood.description}
                         </p>
                       </div>
                       <div
                         className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 ml-3 ${
                           currentValue === index
-                            ? "border-current bg-current"
+                            ? "border-white bg-white"
                             : "border-sage-300"
                         }`}
                       >
                         {currentValue === index && (
-                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full" />
+                          <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-current rounded-full" />
                         )}
                       </div>
                     </div>
@@ -607,10 +592,9 @@ export default function AssessmentPage() {
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5" />
                 <span className="hidden sm:inline">Sebelumnya</span>
                 <span className="sm:hidden">Kembali</span>
-              </button>
-
+              </button>{" "}
               <div className="flex gap-2">
-                {allSteps.map((_, index) => (
+                {steps.map((_, index) => (
                   <div
                     key={index}
                     className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full transition-colors ${
@@ -623,7 +607,6 @@ export default function AssessmentPage() {
                   />
                 ))}
               </div>
-
               <button
                 onClick={handleNext}
                 disabled={currentValue === undefined || isLoading}
@@ -635,7 +618,7 @@ export default function AssessmentPage() {
                     <span className="hidden sm:inline">Menganalisis...</span>
                     <span className="sm:hidden">Loading...</span>
                   </>
-                ) : currentStep === allSteps.length - 1 ? (
+                ) : currentStep === steps.length - 1 ? (
                   <>
                     <span className="hidden sm:inline">
                       Dapatkan Rekomendasi
@@ -660,25 +643,21 @@ export default function AssessmentPage() {
             <h3 className="font-semibold text-forest-900 mb-3 text-base sm:text-lg">
               Ringkasan Input Anda:
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-              {steps
-                .slice(0, Math.min(currentStep + 1, steps.length))
-                .map((step) => (
-                  <div key={step.key} className="text-center">
-                    <div className="text-xs sm:text-sm text-sage-600 mb-1">
-                      {step.title.replace(" Hari Ini", "")}
-                    </div>
-                    <div
-                      className={`inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
-                        levelColors[nutritionInput[step.key]]
-                      }`}
-                    >
-                      {levelLabels[nutritionInput[step.key]]}
-                    </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              {/* Show mood if selected */}
+              {selectedMood && (
+                <div className="text-center">
+                  <div className="text-xs sm:text-sm text-sage-600 mb-1">
+                    Mood Yang Dipilih
                   </div>
-                ))}
+                  <div className="inline-block px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium bg-forest-100 text-forest-700 border border-forest-200">
+                    {moods.find((m) => m.value === selectedMood)?.name ||
+                      selectedMood}
+                  </div>
+                </div>
+              )}
               {/* Show health condition if we're on or past that step */}
-              {currentStep >= steps.length && (
+              {currentStep >= 1 && (
                 <div className="text-center">
                   <div className="text-xs sm:text-sm text-sage-600 mb-1">
                     Kondisi Kesehatan
@@ -697,3 +676,47 @@ export default function AssessmentPage() {
     </div>
   );
 }
+
+// Helper function to calculate nutrition levels from food recommendations
+const calculateNutritionLevels = (
+  recommendations: Array<{
+    calories?: number;
+    proteins?: number;
+    fat?: number;
+    carbohydrate?: number;
+  }>
+) => {
+  if (!recommendations || recommendations.length === 0) {
+    return { calorie: 2, protein: 2, fat: 2, carb: 2 }; // default medium
+  } // Calculate average nutrition values from recommendations
+  const totals = recommendations.reduce(
+    (acc, food) => ({
+      calories: (acc.calories || 0) + (food.calories || 0),
+      proteins: (acc.proteins || 0) + (food.proteins || 0),
+      fat: (acc.fat || 0) + (food.fat || 0),
+      carbohydrate: (acc.carbohydrate || 0) + (food.carbohydrate || 0),
+    }),
+    { calories: 0, proteins: 0, fat: 0, carbohydrate: 0 }
+  );
+  const avgCalories = (totals.calories || 0) / recommendations.length;
+  const avgProteins = (totals.proteins || 0) / recommendations.length;
+  const avgFats = (totals.fat || 0) / recommendations.length;
+  const avgCarbs = (totals.carbohydrate || 0) / recommendations.length;
+
+  // Convert to levels (0-3 scale)
+  // These thresholds can be adjusted based on nutritional guidelines
+  const calorieLevel =
+    avgCalories < 200 ? 0 : avgCalories < 400 ? 1 : avgCalories < 600 ? 2 : 3;
+  const proteinLevel =
+    avgProteins < 10 ? 0 : avgProteins < 20 ? 1 : avgProteins < 30 ? 2 : 3;
+  const fatLevel = avgFats < 5 ? 0 : avgFats < 15 ? 1 : avgFats < 25 ? 2 : 3;
+  const carbLevel =
+    avgCarbs < 30 ? 0 : avgCarbs < 60 ? 1 : avgCarbs < 90 ? 2 : 3;
+
+  return {
+    calorie: calorieLevel,
+    protein: proteinLevel,
+    fat: fatLevel,
+    carb: carbLevel,
+  };
+};

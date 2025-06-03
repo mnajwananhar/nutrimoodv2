@@ -36,6 +36,7 @@ interface AssessmentData {
     fat_level: number;
     carb_level: number;
     health_condition?: HealthCondition[] | HealthCondition | null; // Support both formats for backwards compatibility
+    selected_mood?: string; // New field for mood-first flow
   };
   result: {
     mood_prediction: {
@@ -137,7 +138,6 @@ export default function ResultsPage() {
                 description: condition,
                 filter: condition,
               })) || [];
-
           setAssessmentData({
             input: {
               calorie_level: assessment.calorie_level,
@@ -146,10 +146,11 @@ export default function ResultsPage() {
               carb_level: assessment.carb_level,
               health_condition:
                 healthConditions.length > 0 ? healthConditions : null,
+              selected_mood: assessment.selected_mood,
             },
             result: {
               mood_prediction: {
-                mood: assessment.predicted_mood,
+                mood: assessment.selected_mood || assessment.predicted_mood,
                 confidence: assessment.confidence_score,
               },
               food_recommendations: (foods || []).map(

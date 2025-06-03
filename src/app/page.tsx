@@ -29,32 +29,29 @@ export default function HomePage() {
               <span className="hidden sm:inline">AI Nutrisi & Mood</span>
               <span className="sm:hidden">AI Nutrisi & Mood</span>
             </div>
-
             {/* Main Heading */}
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-forest-900 leading-tight px-2">
               <span className="block">Temukan Makanan</span>
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-sage-600">
                 Sesuai Mood Anda
               </span>
-            </h1>
-
+            </h1>{" "}
             {/* Subtitle */}
             <p className="max-w-3xl mx-auto text-lg sm:text-xl md:text-2xl text-sage-700 leading-relaxed px-4">
               Dapatkan rekomendasi makanan Indonesia terbaik berdasarkan
-              analisis AI dari tingkat nutrisi dan mood Anda.
+              analisis AI dari mood yang ingin Anda rasakan.
             </p>
-
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center px-4">
+              {" "}
               <Link
                 href="/recommendations/assessment"
                 className="group bg-gradient-to-r from-forest-600 to-forest-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg shadow-earth hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300 flex items-center w-full sm:w-auto justify-center"
               >
-                <span className="hidden sm:inline">Mulai Analisis Nutrisi</span>
+                <span className="hidden sm:inline">Mulai Analisis Mood</span>
                 <span className="sm:hidden">Mulai Analisis</span>
                 <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </Link>
-
               <Link
                 href="/learn"
                 className="group border-2 border-sage-300 text-sage-700 px-6 sm:px-8 py-3 sm:py-4 rounded-xl font-semibold text-base sm:text-lg hover:bg-sage-50 transition-all duration-300 flex items-center w-full sm:w-auto justify-center"
@@ -64,7 +61,6 @@ export default function HomePage() {
                 <Brain className="ml-2 w-5 h-5 group-hover:rotate-12 transition-transform" />
               </Link>
             </div>
-
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-2xl mx-auto pt-8 sm:pt-12 px-4">
               <div className="text-center">
@@ -105,11 +101,11 @@ export default function HomePage() {
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-forest-900 mb-4 sm:mb-6 px-2">
               Bagaimana Cara Kerjanya?
-            </h2>
+            </h2>{" "}
             <p className="text-lg sm:text-xl text-sage-700 max-w-3xl mx-auto px-4">
-              NutriMood menggunakan teknologi AI untuk menganalisis pola nutrisi
-              Anda dan memprediksi mood, kemudian memberikan rekomendasi makanan
-              Indonesia yang tepat.
+              NutriMood menggunakan teknologi AI untuk menganalisis mood yang
+              Anda inginkan dan memberikan rekomendasi makanan Indonesia yang
+              tepat untuk mencapai mood tersebut.
             </p>
           </div>
 
@@ -117,26 +113,26 @@ export default function HomePage() {
             <div className="text-center group">
               <div className="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-r from-forest-500 to-forest-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Utensils className="w-8 sm:w-10 h-8 sm:h-10" />
-              </div>
+              </div>{" "}
               <h3 className="text-xl sm:text-2xl font-bold text-forest-900 mb-3 sm:mb-4 px-2">
-                1. Input Nutrisi Anda
+                1. Pilih Mood Anda
               </h3>
               <p className="text-sage-700 leading-relaxed px-4">
-                Masukkan level kalori, protein, lemak, dan karbohidrat yang Anda
-                konsumsi hari ini dengan skala sederhana.
+                Pilih mood yang ingin Anda rasakan hari ini: energizing,
+                relaxing, focusing, atau neutral.
               </p>
             </div>
 
             <div className="text-center group">
               <div className="w-16 sm:w-20 h-16 sm:h-20 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 sm:mb-6 group-hover:scale-110 transition-transform duration-300">
                 <Brain className="w-8 sm:w-10 h-8 sm:h-10" />
-              </div>
+              </div>{" "}
               <h3 className="text-xl sm:text-2xl font-bold text-forest-900 mb-3 sm:mb-4 px-2">
-                2. AI Prediksi Mood
+                2. AI Analisis Makanan
               </h3>
               <p className="text-sage-700 leading-relaxed px-4">
-                Model AI kami menganalisis pola nutrisi Anda untuk memprediksi
-                mood (energizing, calming, focusing, dll).
+                Model AI kami menganalisis database makanan Indonesia untuk
+                menemukan makanan yang cocok dengan mood yang Anda pilih.
               </p>
             </div>
 
@@ -146,10 +142,10 @@ export default function HomePage() {
               </div>
               <h3 className="text-xl sm:text-2xl font-bold text-forest-900 mb-3 sm:mb-4 px-2">
                 3. Rekomendasi Personal
-              </h3>
+              </h3>{" "}
               <p className="text-sage-700 leading-relaxed px-4">
-                Dapatkan 5 makanan Indonesia terbaik yang sesuai dengan mood dan
-                kebutuhan nutrisi Anda.
+                Dapatkan 5 makanan Indonesia terbaik yang sesuai dengan mood
+                yang Anda inginkan dan kondisi kesehatan Anda.
               </p>
             </div>
           </div>
@@ -170,8 +166,7 @@ export default function HomePage() {
               Tidak perlu daftar. Langsung coba fitur utama NutriMood di bawah
               ini.
             </p>
-          </div>
-
+          </div>{" "}
           <Suspense
             fallback={
               <div className="flex items-center justify-center py-12 sm:py-20">

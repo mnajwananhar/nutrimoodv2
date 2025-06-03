@@ -44,15 +44,8 @@ export const apiRequest = async (
 };
 
 // Types for API requests and responses
-export interface NutrientInput {
-  calories: number;
-  proteins: number;
-  fat: number;
-  carbohydrate: number;
-}
-
 export interface FoodRecommendationRequest {
-  nutrients: NutrientInput;
+  mood: string; // Changed from nutrients to mood
   health_conditions?: string[];
   top_n?: number;
 }
@@ -68,15 +61,15 @@ export interface FoodItem {
 }
 
 export interface FoodRecommendationResponse {
-  predicted_mood: string;
-  mood_probabilities: Record<string, number>;
+  mood: string;
+  health_conditions?: string[];
   recommendations: FoodItem[];
-  total_recommendations: number;
+  message: string;
 }
 
 // Typed API methods
 export const api = {
-  // Get food recommendations based on nutrients and health conditions
+  // Get food recommendations based on mood and health conditions
   recommend: async (
     data: FoodRecommendationRequest
   ): Promise<FoodRecommendationResponse> => {
@@ -91,27 +84,5 @@ export const api = {
   healthCheck: async () => {
     const response = await apiRequest(API_CONFIG.ENDPOINTS.HEALTH);
     return response.json();
-  },
-
-  // Utility function to convert nutrition levels (0-3) to actual values
-  convertNutritionLevels: (levels: {
-    calorie_level: number;
-    protein_level: number;
-    fat_level: number;
-    carb_level: number;
-  }): NutrientInput => {
-    // Convert categorical levels to actual nutritional values
-    // These ranges are based on typical daily intake values
-    const calorieRanges = [500, 1200, 1800, 2500]; // very_low, low, medium, high
-    const proteinRanges = [15, 40, 70, 120]; // very_low, low, medium, high
-    const fatRanges = [15, 40, 70, 120]; // very_low, low, medium, high
-    const carbRanges = [30, 100, 200, 350]; // very_low, low, medium, high
-
-    return {
-      calories: calorieRanges[levels.calorie_level] || calorieRanges[2],
-      proteins: proteinRanges[levels.protein_level] || proteinRanges[2],
-      fat: fatRanges[levels.fat_level] || fatRanges[2],
-      carbohydrate: carbRanges[levels.carb_level] || carbRanges[2],
-    };
   },
 } as const;

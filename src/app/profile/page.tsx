@@ -59,6 +59,7 @@ interface Profile {
 
 interface Assessment {
   predicted_mood: string;
+  selected_mood: string;
   confidence_score: number;
 }
 
@@ -162,7 +163,7 @@ export default function ProfilePage() {
         // Get assessments count and stats
         const { data: assessments, error: assessmentsError } = await supabase
           .from("nutrition_assessments")
-          .select("predicted_mood, confidence_score")
+          .select("predicted_mood, selected_mood, confidence_score")
           .eq("user_id", user.id);
 
         if (assessmentsError) throw assessmentsError;
@@ -199,9 +200,9 @@ export default function ProfilePage() {
         let totalConfidence = 0;
 
         assessments?.forEach((assessment: Assessment) => {
-          if (assessment.predicted_mood) {
-            moodCounts[assessment.predicted_mood] =
-              (moodCounts[assessment.predicted_mood] || 0) + 1;
+          const mood = assessment.selected_mood || assessment.predicted_mood;
+          if (mood) {
+            moodCounts[mood] = (moodCounts[mood] || 0) + 1;
           }
           if (assessment.confidence_score) {
             // Normalize confidence_score to 0-100 scale like dashboard
