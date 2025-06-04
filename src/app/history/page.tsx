@@ -18,9 +18,7 @@ import {
   Zap,
   Award,
   Activity,
-  Smile,
   Moon,
-  Scale,
   Utensils,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -78,10 +76,9 @@ const getMoodIcon = (mood: string) => {
     [key: string]: React.ComponentType<{ className?: string }>;
   } = {
     energizing: Zap,
-    calming: Smile,
-    focusing: Target,
     relaxing: Moon,
-    balanced: Scale,
+    focusing: Target,
+    neutral: Heart,
   };
   return moodIcons[mood] || Utensils;
 };
@@ -488,18 +485,16 @@ export default function HistoryPage() {
             <div className="flex-1">
               <label className="block text-sm font-medium text-forest-900 mb-2">
                 Filter Mood
-              </label>
-              <select
+              </label>              <select
                 value={moodFilter}
                 onChange={(e) => setMoodFilter(e.target.value)}
                 className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500 text-sm sm:text-base"
               >
                 <option value="all">Semua Mood</option>
                 <option value="energizing">Energizing</option>
-                <option value="calming">Calming</option>
-                <option value="focusing">Focusing</option>
                 <option value="relaxing">Relaxing</option>
-                <option value="balanced">Balanced</option>
+                <option value="focusing">Focusing</option>
+                <option value="neutral">Neutral</option>
               </select>
             </div>
 

@@ -320,12 +320,6 @@ export default function AssessmentPage() {
           description: "Tidak dapat mengonsumsi gluten",
           filter: "gluten_free",
         },
-        {
-          value: "vegetarian",
-          name: "Vegetarian",
-          description: "Tidak mengonsumsi daging",
-          filter: "vegetarian",
-        },
       ];
       setHealthConditions(conditions);
     };

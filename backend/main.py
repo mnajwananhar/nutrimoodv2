@@ -493,22 +493,21 @@ food_recommender = FoodRecommender()
 async def startup_event():
     """Load data dan model saat startup"""
     try:
+        # Fix module reference untuk pickle
+        import sys
+        sys.modules['__main__'].FoodRecommender = FoodRecommender
+        
         # Load food recommender dari pickle
-        if os.path.exists('food_recommender.pkl'):
-            with open('food_recommender.pkl', 'rb') as f:
+        if os.path.exists('models/food_recommender.pkl'):
+            with open('models/food_recommender.pkl', 'rb') as f:
                 global food_recommender
                 food_recommender = pickle.load(f)
             print("Food recommender loaded dari pickle file")
         else:
-            # Jika file pickle tidak ada, load dari CSV
-            if os.path.exists('nutrimood_preprocessed.csv'):
-                food_recommender.load_data('nutrimood_preprocessed.csv')
-                print("Food recommender loaded dari CSV file")
-            else:
-                print("Warning: File dataset tidak ditemukan")
+            print("Error: models/food_recommender.pkl tidak ditemukan")
     except Exception as e:
         print(f"Error loading data: {str(e)}")
-
+        food_recommender = None
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -553,6 +552,8 @@ async def get_food_details(food_name: str):
             'primary_mood_num': 0
         }
     }
+
+@app.get("/debug/compare-foods")
 async def compare_foods(food1: str, food2: str):
     """Compare features between two foods"""
     if food_recommender is None or food_recommender.food_df is None:
@@ -579,12 +580,20 @@ async def compare_foods(food1: str, food2: str):
     }
     
     return result
-async def debug_full_process(request: RecommendationRequest):
+
+@app.get("/debug/full-process")
+async def debug_full_process(mood: str = "energizing", health_conditions: str = "diabetes", top_n: int = 5):
     """Debug lengkap untuk melihat seluruh proses"""
     if food_recommender is None or food_recommender.food_df is None:
         raise HTTPException(status_code=503, detail="Dataset belum dimuat")
     
     try:
+        request = RecommendationRequest(
+            mood=mood,
+            health_conditions=[health_conditions] if health_conditions else None,
+            top_n=top_n
+        )
+        
         print(f"\n=== FULL DEBUG PROCESS ===")
         print(f"Request: {request}")
         
@@ -657,6 +666,8 @@ async def debug_full_process(request: RecommendationRequest):
     except Exception as e:
         print(f"Error in full debug: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/debug/energizing-foods")
 async def debug_energizing_foods():
     """Debug endpoint untuk melihat makanan energizing"""
     if food_recommender is None or food_recommender.food_df is None:
@@ -675,6 +686,8 @@ async def debug_energizing_foods():
         "top_10_by_calories": top_energizing[['name', 'calories', 'proteins', 'fat', 'carbohydrate']].to_dict('records'),
         "search_kacang": df[df['name'].str.contains('kacang', case=False, na=False)][['name', 'calories', 'primary_mood', 'is_energizing']].to_dict('records') if 'is_energizing' in df.columns else []
     }
+
+@app.get("/debug/dataset-info")
 async def get_dataset_info():
     """Debug endpoint untuk melihat info dataset"""
     if food_recommender is None or food_recommender.food_df is None:
