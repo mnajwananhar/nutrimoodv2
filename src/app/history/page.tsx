@@ -485,7 +485,8 @@ export default function HistoryPage() {
             <div className="flex-1">
               <label className="block text-sm font-medium text-forest-900 mb-2">
                 Filter Mood
-              </label>              <select
+              </label>{" "}
+              <select
                 value={moodFilter}
                 onChange={(e) => setMoodFilter(e.target.value)}
                 className="w-full border border-sage-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500 text-sm sm:text-base"
