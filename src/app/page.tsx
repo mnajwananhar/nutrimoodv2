@@ -208,7 +208,7 @@ export default function HomePage() {
                 <Utensils className="w-6 sm:w-8 h-6 sm:h-8" />
               </div>
               <h3 className="text-lg sm:text-xl font-bold text-forest-900 mb-2 text-center">
-                1,346 Makanan Indonesia
+                1,289 Makanan Indonesia
               </h3>
               <p className="text-sage-700 text-center text-sm sm:text-base">
                 Database lengkap makanan tradisional Indonesia dengan informasi
