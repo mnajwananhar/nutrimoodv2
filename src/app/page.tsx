@@ -65,7 +65,7 @@ export default function HomePage() {
             <div className="grid grid-cols-3 gap-4 sm:gap-8 max-w-2xl mx-auto pt-8 sm:pt-12 px-4">
               <div className="text-center">
                 <div className="text-2xl sm:text-3xl font-bold text-forest-700">
-                  1,346
+                  1,289
                 </div>
                 <div className="text-sm sm:text-base text-sage-600">
                   Makanan Indonesia
