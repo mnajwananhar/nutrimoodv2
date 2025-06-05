@@ -140,10 +140,10 @@ export default function ResultsPage() {
               })) || [];
           setAssessmentData({
             input: {
-              calorie_level: assessment.calorie_level,
-              protein_level: assessment.protein_level,
-              fat_level: assessment.fat_level,
-              carb_level: assessment.carb_level,
+              calorie_level: 0, // Default value untuk backward compatibility
+              protein_level: 0, // Default value untuk backward compatibility
+              fat_level: 0, // Default value untuk backward compatibility
+              carb_level: 0, // Default value untuk backward compatibility
               health_condition:
                 healthConditions.length > 0 ? healthConditions : null,
               selected_mood: assessment.selected_mood,
@@ -265,9 +265,7 @@ export default function ResultsPage() {
   if (!assessmentData) {
     return null; // Will redirect to assessment
   }
-
   const { input, result, timestamp } = assessmentData;
-  const levelLabels = ["Sangat Rendah", "Rendah", "Sedang", "Tinggi"];
 
   // Health condition value-to-label mapping
   const healthConditionLabels: Record<string, string> = {
@@ -289,9 +287,9 @@ export default function ResultsPage() {
           </div>
           <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-forest-900 mb-3 sm:mb-4 px-4">
             Rekomendasi Personal Anda
-          </h1>
+          </h1>{" "}
           <p className="text-base sm:text-lg text-sage-700 px-4">
-            Berdasarkan analisis pola nutrisi pada{" "}
+            Berdasarkan mood dan kondisi kesehatan Anda pada{" "}
             {new Date(timestamp).toLocaleDateString("id-ID", {
               weekday: "long",
               year: "numeric",
@@ -333,50 +331,26 @@ export default function ResultsPage() {
                 <div className="text-xl sm:text-2xl font-bold text-forest-700">
                   {formatConfidence(result.mood_prediction.confidence)}
                 </div>
-              </div>
+              </div>{" "}
               <p className="text-xs sm:text-sm text-sage-600 leading-relaxed">
-                Berdasarkan pola nutrisi Anda, AI kami memprediksi mood ini
-                dengan tingkat kepercayaan yang tinggi.
+                Berdasarkan mood yang Anda pilih dan kondisi kesehatan, AI kami
+                memberikan rekomendasi yang sesuai.
               </p>
-            </div>
+            </div>{" "}
             {/* Input Summary */}
             <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-earth border border-sage-200">
               <h3 className="font-semibold text-forest-900 mb-3 sm:mb-4 flex items-center gap-2 text-base sm:text-lg">
-                <Utensils className="w-4 h-4 sm:w-5 sm:h-5" />
+                <Smile className="w-4 h-4 sm:w-5 sm:h-5" />
                 Ringkasan Input Anda
               </h3>
               <div className="space-y-2 sm:space-y-3">
+                {/* Mood Selection */}
                 <div className="flex justify-between items-center">
                   <span className="text-sage-600 text-sm sm:text-base">
-                    Kalori:
+                    Mood yang Dipilih:
                   </span>
-                  <span className="font-medium text-forest-700 text-sm sm:text-base">
-                    {levelLabels[input.calorie_level]}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sage-600 text-sm sm:text-base">
-                    Protein:
-                  </span>
-                  <span className="font-medium text-forest-700 text-sm sm:text-base">
-                    {" "}
-                    {levelLabels[input.protein_level]}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sage-600 text-sm sm:text-base">
-                    Lemak:
-                  </span>
-                  <span className="font-medium text-forest-700 text-sm sm:text-base">
-                    {levelLabels[input.fat_level]}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sage-600 text-sm sm:text-base">
-                    Karbohidrat:
-                  </span>
-                  <span className="font-medium text-forest-700 text-sm sm:text-base">
-                    {levelLabels[input.carb_level]}
+                  <span className="font-medium text-forest-700 text-sm sm:text-base capitalize">
+                    {input.selected_mood || result.mood_prediction.mood}
                   </span>
                 </div>
                 {/* Health Condition */}

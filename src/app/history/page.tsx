@@ -63,14 +63,6 @@ interface MoodStats {
   favoriteTime: string;
 }
 
-const getLevelLabelIndonesia = (level: number): string => {
-  if (level <= 1) return "Sangat Rendah";
-  if (level <= 2) return "Rendah";
-  if (level <= 3) return "Sedang";
-  if (level <= 4) return "Tinggi";
-  return "Sangat Tinggi";
-};
-
 const getMoodIcon = (mood: string) => {
   const moodIcons: {
     [key: string]: React.ComponentType<{ className?: string }>;
@@ -285,26 +277,77 @@ export default function HistoryPage() {
     }
     setExpandedItems(newExpanded);
   };
-
   const exportData = async () => {
     try {
-      const csvContent = assessments.map((assessment) => ({
-        tanggal: new Date(assessment.created_at).toLocaleDateString("id-ID"),
-        kalori: assessment.calorie_level,
-        protein: assessment.protein_level,
-        lemak: assessment.fat_level,
-        karbohidrat: assessment.carb_level,
-        mood_prediksi: assessment.selected_mood || assessment.predicted_mood,
-        akurasi: formatConfidence(assessment.confidence_score),
-        catatan: assessment.notes || "",
-      }));
+      interface CsvRow {
+        tanggal: string;
+        mood_dipilih: string;
+        kondisi_kesehatan: string;
+        akurasi: string;
+        catatan: string;
+        nama_makanan: string;
+        kalori_makanan: number | string;
+        protein_makanan: string;
+        lemak_makanan: string;
+        karbohidrat_makanan: string;
+        kecocokan: string;
+        disukai: string;
+      }
+
+      const csvContent: CsvRow[] = [];
+
+      assessments.forEach((assessment) => {
+        const baseData = {
+          tanggal: new Date(assessment.created_at).toLocaleDateString("id-ID"),
+          mood_dipilih: assessment.selected_mood || assessment.predicted_mood,
+          kondisi_kesehatan: assessment.health_condition || "Tidak Ada",
+          akurasi: formatConfidence(assessment.confidence_score),
+          catatan: assessment.notes || "",
+        };
+
+        if (
+          assessment.food_recommendations &&
+          assessment.food_recommendations.length > 0
+        ) {
+          // Untuk setiap makanan, buat baris terpisah
+          assessment.food_recommendations.forEach((food) => {
+            csvContent.push({
+              ...baseData,
+              nama_makanan: food.food_name,
+              kalori_makanan: food.calories,
+              protein_makanan: `${food.proteins}g`,
+              lemak_makanan: `${food.fats}g`,
+              karbohidrat_makanan: `${food.carbohydrates}g`,
+              kecocokan: `${(food.similarity_score * 100).toFixed(1)}%`,
+              disukai: food.is_liked ? "Ya" : "Tidak",
+            });
+          });
+        } else {
+          // Jika tidak ada rekomendasi makanan
+          csvContent.push({
+            ...baseData,
+            nama_makanan: "Tidak Ada",
+            kalori_makanan: "-",
+            protein_makanan: "-",
+            lemak_makanan: "-",
+            karbohidrat_makanan: "-",
+            kecocokan: "-",
+            disukai: "-",
+          });
+        }
+      });
+
+      if (csvContent.length === 0) {
+        error("Tidak ada data untuk di-export");
+        return;
+      }
 
       const csv = [
         Object.keys(csvContent[0]).join(","),
         ...csvContent.map((row) => Object.values(row).join(",")),
       ].join("\n");
 
-      const blob = new Blob([csv], { type: "text/csv" });
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
@@ -357,9 +400,9 @@ export default function HistoryPage() {
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-forest-900">
               Riwayat Analisis
             </h1>
-          </div>
+          </div>{" "}
           <p className="text-sage-600 text-base sm:text-lg">
-            Pantau perkembangan kesehatan nutrisi dan mood Anda dari waktu ke
+            Pantau perkembangan mood dan kondisi kesehatan Anda dari waktu ke
             waktu
           </p>
         </div>
@@ -597,44 +640,37 @@ export default function HistoryPage() {
                                 <ChevronDown className="w-5 h-5 text-sage-600" />
                               )}
                             </button>
+                          </div>{" "}
+                        </div>{" "}
+                        {/* Mood and Health Condition Summary */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4">
+                          <div className="bg-forest-50 rounded-lg p-2 sm:p-3">
+                            <div className="text-xs sm:text-sm text-forest-600 mb-1">
+                              Mood yang Dipilih
+                            </div>
+                            <div className="font-semibold text-forest-800 text-xs sm:text-sm capitalize">
+                              {assessment.selected_mood ||
+                                assessment.predicted_mood}
+                            </div>
                           </div>
+                          {assessment.health_condition && (
+                            <div className="bg-purple-50 rounded-lg p-2 sm:p-3">
+                              <div className="text-xs sm:text-sm text-purple-600 mb-1">
+                                Kondisi Kesehatan
+                              </div>
+                              <div className="font-semibold text-purple-800 text-xs sm:text-sm">
+                                {assessment.health_condition
+                                  .split(",")
+                                  .map(
+                                    (condition) =>
+                                      healthConditionLabels[condition.trim()] ||
+                                      condition.trim()
+                                  )
+                                  .join(", ")}
+                              </div>
+                            </div>
+                          )}
                         </div>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-4">
-                          <div className="bg-red-50 rounded-lg p-2 sm:p-3">
-                            <div className="text-xs sm:text-sm text-red-600 mb-1">
-                              Kalori
-                            </div>
-                            <div className="font-semibold text-red-800 text-xs sm:text-sm">
-                              {getLevelLabelIndonesia(assessment.calorie_level)}
-                            </div>
-                          </div>
-                          <div className="bg-blue-50 rounded-lg p-2 sm:p-3">
-                            <div className="text-xs sm:text-sm text-blue-600 mb-1">
-                              Protein
-                            </div>
-                            <div className="font-semibold text-blue-800 text-xs sm:text-sm">
-                              {getLevelLabelIndonesia(assessment.protein_level)}
-                            </div>
-                          </div>
-                          <div className="bg-yellow-50 rounded-lg p-3">
-                            <div className="text-sm text-yellow-600 mb-1">
-                              Lemak
-                            </div>
-                            <div className="font-semibold text-yellow-800">
-                              {getLevelLabelIndonesia(assessment.fat_level)}
-                            </div>
-                          </div>
-                          <div className="bg-green-50 rounded-lg p-3">
-                            <div className="text-sm text-green-600 mb-1">
-                              Karbohidrat
-                            </div>
-                            <div className="font-semibold text-green-800">
-                              {getLevelLabelIndonesia(assessment.carb_level)}
-                            </div>
-                          </div>
-                        </div>
-
                         {assessment.notes && (
                           <div className="bg-sage-50 rounded-lg p-3 mb-4">
                             <div className="text-sm text-sage-600 mb-1">
@@ -645,25 +681,6 @@ export default function HistoryPage() {
                             </div>
                           </div>
                         )}
-
-                        {assessment.health_condition && (
-                          <div className="bg-purple-50 rounded-lg p-3 mb-4">
-                            <div className="text-sm text-purple-600 mb-1">
-                              Kondisi Kesehatan
-                            </div>
-                            <div className="text-purple-800 font-semibold">
-                              {assessment.health_condition
-                                .split(",")
-                                .map(
-                                  (condition) =>
-                                    healthConditionLabels[condition.trim()] ||
-                                    condition.trim()
-                                )
-                                .join(", ")}
-                            </div>
-                          </div>
-                        )}
-
                         {expandedItems.has(assessment.id) &&
                           assessment.food_recommendations && (
                             <div className="border-t border-sage-200 pt-4">
