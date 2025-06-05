@@ -23,13 +23,14 @@ import { useRouter } from "next/navigation";
 
 interface UserStats {
   assessments_count: number;
-  recommendations_count: number;
+  liked_foods_count: number;
   posts_count: number;
   likes_received: number;
   days_active: number;
   avg_confidence_score: number;
   favorite_foods: string[];
   mood_trend: string;
+  streak_days: number;
 }
 
 interface RecentActivity {
@@ -57,6 +58,35 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  // Function to calculate consecutive days with activity
+  const calculateStreakDays = (activities: { created_at: string }[]) => {
+    if (activities.length === 0) return 0;
+
+    const dates = activities
+      .map((activity) => new Date(activity.created_at).toDateString())
+      .filter((date, index, array) => array.indexOf(date) === index)
+      .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+
+    let streak = 0;
+    let currentDate = new Date();
+
+    for (const dateStr of dates) {
+      const activityDate = new Date(dateStr);
+      const diffDays = Math.floor(
+        (currentDate.getTime() - activityDate.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      if (diffDays === streak) {
+        streak++;
+      } else {
+        break;
+      }
+      currentDate = activityDate;
+    }
+
+    return streak;
+  };
 
   const fetchUserStats = useCallback(async () => {
     if (!user) return;
@@ -153,15 +183,19 @@ export default function DashboardPage() {
         .map((f: { food_name: string }) => f.food_name)
         .slice(0, 3);
 
+      // Calculate streak days (consecutive days with activity)
+      const streakDays = calculateStreakDays([...assessments, ...posts]);
+
       setStats({
         assessments_count: assessments.length,
-        recommendations_count: assessments.length, // Assuming each assessment gives recommendations
+        liked_foods_count: favFoods.length,
         posts_count: posts.length,
         likes_received: likes.length,
         days_active: daysActive,
         avg_confidence_score: Math.round(avgConfidenceScore * 10) / 10,
         favorite_foods: favoriteFoods,
         mood_trend: moodTrend,
+        streak_days: streakDays,
       });
     } catch (err) {
       console.error("Error fetching user stats:", err);
@@ -359,17 +393,17 @@ export default function DashboardPage() {
               <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
                   <div className="bg-green-100 p-2 sm:p-3 rounded-lg">
-                    <Target className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                    <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
                   </div>
                   <span className="text-xl sm:text-2xl font-bold text-forest-900">
-                    {stats?.recommendations_count || 0}
+                    {stats?.liked_foods_count || 0}
                   </span>
                 </div>
                 <h3 className="font-semibold text-forest-900 mb-1 text-sm sm:text-base">
-                  Rekomendasi
+                  Makanan Disukai
                 </h3>
                 <p className="text-xs sm:text-sm text-sage-600">
-                  Rekomendasi makanan diterima
+                  Makanan yang Anda sukai
                 </p>
               </div>
 
@@ -392,18 +426,18 @@ export default function DashboardPage() {
 
               <div className="bg-white rounded-2xl shadow-sm p-4 sm:p-6 border border-sage-200">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="bg-red-100 p-2 sm:p-3 rounded-lg">
-                    <Heart className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+                  <div className="bg-purple-100 p-2 sm:p-3 rounded-lg">
+                    <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                   </div>
                   <span className="text-xl sm:text-2xl font-bold text-forest-900">
-                    {stats?.likes_received || 0}
+                    {stats?.streak_days || 0}
                   </span>
                 </div>
                 <h3 className="font-semibold text-forest-900 mb-1 text-sm sm:text-base">
-                  Total Suka
+                  Streak Hari
                 </h3>
                 <p className="text-xs sm:text-sm text-sage-600">
-                  Jumlah suka yang diterima
+                  Hari berturut-turut aktif
                 </p>
               </div>
             </div>
